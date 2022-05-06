@@ -22,8 +22,8 @@ $pages = $parser->getPageList();
 
      <style>
      body {
-    padding: 0.5em;
- }
+        padding: 0.5em;
+     }
      </style>
    </head>
    <body>
