@@ -6,12 +6,18 @@
       
       <title>Extract sentences from pasted text</title>
       
+     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet">
       <link rel="stylesheet" type="text/css" href="./static/main.css">
       <link rel="stylesheet" type="text/css" href="./static/fonts.css">
       <!-- Icons-->
       <link rel="apple-touch-icon" sizes="180x180" href="./static/icons/180.png">
       <link rel="icon" type="image/png" sizes="32x32" href="./static/icons/32.png">
       <link rel="icon" type="image/png" sizes="16x16" href="./static/icons/16.png">
+     <style>
+     body {
+        padding: 0.5em;
+     }
+     </style>
      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
      <script>
      function copyTextToClipboard() {
