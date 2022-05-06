@@ -18,18 +18,18 @@ class HtmlParse {
         return $dom;
     }
     public function checkSentence( $sentence ) {
-        if( strlen( preg_replace( '/\s+/', '', $sentence ) ) < 1 ) {
+        if( strlen( preg_replace( '/\s+/', '', $sentence ) ) < 2 ) {
             return false;
         }
         return true;
     }
     public function prepareRaw( $text ) {
-        #echo "HtmlParse::prepareRow before: $text\n";
+        //echo "HtmlParse::prepareRow before: $text\n";
         $text = preg_replace( '/\s*\<br\s*\\*\>/', '\n', $text );
-        $text = preg_replace( '/["“”]/', '', $text );
+        $text = preg_replace( '/["“”\\n]/', '', $text );
         // Restore the removed Ā
         $text = str_replace( $this->Amarker, 'Ā', $text );
-        #echo "HtmlParse::prepareRow after: $text\n";
+        //echo "HtmlParse::prepareRow after: $text\n";
         return $text;
     }
     public function preprocessHTML( $text ) {
@@ -41,18 +41,16 @@ class HtmlParse {
     }
     public function processText( $text ) {
         $results = [];
-        $lines = explode( '\n', $text );
-        foreach( $lines as $line ) {
+        $text = str_replace( "\n", " ", $text );
+        $lines = preg_split('/(?<=[.?!])\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+        foreach( $lines as $sentence ) {
             // What to do with sentences ending in a question mark?
-            if( preg_match( '/\?/', $line ) ) {
+            if( preg_match( '/\?/', $sentence ) ) {
                 //echo "? found in '" . $line . "\n";
             }
-            $sentences = explode( ".", $line );
-            foreach( $sentences as $sentence ) {
-                $sentence = trim( $sentence );
-                if( $this->checkSentence( $sentence ) ) {
-                    array_push( $results, $sentence . "." );
-                }
+            $sentence = trim( $sentence );
+            if( $this->checkSentence( $sentence ) ) {
+                array_push( $results, $sentence );
             }
         }
         return $results;
