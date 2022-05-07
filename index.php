@@ -147,7 +147,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
             $words = preg_split( "/[\s,]+/",  $sentence );
             foreach( $words as $w ) {
                 $normalized = ($word == $normalizedWord) ? normalizeString( $w ) : $w;
-                if( $target == $normalized ) {
+                if( !strcasecmp( $target, $normalized ) ) {
                     $w = '<strong>' . $w . '</strong>';
                 }
                 $result .= $w . ' ';
