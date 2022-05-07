@@ -29,6 +29,9 @@ class DB {
     public function connect() {
         global $dbconfig;
         $servername = $dbconfig["servername"];
+        if( $servername == $_SERVER['HTTP_HOST'] ) {
+            $servername = "localhost";
+        }
         $socket = $dbconfig["socket"];
         $username = $dbconfig["username"];
         $password = $dbconfig["password"];
