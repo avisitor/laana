@@ -144,11 +144,19 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
             $sentence = $row['hawaiiantext'];
             $result = "";
             $target = ($pattern == 'exact') ? $word : $normalizedWord;
+            $tw = $target;
+            $targetwords = preg_split( "/[\s]+/",  $target );
             $words = preg_split( "/[\s,]+/",  $sentence );
             foreach( $words as $w ) {
-                $normalized = ($word == $normalizedWord) ? normalizeString( $w ) : $w;
-                if( !strcasecmp( $target, $normalized ) ) {
-                    $w = '<strong>' . $w . '</strong>';
+                //$normalized = ($word == $normalizedWord) ? normalizeString( $w ) : $w;
+                $normalized = normalizeString( $w );
+                foreach( $targetwords as $tw ) {
+                    $sourceword = ( preg_match( "/[ōīēūāŌĪĒŪĀ‘ʻ]/", $tw ) ) ? $w : $normalized;
+                    //error_log( "index.php: comparing $tw to $sourceword" );
+                    if( !strcasecmp( $tw, $sourceword ) ) {
+                        //error_log( "index.php: matched $tw to $sourceword" );
+                        $w = '<strong>' . $w . '</strong>';
+                    }
                 }
                 $result .= $w . ' ';
             }
