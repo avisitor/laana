@@ -44,10 +44,6 @@ class HtmlParse {
         $text = str_replace( "\n", " ", $text );
         $lines = preg_split('/(?<=[.?!])\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
         foreach( $lines as $sentence ) {
-            // What to do with sentences ending in a question mark?
-            if( preg_match( '/\?/', $sentence ) ) {
-                //echo "? found in '" . $line . "\n";
-            }
             $sentence = trim( $sentence );
             if( $this->checkSentence( $sentence ) ) {
                 array_push( $results, $sentence );
