@@ -34,7 +34,7 @@ $pages = $parser->getPageList();
          $keys = array_keys( $page );
          $title = $keys[0];
          $link = $page[$title];
-         $getsentences = "extractCB?url=$link";
+         $getsentences = "$pageextract?url=$link";
      ?>
          <li><a href="<?=$link?>"><?=$title?></a><br><a href="<?=$getsentences?>">Parse it</a></li><br />
      <?php
