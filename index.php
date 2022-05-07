@@ -95,8 +95,10 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         <button class="character-insert-button" type="button" onclick="insertcharacter('ʻ')">ʻ</button>
         <div id="search-options" style="display:none;">
 			<ul class="dd-menu">
+          <!--
 			    <li class="character-insert-button" onclick="insertcharacter(' #minlength ')">Minimum Length (number)</li>
 			    <li class="character-insert-button" onclick="insertcharacter(' #maxlength ')">Maximum Length (number)</li>
+          -->
           <li>Match type:&nbsp;&nbsp;
           <label for="exact">Exact</label>
           <input id="exact" type="radio" name="pattern" value="Exact" onclick="setPattern('exact')"/>
@@ -192,7 +194,7 @@ if( sizeof( $rows ) < 1 ) {
               <p>Donʻt know where to start? Try these examples!</p>
               <ul>
                  <li><a href="?search=kumu">Kumu</a></li>
-                 <li><a href="?search=makuakāne"> Makuakāne</a></li>
+                 <li><a href="?search=makuakāne">Makuakāne</a></li>
                  <li><a href="?search=<?=$laana->getRandomWord()?>">Search for a random sentence!</a></li>
               </ul>
               <h3>Why use Laʻana?</h3>
