@@ -36,18 +36,21 @@ div.hawaiiansentence{
     font-family:Open Sans,Arial;
     color:#454545;
     font-size:24px;
-    line-height:1.0;
-    text-align:justify;
+}
+
+p.title{
+    font-size:20px;
+    margin: 0;
+    margin-bottom: -0.3em;
+}
+
+p.authors{
+    font-size:18px;
 }
 
 p.source{
-    font-family:Open Sans,Arial;
-    color:#454545;
     font-size:14px;
-    line-height:0.7;
-    text-align:justify;
-    margin-top: -1em;
-    margin-bottom: 1.5em;
+    line-height:0.5;
 }
 
 div.engsentence{
