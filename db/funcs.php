@@ -57,8 +57,8 @@ class DB {
         if( $this->conn == null ) {
             return [];
         }
-        debuglog( $sql );
-        debuglog( $values );
+        debuglog( "getDBRows: " . $sql );
+        debuglog( "getDBRows: " . $values );
         try {
             $stmt = $this->conn->prepare( $sql );
             if( $values ) {
@@ -202,6 +202,8 @@ function normalizeString( $term ) {
 }
 
 class Laana extends DB {
+    private $pageNumber = 0;
+    private $pageSize = 10;
     public function getRandomWord( $minlength = 5 ) {
         $count = $this->getSentenceCount();
         $len = 0;
@@ -219,7 +221,7 @@ class Laana extends DB {
         }
         return $word;
     }
-    public function getSentences( $term, $pattern ) {
+    public function getSentences( $term, $pattern, $pageNumber = -1 ) {
         $normalizedTerm = normalizeString( $term );
         $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
         if( $normalizedTerm == $term ) {
@@ -228,7 +230,7 @@ class Laana extends DB {
             $search = "hawaiianText";
         }
         if( sizeof( $words ) < 2 || $pattern == 'exact' ) {
-            $sql = "select authors,sourceName,hawaiianText from sentences s, sources o where $search REGEXP " . "'" . "[[:space:]]" . $term . "[[:space:]]" . "' and s.sourceID = o.sourceID";
+            $sql = "select authors,sourceName,s.sourceID,link,hawaiianText from sentences s, sources o where $search REGEXP " . "'" . "[[:space:]]" . $term . "[[:space:]]" . "' and s.sourceID = o.sourceID";
         } else {
             $sql = "select authors,sourceName,hawaiianText from sentences s, sources o where $search REGEXP '(";
             if( $pattern == 'order' ) {
@@ -245,9 +247,12 @@ class Laana extends DB {
             $sql = trim( $sql, '.*|' );
             $sql .= ")' and s.sourceID = o.sourceID group by sentenceID";
         }
-        debuglog( $sql );
+        if( $pageNumber >= 0 ) {
+            $sql .= " limit " . $pageNumber * $this->pageSize . "," . $this->pageSize;
+        }
+        debuglog( "getSentences: " . $sql );
         $rows = $this->getDBRows( $sql );
-        debuglog( "user info: " . var_export( $rows, true ) );
+        debuglog( "getSentences result: " . var_export( $rows, true ) );
         return $rows;
     }
     public function getSources() {
@@ -263,6 +268,7 @@ class Laana extends DB {
     public function getSentenceCount() {
         $sql = "select count(sentenceID) count from sentences";
         $rows = $this->getDBRows( $sql );
+        debuglog( "getSentenceCount: " . var_export( $rows, true ) );
         return $rows[0]['count'];
     }
 }

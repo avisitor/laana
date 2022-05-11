@@ -38,12 +38,16 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
       <meta name="description" content="Hawaiian dictionary search for malie">
       
       <link rel="stylesheet" type="text/css" href="./static/main.css">
+          <!--
       <link rel="stylesheet" type="text/css" href="./static/fonts.css">
+          -->
       <!-- Icons-->
       <link rel="apple-touch-icon" sizes="180x180" href="./static/icons/180.png">
       <link rel="icon" type="image/png" sizes="32x32" href="./static/icons/32.png">
       <link rel="icon" type="image/png" sizes="16x16" href="./static/icons/16.png">
 
+     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+      <script src="https://unpkg.com/infinite-scroll@4/dist/infinite-scroll.pkgd.js"></script>
       <script type="text/javascript" src="./static/helpers.js"></script>
 
 <script>
@@ -114,117 +118,58 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
     </center>
     <script>
           document.getElementById('<?=$pattern?>').checked = true;
-    </script>
-    <div class="sentences">
-
 <?php
-    if( isset( $_GET['sources'] ) ) {
-        $rows = $laana->getSources();
-    } else if( $word ) {
-        $rows = $laana->getSentences( $word, $pattern );
+    if( $word ) {
+?>
+        $(document).ready(function() {
+            var pageNumber = 0;
+            let $container = $('.sentences').infiniteScroll({
+                path: 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}',
+                history: false,
+                prefill: true,
+                debug: true,
+                //responseBody: 'json',
+                append: 'div.hawaiiansentence',
+             });
+         });
+<?php
     }
+?>
+     </script>
+     <div class="sentences">
+<?php
 
-    //var_export( $rows );
-    foreach( $rows as $row ) {
-        $source = $row['sourcename'];
-        $authors = $row['authors'];
+    if( !$word ) {
         if( isset( $_GET['sources'] ) ) {
-            $count = $row['count'];
-            $link = $row['link'];
-            ?>
-            <div class="hawaiiansentence">
-              <p><a href="<?=$link?>" target="_blank"><?=$source?></a></p>
-              <p>Authors: <?=$authors?></p>
-            </div>
-            <div class="engsentence">
-              <p><?=$count?> sentences.</p>
-            </div>
-            <hr>
-
-<?php
-        } else {
-            $sentence = $row['hawaiiantext'];
-            $result = "";
-            $target = ($pattern == 'exact') ? $word : $normalizedWord;
-            $tw = $target;
-            $targetwords = preg_split( "/[\s]+/",  $target );
-            $words = preg_split( "/[\s,]+/",  $sentence );
-            foreach( $words as $w ) {
-                //$normalized = ($word == $normalizedWord) ? normalizeString( $w ) : $w;
-                $normalized = normalizeString( $w );
-                foreach( $targetwords as $tw ) {
-                    $sourceword = ( preg_match( "/[ōīēūāŌĪĒŪĀ‘ʻ]/", $tw ) ) ? $w : $normalized;
-                    //error_log( "index.php: comparing $tw to $sourceword" );
-                    if( !strcasecmp( $tw, $sourceword ) ) {
-                        //error_log( "index.php: matched $tw to $sourceword" );
-                        $w = '<strong>' . $w . '</strong>';
-                    }
-                }
-                $result .= $w . ' ';
-            }
-            $sentence = $result;
+            $rows = $laana->getSources();
+            //var_export( $rows );
+            foreach( $rows as $row ) {
+                $source = $row['sourcename'];
+                $authors = $row['authors'];
+                $link = $row['link'];
+                $sourcelink = "<a href='$link' target='_blank'>$source</a>";
+                $count = $row['count'];
  ?>
-                  
-            <div class="hawaiiansentence">
-              <p><?=$sentence?></p>
-              <p class='source'><?=$source?></p>
-              <p class='source'><?=$authors?></p>
-            </div>
-            <hr>
-
+          <div class="hawaiiansentence">
+              <p class='title'><?=$sourcelink?></p>
+              <p class='authors'>Authors: <?=$authors?></p>
+          </div>
+          <div class="engsentence">
+              <p class='source'><?=$count?> sentences</p>
+          </div>
+          <hr class='sources'>
 <?php
+            }
+        } else {
+            if( isset( $_GET['about'] ) ) {
+                include 'about.html';
+            } else {
+                $sentenceCount = $laana->getSentenceCount();
+                include 'overview.html';
+            }
         }
-   }
-if( sizeof( $rows ) < 1 ) {
-    $sentenceCount = $laana->getSentenceCount();
-    if( isset( $_GET['about'] ) ) {
-?>
-           <h2>About Laʻana!</h2>
-              <div style="font-size: 18px;">
-                <p>Laʻana is a tool for learners of Hawaiian to search example sentences. Our goal is to allow learners to see how words are used in context, similar to <a href="https://tatoeba.org/en/" target="_blank">The Tatoeba Project.</a> This is useful for things like adding sentences to flashcards, or just seeing more context to better understand a word.</p>
-                <p>This project also serves a secondary purpose of being the first Hawaiian sentence corpus. This means that we can eventually begin collecting some interesting data on things like word frequency and common search terms.</p>
-                <p>Laʻana! is a pet project by <a href="https://github.com/MeijiIshinIsLame" target="_blank">Zachary Silva</a>. I don't know why I am compelled to use the word "we" since I am the only person working on this. I am not making any money on this project. This was simply made for fun and because I have an interest in prepetuating the Hawaiian language.</p>
-                <p>If you have any questions or suggestions, please email <b>laanadev@gmail.com</b>. Any advice or criticism is appreciated.</p>
-              </div>
-<?php
-    } else {
-?>
-           <h3>What is Laʻana?</h3>
-              <p>Laʻana is a tool for learners of Hawaiian to search example sentences.</p>
-              <p>Donʻt know where to start? Try these examples!</p>
-              <ul>
-                 <li><a href="?search=kumu">Kumu</a></li>
-                 <li><a href="?search=makuakāne">Makuakāne</a></li>
-                 <li><a href="?search=<?=$laana->getRandomWord()?>">Search for a random sentence!</a></li>
-              </ul>
-              <h3>Why use Laʻana?</h3>
-              <p>Hawaiian is a living language, and learners should be able to look up real examples of how it is used.</p>
-              <p>These examples can be great for making flashcards, checking nuance, checking usage frequency, etc.</p>
-              <h3>Other Resources</h3>
-              <ul>
-                <li><a href="https://ulukau.org/index.php?l=en" target="_blank">Ulukau - Hawaiian Dictionary</a></li>
-                <li><a href="http://ulukau.org/kaniaina/?a=cl&cl=CL1&sp=A&ai=1&e=-------en-20--1--txt-tpIN%7ctpTI%7ctpTA%7ctpCO%7ctpTY%7ctpLA%7ctpKE%7ctpPR%7ctpSG%7ctpTO%7ctpTG%7ctpSM%7ctpTR%7ctpSP%7ctpCT%7ctpET%7ctpHT%7ctpDT%7ctpOD%7ctpDF-----------------" target="_blank">Ka Leo Hawaiʻi - Radio interviews with native speakers of Hawaiian</a></li>
-                <li><a href="https://nupepa.org/" target="_blank">Nūpepa - Newspaper archives in Hawaiian</a></li>
-                <li><a href="https://fluxhawaii.com/section/olelo-hawaii/" target="_blank">Flux Hawaii - Modern articles in Hawaiian</a>
-                </li>
-                <li><a href="https://www.civilbeat.org/projects/ka-ulana-pilina/" target="_blank">Civil Beat Articles in Hawaiian</a></li>
-                <li><a href="http://www.ulukau.org/elib/collect/spoken/index/assoc/D0.dir/book.pdf" target="_blank">Ulukau - Hawaiian Dictionary</a></li>
-                <li><a href="https://ulukau.org/index.php?l=en" target="_blank">Spoken Hawaiian - Great book for beginner grammar. (People who have learned Japanese can consider this the Tae Kim of Hawaiian.)</a></li>
-                <li><a href="https://manomano.io/" target="_blank">Manomano - Dictionary with flashcards</a></li>
-                <li><a href="https://hawaiian-grammar.org/current/#h.3dy6vkm" target="_blank">Hawaiian Grammar - In depth grammar guide from a linguist perspective.</a></li>
-
-               </ul>
-               <h3>Questions or concerns?</h3>
-               <p>Please email <b>laanadev@gmail.com</b> with any bugs, feature requests, suggestions, etc.</p>
-               <h4>There are currently <?=$sentenceCount?> sentences in the database. Please email if you would like to help! I am in need of sources!</h4>
-<?php
     }
-}
 ?>
-
-            <!--
-              <p><a href="/results/2?search=malie">More Sentences ></a></p>
-        -->
           </div>
         
    </body>
