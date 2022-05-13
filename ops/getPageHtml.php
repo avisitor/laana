@@ -32,7 +32,7 @@ if( $word ) {
                 //error_log( "index.php: comparing $tw to $sourceword" );
                 if( !strcasecmp( $tw, $sourceword ) ) {
                     //error_log( "index.php: matched $tw to $sourceword" );
-                    $w = '<strong>' . $w . '</strong>';
+                    $w = '<span class="match">' . $w . '</span>';
                 }
             }
             $result .= $w . ' ';

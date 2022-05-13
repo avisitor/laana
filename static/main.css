@@ -53,6 +53,10 @@ p.source{
     line-height:0.5;
 }
 
+span.match {
+    font-weight: bold;
+    color: darkblue;
+}
 div.engsentence{
     font-family:Open Sans,Arial;
     color:#454545;
