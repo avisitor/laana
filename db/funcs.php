@@ -261,9 +261,10 @@ class Laana extends DB {
         return $rows;
     }
     public function getSourceByName( $name ) {
-        $sql = "select o.sourceID,sourceName,authors,link,count(sentenceID) count from sources o,sentences s where o.sourceID = s.sourceID and sourceName = '$name' group by o.sourceID";
+        //$sql = "select o.sourceID,sourceName,authors,link,count(sentenceID) count from sources o,sentences s where o.sourceID = s.sourceID and sourceName = '$name' group by o.sourceID";
+        $sql = "select o.sourceID,sourceName,authors,link from sources o where sourceName = '$name' group by o.sourceID";
         $rows = $this->getDBRows( $sql );
-        return $rows[0];
+        return ($rows && sizeof($rows) > 0) ? $rows[0] : [];
     }
     public function getSentenceCount() {
         $sql = "select count(sentenceID) count from sentences";
