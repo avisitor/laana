@@ -9,7 +9,7 @@ $pages = $parser->getPageList();
       <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       
-      <title><?=$sourceName?> articles</title>
+      <title><?=$sourceName?></title>
       
      <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet">
       
@@ -27,14 +27,14 @@ $pages = $parser->getPageList();
      </style>
    </head>
    <body>
-     <h1><?=$sourceName?> articles</h1>
+     <h1><?=$sourceName?></h1>
      <ul>
      <?php
      foreach( $pages as $page ) {
          $keys = array_keys( $page );
          $title = $keys[0];
          $link = $page[$title];
-         $getsentences = "$pageextract?url=$link" . "&title=$title";
+         $getsentences = "$pageextract?url=" . urlencode($link) . "&title=" . urlencode($title);
      ?>
          <li><a href="<?=$link?>"><?=$title?></a><br><a href="<?=$getsentences?>">Parse it</a></li><br />
      <?php
