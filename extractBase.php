@@ -16,7 +16,7 @@ $sourceLink = $source['link'] ?: '';
       <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       
-      <title><?=$sourceName?> articles</title>
+      <title><?=$sourceName?></title>
       
      <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet">
       <link rel="stylesheet" type="text/css" href="./static/main.css">
@@ -104,7 +104,7 @@ $sourceLink = $source['link'] ?: '';
      </script>
    </head>
    <body>
-     <h1><?=$sourceName?> articles</h1>
+     <h1><?=$sourceName?></h1>
 
 <?php
 $text = "";
