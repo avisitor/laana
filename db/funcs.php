@@ -250,6 +250,7 @@ function debuglog( $msg ) {
                 $sql = trim( $sql, '.*|' );
                 $sql .= ")' and s.sourceID = o.sourceID group by sentenceID";
             }
+            $sql .= " order by rand()";
             if( $pageNumber >= 0 ) {
                 $sql .= " limit " . $pageNumber * $this->pageSize . "," . $this->pageSize;
             }
