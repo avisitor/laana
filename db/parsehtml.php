@@ -204,6 +204,10 @@ class CBHtml extends HtmlParse {
         }
         return $name;
     }
+    public function fetch( $url, $doXML = false ) {
+        debugPrint( "CBHtml::fetch($url)" );
+        return parent::fetch( $url, false );
+    }
     public function checkSentence( $sentence ) {
         if( !parent::checkSentence( $sentence ) ) {
             return false;
@@ -311,6 +315,10 @@ class AoLamaHTML extends HtmlParse {
             return $this->basename . ' ' . $parts[1] . $parts[2] . $parts[3];
         }
         return $this->basename;
+    }
+    public function fetch( $url, $doXML = false ) {
+        debugPrint( "AolamaHtml::fetch($url)" );
+        return parent::fetch( $url, false );
     }
     public function extract( $dom ) {
         $xpath = new DOMXpath($dom);
