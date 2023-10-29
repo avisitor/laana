@@ -3,7 +3,7 @@ CREATE TABLE `sentences` (
   `sourceID` int(11) NOT NULL,
   `hawaiianText` varchar(255) NOT NULL,
   `englishText` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`sentenceID`),
+  PRIMARY KEY (sourceID, hawaiianText),
   UNIQUE KEY `sentenceID` (`sentenceID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8;
 
@@ -25,11 +25,11 @@ CREATE TABLE `searchstats` (
   UNIQUE KEY `searchterm` (`searchterm`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE `fulltext` (
-  `textID` int(11) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `contents` (
   `sourceID` int(11) NOT NULL,
+  `html` text,
   `text` text,
-  PRIMARY KEY (`textID`),
-  UNIQUE KEY `textID` (`textID`)
+  PRIMARY KEY (`sourceID`),
+  UNIQUE KEY `sourceID` (`sourceID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8;
 
