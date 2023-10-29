@@ -1,9 +1,10 @@
 <?php
-//include 'db/parsehtml.php';
-include 'db/p.php';
-include 'db/funcs.php';
+include_once 'db/parsehtml.php';
+include_once 'db/funcs.php';
 
-$parser = new UlukauHtml();
+set_time_limit(120);
+
+$parser = new UlukauHtml( ['boxContent' => true] );
 
 include 'extractBase.php';
 ?>
