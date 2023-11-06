@@ -1,7 +1,7 @@
 <?php
 include '../db/funcs.php';
 $word = $_REQUEST['word'];
-$pattern = $_REQUEST['pattern'];
+$pattern = strtolower( $_REQUEST['pattern'] );
 $page = $_REQUEST['page'];
 // For some reason infiniteScroll skips the requests for the first two pages
 if( $page >= 2 ) {
@@ -13,14 +13,24 @@ $output = "";
 if( $word ) {
     $replace = [
         "/a|ā|Ā/" => "[aĀā]",
-        //        "/ā/" => "[aĀā]",
-        //        "/Ā/" => "[aĀā]",
+        "/e|ē|Ē/" => "[eĒē]",
+        "/i|ī|Ī/" => "[iĪī]",
+        "/o|ō|Ō/" => "[oŌō]",
+        "/u|ū|Ū/" => "[uŪū]",
     ];
     $repl = "<span>$1</span>";
     $target = ($pattern == 'exact') ? $word : normalizeString( $word );
     $target = normalizeString( $word );
     $targetwords = preg_split( "/[\s]+/",  $target );
-    $tw = ($pattern == 'exact') ? $target : implode( '|', $targetwords );
+    $tw = '';
+    if( $pattern == 'exact' ) {
+        $tw = "\\b$target\\b";
+    } else if( $pattern == 'any' ) {
+        $tw = implode( '|', $targetwords );
+    } else {
+        // order
+        $tw = implode( '\\s+.*\\b', $targetwords );
+    }
     $expanded = "/(" . preg_replace( array_keys( $replace ),
                                      array_values( $replace ),
                                      $tw ) . ")/ui";
@@ -33,12 +43,17 @@ if( $word ) {
         $source = $row['sourcename'];
         $sentenceid = $row['sentenceid'];
         $authors = $row['authors'];
-        $link = $row['link'];
+        $link = isset($row['link']) ? $row['link'] : '';
         $sourcelink = "<a href='$link' target='_blank'>$source</a>";
         $idlink = "<a href='context?id=$sentenceid&raw' target='_blank'>Context</a>";
         $simplified = "<a href='context?id=$sentenceid' target='_blank'>Simplified</a>";
-        $sentence = preg_replace($pat, $repl, $row['hawaiiantext'] );
-        error_log( "pat: $pat, repl: $repl");
+        if( $pattern == 'regex' ) {
+            $sentence = $row['hawaiiantext'];
+            debuglog( "regex: $word");
+        } else {
+            $sentence = preg_replace($pat, $repl, $row['hawaiiantext'] );
+            debuglog( "pat: $pat, repl: $repl");
+        }
         $translate = "https://translate.google.com/?sl=auto&tl=en&op=translate&text=" .
                      $row['hawaiiantext'];
         $output .= <<<EOF
