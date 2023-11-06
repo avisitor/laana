@@ -73,20 +73,20 @@ $pages = $parser->getPageList();
    <body>
      <h1 style='text-align:center;'><?=$sourceName?></h1>
      <div class='box'>
-     <?php
-     foreach( $pages as $page ) {
-         $keys = array_keys( $page );
-         $title = $keys[0];
-         $item = $page[$title];
-         $link = $item['url'];
-         $image = $item['image'];
-         if( $image ) {
-            $image = "<img src='$image' style='max-height:150px;'/><br />";
-         }
-         $getsentences = "$pageextract?url=" . urlencode($link) . "&title=" . urlencode($title);
-     ?>
-         <!-- <tr><td style='width:100%;text-align:center;padding-bottom:1em;'><?=$image?><a href="<?=$link?>"><?=$title?></a><br><a href="<?=$getsentences?>">Parse it</td></tr> -->
-         <div class='item'><?=$image?><a href="<?=$link?>"><?=$title?></a><br><span ><a class="button" href="<?=$getsentences?>">Parse it</a></span></div>
+         <?php
+         foreach( $pages as $page ) {
+             $keys = array_keys( $page );
+             $title = $keys[0];
+             $item = $page[$title];
+             $link = $item['url'];
+             $image = $item['image'];
+             if( $image ) {
+                 $image = "<img src='$image' style='max-height:150px;'/><br />";
+             }
+             $getsentences = "$pageextract?url=" . urlencode($link) . "&title=" . urlencode($title);
+         ?>
+         <!-- <tr><td style='width:100%;text-align:center;padding-bottom:1em;'><?=$image?><a href="<?=$link?>" target="_blank"><?=$title?></a><br><a href="<?=$getsentences?>" target="_blank">Parse it</td></tr> -->
+         <div class='item'><?=$image?><a href="<?=$link?>" target="_blank"><?=$title?></a><br><span ><a class="button" href="<?=$getsentences?>" target="_blank">Parse it</a></span></div>
      <?php
      }
      ?>
