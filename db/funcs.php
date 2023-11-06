@@ -1,6 +1,10 @@
 <?php
 require_once( 'config.php' );
 
+function printObject( $obj ) {
+    echo( var_export( $obj, true ) . "\n" );
+}
+
 function debuglog( $msg ) {
     if( is_object( $msg ) || is_array( $msg ) ) {
         $msg = var_export( $msg, true );
@@ -8,7 +12,8 @@ function debuglog( $msg ) {
     $defaultTimezone = 'Pacific/Honolulu';
     $now = new DateTimeImmutable( "now", new DateTimeZone( $defaultTimezone ) );
     $now = $now->format( 'Y-m-d H:i:s' );
-    error_log( "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n", 3, "/tmp/php_errorlog" );
+    //error_log( "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n", 3, "/tmp/php_errorlog" );
+    error_log( "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n" );
 }
 
 function logRequest() {
@@ -61,8 +66,10 @@ class DB {
         if( $this->conn == null ) {
             return [];
         }
-        debuglog( "getDBRows: " . $sql );
-        debuglog( "getDBRows: " . var_export( $values, true ) );
+        debuglog( "getDBRows sql: " . $sql );
+        if( $values && sizeof( $values ) > 0 ) {
+            debuglog( "getDBRows values: " . var_export( $values, true ) );
+        }
         try {
             $stmt = $this->conn->prepare( $sql );
             if( $values ) {
@@ -82,7 +89,7 @@ class DB {
                 }
                 array_push( $results, $newrow );
             }
-            //debuglog( 'getDBRows: ' . var_export( $results, true ) );
+            debuglog( 'getDBRows: ' . sizeof( $results ) . " rows returned" );
             return $results;
         } catch(PDOException $e) {
             echo "Execution failed: " . $e->getMessage();
@@ -226,6 +233,7 @@ function normalizeString( $term ) {
 class Laana extends DB {
     private $pageNumber = 0;
     private $pageSize = 10;
+    
     public function getRandomWord( $minlength = 5 ) {
         $count = $this->getSentenceCount();
         $len = 0;
@@ -243,7 +251,9 @@ class Laana extends DB {
         }
         return $word;
     }
+    
     public function getSentences( $term, $pattern, $pageNumber = -1 ) {
+        debuglog("Laana::getSentences($term,$pattern,$pageNumber)");
         $useRegex = false;
         $normalizedTerm = normalizeString( $term );
         $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
@@ -258,7 +268,14 @@ class Laana extends DB {
             $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $normalizedTerm );
             $term = $normalizedTerm;
         }
-        if( sizeof( $words ) < 2 || $pattern == 'exact' ) {
+        $values = [];
+        if( $pattern == 'regex' ) {
+            $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP :term and s.sourceID = o.sourceID";
+            $term = preg_replace( '/\\\/', '\\\\', $term );
+            $values = [
+                'term' => $term,
+            ];
+        } else if( sizeof( $words ) < 2 || $pattern == 'exact' ) {
             if( $useRegex ) {
                 $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP " . "'" . "[[:space:]]" . $term . "[[:space:]]" . "' and s.sourceID = o.sourceID";
             } else {
@@ -281,7 +298,7 @@ class Laana extends DB {
                 $sql = trim( $sql, '.*|' );
                 $sql .= ")'";
             } else {
-                $sql = "select authors,sourceName,hawaiianText,sentenceid from sentences s, sources o where ";
+                $sql = "select authors,sourceName,hawaiianText,sentenceid from sentences s, sources o where (";
                 if( $pattern == 'order' ) {
                     $sql .= " $search like '%";
                     foreach( $words as $word ) {
@@ -295,6 +312,7 @@ class Laana extends DB {
                     }
                 }
                 $sql = trim( $sql, ' or ' );
+                $sql .= ')';
             }
             $sql .= " and s.sourceID = o.sourceID group by sentenceID";
         }
@@ -302,11 +320,17 @@ class Laana extends DB {
         if( $pageNumber >= 0 ) {
             $sql .= " limit " . $pageNumber * $this->pageSize . "," . $this->pageSize;
         }
-        debuglog( "getSentences: " . $sql );
-        $rows = $this->getDBRows( $sql );
+        if( sizeof( $values ) > 0 ) {
+            debuglog( "getSentences: " . $sql . "\n" . var_export( $values, true ) );
+            $rows = $this->getDBRows( $sql, $values );
+        } else {
+            debuglog( "getSentences: " . $sql );
+            $rows = $this->getDBRows( $sql );
+        }
         debuglog( "getSentences result: " . var_export( $rows, true ) );
         return $rows;
     }
+    
     public function getSentencesBySourceID( $sourceid ) {
         $sql = "select sentenceID, hawaiianText from sentences where sourceID = :sourceid";
         $values = [
@@ -315,6 +339,7 @@ class Laana extends DB {
         $rows = $this->getDBRows( $sql, $values );
         return $rows;
     }
+    
     public function getSentence( $sentenceid ) {
         $sql = "select * from sentences where sentenceid = :id";
         $values = [
@@ -323,11 +348,19 @@ class Laana extends DB {
         $row = $this->getOneDBRow( $sql, $values );
         return $row;
     }
+    
     public function getSources() {
-        $sql = "select o.sourceID,sourceName,authors,link,count(sentenceID) count from sources o,sentences s where o.sourceID = s.sourceID group by o.sourceID";
+        $sql = "select o.sourceID,sourceName,authors,link,count(sentenceID) count from sources o,sentences s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
         $rows = $this->getDBRows( $sql );
         return $rows;
     }
+    
+    public function getSourceCount() {
+        $sql = "select count(*) c from sources";
+        $row = $this->getOneDBRow( $sql );
+        return $row['c'];
+    }
+    
     public function getSource( $sourceid ) {
         $sql = "select * from sources o where sourceid = :sourceid";
         $values = [
@@ -336,15 +369,16 @@ class Laana extends DB {
         $row = $this->getOneDBRow( $sql, $values );
         return $row;
     }
+    
     public function getSourceByName( $name ) {
-        //$sql = "select o.sourceID,sourceName,authors,link,count(sentenceID) count from sources o,sentences s where o.sourceID = s.sourceID and sourceName = '$name' group by o.sourceID";
-        $sql = "select o.sourceID,sourceName,authors,link from sources o where sourceName = :name group by o.sourceID";
+        $sql = "select * from sources o where sourceName = :name group by o.sourceID";
         $values = [
             'name' => $name,
         ];
-        $rows = $this->getDBRows( $sql, $values );
-        return ($rows && sizeof($rows) > 0) ? $rows[0] : [];
+        $row = $this->getOneDBRow( $sql, $values );
+        return $row;
     }
+    
     public function getSentenceCount() {
         $sql = "select count(sentenceID) count from sentences";
         $rows = $this->getDBRows( $sql );
@@ -362,43 +396,50 @@ class Laana extends DB {
         return $sourceIDs;
     }
 
-    public function addSource( $name, $link = '' ) {
-        $sql = "select * from sources where sourceName = :name";
+    protected function patchSource( $sql, $params ) {
+        $link = $params['link'] ?: '';
+        $groupname = $params['groupname'] ?: '';
+        $date = $params['date'] ?: '';
+        $title = $params['title'] ?: '';
+        $name = $params['sourcename'];
         $values = [
             'name' => $name,
+            'link' => $link,
+            'groupname' => $groupname,
+            'title' => $title,
         ];
-        $row = $this->getOneDBRow( $sql, $values );
-        if( $row['sourceid'] && $link ) {
-            $sql = "update sources set link = :link where sourceName = :name";
-            $values = [
-                'name' => $name,
-                'link' => $link,
-            ];
-            if( $this->executePrepared( $sql, $values ) ) {
-                return $row['sourceid'];
-            } else {
-                return null;
-            }
+        if( $date ) {
+            $values['date'] = $date;
+        }
+        if( $this->executePrepared( $sql, $values ) ) {
+            $row = $this->getSourceByName( $name );
+            return $row['sourceid'];
         } else {
-            $sql = "replace into sources(sourceName, link) values(:name, :link)";
-            $values = [
-                'name' => $name,
-                'link' => $link,
-            ];
-            if( $this->executePrepared( $sql, $values ) ) {
-                $sql = "select sourceID from sources where sourceName = :name";
-                $values = [
-                    'name' => $name,
-                ];
-                $row = $this->getOneDBRow( $sql, $values );
-                //echo( "addSource: " . var_export( $row, true ) . "\n" );
-                return $row['sourceid'];
-            } else {
-                echo "addSource failed to replace source $name\n";
-                return null;
-            }
+            return null;
         }
     }
+
+    public function addSource( $name, $params = [] ) {
+        $params['sourcename'] = $name;
+        if( !$params['date'] ) {
+            unset( $params['date'] );
+        }
+        $link = $params['link'] ?: '';
+        $row = $this->getSourceByName( $name );
+        if( $row['sourceid'] && $link ) {
+            $datespec = ($params['date']) ? ", date = :date" : "";
+            $sql = "update sources set link = :link, groupname = :groupname, " .
+                   "title = :title$datespec where sourceName = :name";
+            return $this->patchSource( $sql, $params );
+        } else {
+            $datekey = ($params['date']) ? ", date" : "";
+            $datevalue = ($params['date']) ? ", :date" : "";
+            $sql = "replace into sources(sourceName, link, groupname$datekey, title) " .
+                   "values(:name, :link, :groupname$datevalue, :title)";
+            return $this->patchSource( $sql, $params );
+        }
+    }
+    
     public function addSomeSentences( $sourceID, $sentences ) {
         $sql = "insert ignore into sentences(sourceID, hawaiianText) values ";
         $values = [
@@ -498,7 +539,4 @@ class Laana extends DB {
         return $row['text'];
     }
 }
-
-//$db = new Laana();
-//$rows = $db->getSentences( 'malie' );
 ?>
