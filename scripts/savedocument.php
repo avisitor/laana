@@ -1,11 +1,14 @@
 <?php
-include 'db/parsehtml.php';
+include '../db/parsehtml.php';
+include 'parsers.php';
 
-function getParser() {
-    //$parser = new CBHtml();
-    //$parser = new UlukauHtml();
-    $parser = new AoLamaHTML();
-    return $parser;
+function getParser( $key ) {
+    global $parsermap;
+    if( isset( $parsermap[$key] ) ) {
+        return $parsermap[$key];
+    } else {
+        return null;
+    }
 }
 
 function hasRaw( $sourceid ) {
@@ -13,10 +16,10 @@ function hasRaw( $sourceid ) {
     $values = [
         'sourceid' => $sourceid,
     ];
-    echo "$sql [$sourceid]\n";
+    //echo "$sql [$sourceid]\n";
     $db = new DB();
     $row = $db->getOneDBRow( $sql, $values );
-    echo( var_export( $row, true ) . "\n" );
+    //echo( var_export( $row, true ) . "\n" );
     $id = $row['sourceid'];
     return $id;
 }
@@ -24,7 +27,13 @@ function hasRaw( $sourceid ) {
 function saveSource( $parser, $url, $title ) {
     $sourceName = $parser->getSourceName( $title, $url );
     $laana = new Laana();
-    $sourceID = $laana->addSource( $sourceName, $url );
+    $params = [
+        'link' => $url,
+        'groupname' => $parser->groupname,
+        'date' => $parser->date,
+        'title' => $title,
+    ];
+    $sourceID = $laana->addSource( $sourceName, $params );
     if( $sourceID ) {
         echo "Added sourceID $sourceID\n";
     } else {
@@ -34,6 +43,7 @@ function saveSource( $parser, $url, $title ) {
 }
 
 function saveRaw( $parser, $url, $sourceName ) {
+    //$parser = new KaPaaMooleloHTML();
     $parser->initialize( $url );
     $title = $parser->title;
     echo "saveRaw - Title: $title; SourceName: $sourceName; Link: $url\n";
@@ -43,21 +53,24 @@ function saveRaw( $parser, $url, $sourceName ) {
     //echo( var_export( $source, true ) . "\n" );
     $sourceID = $source['sourceid'] ?: '';
 
-    $text = $parser->getRawText( $url );
+    //$text = $parser->getRawText( $url );
+    $text = $parser->getContents( $url, [] );
     echo "Read " . strlen($text) . " characters\n";
     //echo "$text\n";
     
     $count = $laana->addRawText( $sourceID, $text );
+    
     echo "$count characters added to raw text table\n";
     return $text;
 }
 
 function checkRaw( $url ) {
+    global $parserkey;
     $laana = new Laana();
-    $parser = getParser();
+    $parser = getParser( $parserkey );
     $parser->initialize( $url );
     $title = $parser->title;
-    $sourceName = $parser->getSourceName( '' );
+    $sourceName = $parser->getSourceName( '', $url );
     $source = $laana->getSourceByName( $sourceName );
     //echo( var_export( $source, true ) . "\n" );
     $sourceID = $source['sourceid'] ?: '';
@@ -74,6 +87,12 @@ function checkRaw( $url ) {
             return false;
         }
     }
+}
+
+function hasSentences( $sourceID ) {
+    $laana = new Laana();
+    $sentences = $laana->getSentencesBySourceID( $sourceID );
+    return ($sentences && sizeof( $sentences ) > 0 );
 }
 
 function addSentences( $parser, $sourceID, $link, $text ) {
@@ -94,12 +113,11 @@ function addSentences( $parser, $sourceID, $link, $text ) {
 }
 
 // A few documents we failed to extract sentences from
-function getFailedUlukauDocuments() {
+function getFailedDocuments( $parser ) {
     $db = new DB();
-    $sql = 'select * from sources where sourceid not in (select distinct sourceid from sentences)';
+    $sql = 'select sourceid from contents where sourceid not in (select distinct sourceid from sentences) and sourceid > 1700 order by sourceid';
     $rows = $db->getDBRows( $sql );
     //echo( var_export( $rows, true ) . "\n" );
-    $parser = new UlukauHtml();
     foreach( $rows as $row ) {
         echo( var_export( $row, true ) . "\n" );
         //echo "${row['sourcename']}\n";
@@ -114,23 +132,28 @@ function getFailedUlukauDocuments() {
 }
 
 $maxrows = 10000;
+//$maxrows = 1;
 function getAllDocuments() {
     global $maxrows;
+    global $parserkey;
+    global $parser;
     $laana = new Laana();
-    $parser = getParser();
+    //$parser = getParser( $parserkey );
     $pages = $parser->getPageList();
-    //echo( var_export( $pages, true ) . "\n" );
+    echo( var_export( $pages, true ) . "\n" );
 
     $i = 0;
     foreach( $pages as $page ) {
-        $parser = getParser();
+        //$parser = getParser( $parserkey );
         $keys = array_keys( $page );
         $title = $keys[0];
         $item = $page[$title];
         $link = $item['url'];
 
-        $parser->initialize( $link );
+        //$parser->initialize( $link );
+        printObject( $parser );
         $sourceName = $parser->getSourceName( $title, $link );
+        
         echo "Title: $title\n";
         echo "SourceName: $sourceName\n";
         echo "Link: $link\n";
@@ -140,18 +163,27 @@ function getAllDocuments() {
         $sourceID = $source['sourceid'];
         if( !$sourceID ) {
             $sourceID = saveSource( $parser, $link, $title );
-            //$sourceID = $laana->addSource( $sourceName, $link );
         }
-
+        
+        $hasSentences = hasSentences( $sourceID );
+        echo( $hasSentences ? "Sentences present for $sourceID\n" : "No sentences for $sourceID\n" );
+        //continue;
+        
         $text = "";
         $present = hasRaw( $sourceID );
         echo "hasRaw: $present\n";
+
         if( !$present ) {
             $text = saveRaw( $parser, $link, $sourceName );
-            addSentences( $parser, $sourceID, $link, $text );
+            if( $text ) {
+                addSentences( $parser, $sourceID, $link, $text );
+            }
         } else {
             echo "$sourceName already has raw text\n";
-            //$text = $laana->getRawText( $sourceID );
+            if( !$hasSentences ) {
+                $text = $laana->getRawText( $sourceID );
+                addSentences( $parser, $sourceID, $link, $text );
+            }
         }
 
         $i++;
@@ -161,10 +193,16 @@ function getAllDocuments() {
     }
 }
 
-
-getAllDocuments();
-
-//getFailedUlukauDocuments();
+$parserkey = (isset( $argv[1] ) ) ? $argv[1] : '';
+$parser = $parsermap[$parserkey];
+if( !$parser ) {
+    $values = join( ",", array_keys( $parsermap ) );
+    echo "Specify a parser: $values\n";
+} else {
+    setDebug( true );
+    getAllDocuments();
+    //getFailedDocuments( $parser );
+}
 
 
 ?>
