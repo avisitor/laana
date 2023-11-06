@@ -11,7 +11,7 @@ if( !$pattern ) {
     }
 }
 $laana = new Laana();
-error_log( "pattern: $pattern" );
+debuglog( "pattern: $pattern; word: $word" );
 $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 //error_log( var_export( $_SERVER, true ) );
 ?>
@@ -81,9 +81,9 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         
        <center>
          <form method="get">
-          <input type="hidden" id="search-pattern" name="searchpattern" />
+          <input type="hidden" id="search-pattern" name="searchpattern" value="<?=$pattern?>" />
             <div class="search-bar">
-                <input name="search" id="searchbar" type="text" placeholder="Enter anything in Hawaiian!" value="<?=$word?>" required />
+                <input name="search" id="searchbar" type="text" size="40" style="width:40em;" placeholder="Enter anything in Hawaiian!" value="<?=$word?>" required />
                 <button type="submit" class="search-button">
                     <i>Go!</i>
                 </button>
@@ -112,30 +112,39 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
           &nbsp;&nbsp;
           <label for="any">Any</label>
           <input id="any" type="radio" name="pattern" value="Any"  onclick="setPattern('any')"/>
+          &nbsp;&nbsp;
+          <label for="regex">Regex</label>
+          <input id="regex" type="radio" name="pattern" value="Regex"  onclick="setPattern('regex')"/>
           </li>
 			</ul>
 		</div>
     </center>
     <script>
-          document.getElementById('<?=$pattern?>').checked = true;
-<?php
-    if( $word ) {
-?>
-        $(document).ready(function() {
-            var pageNumber = 0;
-            let $container = $('.sentences').infiniteScroll({
-                path: 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}',
-                history: false,
-                prefill: true,
-                debug: true,
-                //responseBody: 'json',
-                append: 'div.hawaiiansentence',
+     let el = document.getElementById('<?=$pattern?>');
+     if( el ) {
+         el.checked = true;
+     }
+     <?php
+     if( $word ) {
+         if( $pattern == 'regex' ) {
+             $word = urlencode( $word );
+         }
+     ?>
+         $(document).ready(function() {
+             var pageNumber = 0;
+             let $container = $('.sentences').infiniteScroll({
+                 path: 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}',
+                 history: false,
+                 prefill: true,
+                 debug: true,
+                 //responseBody: 'json',
+                 append: 'div.hawaiiansentence',
              });
          });
-<?php
-    }
-?>
-     </script>
+     <?php
+     }
+     ?>
+    </script>
      <div class="sentences">
 <?php
 
@@ -159,16 +168,17 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
           </div>
           <hr class='sources'>
 <?php
-            }
-        } else {
-            if( isset( $_GET['about'] ) ) {
-                include 'about.html';
-            } else {
-                $sentenceCount = $laana->getSentenceCount();
-                include 'overview.html';
-            }
+}
+} else {
+    if( isset( $_GET['about'] ) ) {
+        include 'about.html';
+    } else {
+        $sentenceCount = number_format($laana->getSentenceCount());
+        $sourceCount = number_format($laana->getSourceCount());
+            include 'overview.html';
         }
-    }
+        }
+        }
 ?>
           </div>
         
