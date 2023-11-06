@@ -2,16 +2,17 @@
 include 'db/parsehtml.php';
 
 $sourceID = $_GET['id'] ?: '';
+$type = isset($_GET['simplified']) ? 'text' : 'html';
 
 if( $sourceID ) {
-    $sql = "select html from contents where sourceid = :sourceid";
+    $sql = "select $type from contents where sourceid = :sourceid";
     $values = [
         'sourceid' => $sourceID,
     ];
     $db = new DB();
     $row = $db->getOneDBRow( $sql, $values );
-    if( $row['html'] ) {
-        echo $row['html'];
+    if( $row[$type] ) {
+        echo str_replace( "\n", "<br />\n", $row[$type] );
     }
 }
 ?>
