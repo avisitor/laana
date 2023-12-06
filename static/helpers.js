@@ -19,3 +19,20 @@ function displaySearchOptions() {
 function setPattern( pattern ) {
 	document.getElementById('search-pattern').value = pattern;
 }
+
+function setNoDiacriticals() {
+    let state = document.getElementById('checkbox-nodiacriticals').checked;
+	document.getElementById('nodiacriticals').value = state;
+}
+
+function changeid() {
+    var theBody = document.getElementById("fadein")
+    if (window.location.pathname=='/') {
+        theBody.style.opacity='1'
+    }
+    else {
+        theBody.id='nofadein'
+    }
+}
+
+ 

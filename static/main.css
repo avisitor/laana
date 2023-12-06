@@ -1,35 +1,76 @@
-a.nostyle{
-    color: inherit; /* blue colors for links too */
-    text-decoration: inherit; /* no underline */
+body {
+    padding: .5em;
 }
 
 div.titletext{
     font-family:Open Sans,Arial;
     border-style: none;
-    background: #A95A4C;
-    border-radius: 25px;
-    color:black;
-    font-size:16px;
-    margin:1.5em auto;
-    padding-bottom: 5px;
-    max-width:300px;
-    text-align:justify
+    background: rgba(50,50,255,.8);
+    border-radius: 10px;
+    color:white;
+    font-size:2em;
+    margin:.1em auto;
+    padding-bottom: .2em;
+    max-width:8em;
+    text-align:justify;
+    text-align:center;
 }
 
 div.titletext p {
     margin:-1em;
+    color: white;
     padding-bottom: 20px;
+    font-size: .4em;
+}
+
+div.titletext:hover {
+  color: #ff7f50 !important;
+  text-decoration: none;
+  transition-duration: 0.1s;
+}
+
+div.rawtext {
+    border-style: none;
+    font-family:Open Sans,Arial;
+    border-radius: 5px;
+    /*
+    background-color: #F0F0FF;
+    */
+    color:black;
+    margin: auto;
+    margin-bottom: .1em;
+    /*max-width:1000px;*/
+    width: 100%;
+    padding: .5em 1em .5em;
+    margin: auto;
+    margin-bottom: .1em;
+    padding: .5em 1em .5em;
+}
+
+div.overview, div.sentences {
+    border-style: none;
+    font-family:Open Sans,Arial;
+    border-radius: 10px;
+    background-image: linear-gradient(to bottom, rgba(50,50,255,0.9), rgba(80,151,255,1));
+    color:white;
+    margin: auto;
+    margin-bottom: .3em;
+/*
+    max-width:1000px;
+*/
+    width: 100%;
+    padding: .5em;
+}
+
+div.overview {
+    margin: auto;
+    margin-bottom: .1em;
+    padding: .5em 1em .5em;
 }
 
 div.sentences{
-    border-style: none;
-    font-family:Open Sans,Arial;
-    border-radius: 25px;
-    background-image: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
-    color:#454545;
-    margin:1em auto;
-    max-width:1000px;
-    padding: 1.5em 3em 1.5em;
+    margin: .5em auto .5em;
+    padding: .5em;
 }
 
 div.hawaiiansentence{
@@ -39,9 +80,10 @@ div.hawaiiansentence{
 }
 
 p.title{
-    font-size:20px;
+    font-size:16px;
+    color: #eee;
     margin: 0;
-    margin-bottom: -0.3em;
+    margin-bottom: -0.2em;
 }
 
 p.authors{
@@ -55,7 +97,8 @@ p.source{
 
 span.match {
     font-weight: bold;
-    color: darkblue;
+    color: #4af;
+    background-color: blue;
 }
 div.engsentence{
     font-family:Open Sans,Arial;
@@ -68,35 +111,32 @@ div.engsentence{
 div.headerlinks {
     position: absolute;
     padding-bottom: 3em;
-    padding-right: 3em;
+    padding-right: .5em;
     right: 0;
 }
 
-div.headerlinks {
-    position: absolute;
-    padding-bottom: 3em;
-    padding-right: 3em;
-    right: 0;
-}
 div.searchoptions {
     position: relative;
     padding-bottom: 3em;
     padding-right: 3em;
 }
 
-
 #fadein {
-    background-image: url("images/bg-min.jpg");
+    background-image: url("images/hawaiian-background.jpg"); /* url("https://www.hawaii-aloha.com/wp-content/uploads/2018/10/Hawaiian-Language-DuoLingo.jpg"); url("images/bg-min.jpg"); */
+    background-position: center; /* Center the image */
+    background-size: cover; /* Resize the background image to cover the entire container */
     background-repeat: no-repeat;
     background-attachment: fixed;
     opacity: 0;
-    transition: opacity 1s;
-    -webkit-transition: opacity 1s;
+    transition: opacity .5s;
+    -webkit-transition: opacity .5s;
     background-color: #778899;
 }
 
 #nofadein {
-    background-image: url("images/bg-min.jpg");
+    background-image: url("images/hawaiian-background.jpg"); /* url("https://www.hawaii-aloha.com/wp-content/uploads/2018/10/Hawaiian-Language-DuoLingo.jpg"); //url("images/bg-min.jpg"); */
+    background-position: center; /* Center the image */
+    background-size: cover; /* Resize the background image to cover the entire container */
     background-repeat: no-repeat;
     background-attachment: fixed;
     background-color: #778899;
@@ -105,21 +145,15 @@ div.searchoptions {
     -webkit-transition: opacity 250ms;
 }
 
-
 head {
     padding-bottom: 3em;
 }
 
-a{
-    color:#07a
-}
-a:visited{
-    color:#941352
-}
-
 .search-bar {
   position: relative;
+/*
   padding-bottom: 1em;
+*/
 }
 
 .search-bar input {
@@ -137,7 +171,8 @@ a:visited{
     width: 80px;
 }
 
-@media screen and (max-width:500px){
+@media screen and (min-width:300px) and (max-width:500px) {
+/*
     body{
         text-align:left
     }
@@ -157,8 +192,38 @@ a:visited{
         content:"";
         margin-right:inherit
     }
+*/
     div.headerlinks {
-    position: relative
+        position: relative;
+        margin-bottom: .1em;
+        padding-bottom: .1em;
+    }
+
+    body {
+/*
+        font-size: 14px;
+        margin: 0;
+*/
+        width: 155% !important;
+    }
+
+    div.titletext {
+        font-size: 1.5em;
+    }
+
+    div.titletext p {
+        font-size: .6em;
+    }
+}
+
+@media screen and (max-width:900px) and (min-width:500px){
+    .h1, h1 {
+        font-size: 2rem;
+    }
+    body {
+
+        width: 100% !important;
+
     }
 }
 
@@ -210,8 +275,6 @@ a:visited{
   background-color: #eeeeee;
 }
 
-
-
 .dd-menu {
   background-color: #FAFBFC;
   border: 1px solid rgba(27, 31, 35, 0.15);
@@ -237,7 +300,6 @@ a:visited{
   word-wrap: break-word;
 }
 
-
 .dd-menu li {
   padding: 10px 20px;
   cursor: pointer;
@@ -258,6 +320,7 @@ a:visited{
   padding: 0;
   border-bottom: 1px solid #cccccc;
 }
+
 .character-insert-button {
   appearance: none;
   background-color: #FAFBFC;
@@ -290,7 +353,6 @@ a:visited{
   transition-duration: 0.1s;
 }
 
-
 .character-insert-button:active {
   background-color: #EDEFF2;
   box-shadow: rgba(225, 228, 232, 0.2) 0 1px 0 inset;
@@ -311,8 +373,8 @@ a:visited{
 
 .linkbutton {
   appearance: none;
-  background-color: #3a3c49;
-  border: 1px solid rgba(27, 31, 35, 0.15);
+  background-color: rgba(50,50,255,.8);
+  border: 1px solid rgba(200, 200, 255, 0.15);
   border-radius: 6px;
   box-shadow: rgba(27, 31, 35, 0.04) 0 1px 0, rgba(255, 255, 255, 0.25) 0 1px 0 inset;
   box-sizing: border-box;
@@ -335,13 +397,11 @@ a:visited{
   word-wrap: break-word;
 }
 
-
 .linkbutton:hover {
   color: #ff7f50;
   text-decoration: none;
   transition-duration: 0.1s;
 }
-
 
 .linkbutton:active {
   background-color: #1d1f29;
@@ -359,4 +419,189 @@ a:visited{
 
 .linkbutton:-webkit-details-marker {
   display: none;
+}
+
+input[type=search] {
+    border-color: white !important;
+}
+
+a.nostyle{
+    color: inherit; /* blue colors for links too */
+    text-decoration: inherit; /* no underline */
+    color: white;
+    text-decoration: none;
+}
+
+a.nostyle:hover {
+  color: #ff7f50 !important;
+  text-decoration: none;
+  transition-duration: 0.1s;
+}
+
+a.fancy {
+    color:#dcf !important;
+}
+a.fancy:visited{
+    
+    color:#8ef !important;;
+}
+
+a.fancy {
+  background:
+    linear-gradient(
+      to right,
+      rgba(100, 200, 200, 1),
+      rgba(100, 200, 200, 1)
+    ),
+    linear-gradient(
+      to right,
+      rgba(255, 0, 0, 1),
+      rgba(255, 0, 180, 1),
+      rgba(0, 100, 200, 1)
+  );
+  background-size: 100% 3px, 0 3px;
+  background-position: 100% 100%, 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 400ms;
+}
+
+a.fancy:hover {
+    color: blue;
+  background-size: 0 3px, 100% 3px;
+}
+
+td.hawaiiansentence,th.hawaiiansentence {
+    color: white;
+}
+
+#hoverBox {
+    display: none;
+    position: fixed; /*absolute;*/
+    background-color: #f9f9f9;
+    color: black;
+    border: 1px solid #ccc;
+    padding: 3px;
+    z-index: 1;
+    max-width: 80%;
+    max-height: 80%;
+    left: 10px;
+    top: 10px;
+}
+
+#hoverBody {
+    background-color: #f9f9f9;
+    color: black;
+    border: 1px solid #ccc;
+    padding: 10px;
+    overflow: auto;
+    height: 100%;
+    max-height: 400px;
+    width: 100%;
+}
+
+.highlight {
+    border: 2px dashed orange;
+}
+
+.searchterm {
+    text-decoration: underline;
+}
+
+.searchtype {
+    font-weight: bold;
+}
+
+h1.title {
+    font-size: 1.5em;
+}
+
+div.page-load-status {
+    position:fixed;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%, -50%);
+    background-color: darkblue;   
+    opacity: 0.5;
+    border-radius: 10px;
+    color:white;
+    font-size:1.5em;
+    margin:.1em auto;
+    padding: .1em;
+    /*
+    padding-bottom: .1em;
+*/
+    text-align:justify;
+    text-align:center;
+    animation: changeBackgroundColor 7s infinite;
+}
+
+@keyframes changeBackgroundColor {
+  0% {
+    background-color: #001F3F;
+  }
+25%{    background-color: #43cea2;}
+
+  50% {
+    background-color: #FF4136;
+  }
+70%{
+    background-color: #ffb347;}
+  100% {
+    background-color: #001F3F;
+  }
+} 
+
+.loader-ellips {
+  font-size: .8em; /* change size here */
+  position: relative;
+  width: 4em;
+  height: 1em;
+  margin: 10px auto;
+  opacity: 1;
+  color: white;
+  z-index: 1;
+}
+
+.loader-ellips__dot {
+  display: block;
+  width: 1em;
+  height: 1em;
+  border-radius: 0.5em;
+
+  background: white; /* change color here */
+
+  position: absolute;
+  animation-duration: 0.5s;
+  animation-timing-function: ease;
+  animation-iteration-count: infinite;
+}
+
+.loader-ellips__dot:nth-child(1),
+.loader-ellips__dot:nth-child(2) {
+  left: 0;
+}
+.loader-ellips__dot:nth-child(3) { left: 1.5em; }
+.loader-ellips__dot:nth-child(4) { left: 3em; }
+
+@keyframes reveal {
+  from { transform: scale(0.001); }
+  to { transform: scale(1); }
+}
+
+@keyframes slide {
+  to { transform: translateX(1.5em) }
+}
+
+.loader-ellips__dot:nth-child(1) {
+  animation-name: reveal;
+}
+
+.loader-ellips__dot:nth-child(2),
+.loader-ellips__dot:nth-child(3) {
+  animation-name: slide;
+}
+
+.loader-ellips__dot:nth-child(4) {
+  animation-name: reveal;
+  animation-direction: reverse;
 }

@@ -1,28 +1,39 @@
-           <h3>What is Laʻana?</h3>
-              <p>Laʻana is a tool for learners of Hawaiian to search example sentences.</p>
-              <p>Donʻt know where to start? Try these examples!</p>
-              <ul>
-                 <li><a href="?search=kumu">Kumu</a></li>
-                 <li><a href="?search=makuakāne">Makuakāne</a></li>
-                 <li><a href="?search=<?=$laana->getRandomWord()?>">Search for a random sentence!</a></li>
-              </ul>
-              <h3>Why use Laʻana?</h3>
-              <p>Hawaiian is a living language, and learners should be able to look up real examples of how it is used.</p>
-              <p>These examples can be great for making flashcards, checking nuance, checking usage frequency, etc.</p>
-              <h3>Other Resources</h3>
-              <ul>
-                <li><a href="https://ulukau.org/index.php?l=en" target="_blank">Ulukau - Hawaiian Dictionary</a></li>
-                <li><a href="http://ulukau.org/kaniaina/?a=cl&cl=CL1&sp=A&ai=1&e=-------en-20--1--txt-tpIN%7ctpTI%7ctpTA%7ctpCO%7ctpTY%7ctpLA%7ctpKE%7ctpPR%7ctpSG%7ctpTO%7ctpTG%7ctpSM%7ctpTR%7ctpSP%7ctpCT%7ctpET%7ctpHT%7ctpDT%7ctpOD%7ctpDF-----------------" target="_blank">Ka Leo Hawaiʻi - Radio interviews with native speakers of Hawaiian</a></li>
-                <li><a href="https://nupepa.org/" target="_blank">Nūpepa - Newspaper archives in Hawaiian</a></li>
-                <li><a href="https://fluxhawaii.com/section/olelo-hawaii/" target="_blank">Flux Hawaii - Modern articles in Hawaiian</a>
-                </li>
-                <li><a href="https://www.civilbeat.org/projects/ka-ulana-pilina/" target="_blank">Civil Beat Articles in Hawaiian</a></li>
-                <li><a href="http://www.ulukau.org/elib/collect/spoken/index/assoc/D0.dir/book.pdf" target="_blank">Ulukau - Hawaiian Dictionary</a></li>
-                <li><a href="https://ulukau.org/index.php?l=en" target="_blank">Spoken Hawaiian - Great book for beginner grammar. (People who have learned Japanese can consider this the Tae Kim of Hawaiian.)</a></li>
-                <li><a href="https://manomano.io/" target="_blank">Manomano - Dictionary with flashcards</a></li>
-                <li><a href="https://hawaiian-grammar.org/current/#h.3dy6vkm" target="_blank">Hawaiian Grammar - In depth grammar guide from a linguist perspective.</a></li>
-
-               </ul><!--
-               <h3>Questions or concerns?</h3>
-               <p>Please email <b>laanadev@gmail.com</b> with any bugs, feature requests, suggestions, etc.</p>-->
-               <h4>There are currently <?=$sourceCount?> documents and <?=$sentenceCount?> sentences in the database.</h4>
+<h3>What is Noiʻiʻōlelo?</h3>
+<p>Noiʻiʻōlelo is a tool for learners of Hawaiian to search for sample sentences using a word or words and
+  for those seeking to understand Hawaiian language patterns. It includes a database of sentences as well
+  as a database of the full text of a large number of historical and current Hawaiian language documents. It
+is inspired by the <a class="fancy"href="https://laana.org">Laana</a> website of Zachary Silva.</p>
+<p>Besides simple word searches, Noiʻiʻōlelo supports regular expression searches for
+  complex patterns across a large number of historical and current documents. Our hope
+  is that it will be useful for research into past and current Hawaiian grammar and
+  lexical usage.</p>
+<p>Here are a few examples of searches:</p>
+<ul>
+  <li><a class="fancy"href="?search=kumu">Kumu</a></li>
+  <li><a class="fancy"href="?search=kona makuakāne&searchpattern=exact">kona makuakāne (exact)</a></li>
+  <li><a class="fancy"href="?search=<?=$laana->getRandomWord()?>">Search for a random sentence</a></li>
+</ul>
+<h3>Search options</h3>
+<p>The default search option (selected from "Search Options") is "Any". All searches except for "Regex" and "Exact" are case-insensitive. These are the choices:</p>
+<ul>
+  <li><span class="searchtype">Any</span>: matches sentences with any of the words in your search expression, e.g. <span class="searchterm">hale kuai</span> returns sentences containing <span class="searchterm">hale</span>, <span class="searchterm">kuai</span> or both</li>
+  <li><span class="searchtype">Order</span>: matches sentences that includes all the words in your search expression in the order given, also if other words come between them, e.g. <span class="searchterm">hale kuai</span> returns sentences like <span class="searchterm">Ua koha oia i ka hale no ke kuai ana</span> but not <span class="searchterm">Ua kuai oia i ka hale</span></li>
+  <li><span class="searchtype">Exact</span>: matches your search expression exactly as entered, including Hawaiian characters e.g. <span class="searchterm">hale kuai</span> returns sentences containing <span class="searchterm">hale kuai</span> but not <span class="searchterm">hale kū‘ai</span></li>
+  <li><span class="searchtype">Regex</span>: matches your <a class="fancy" target="_blank" href="https://www.guru99.com/regular-expressions.html">regular expression</a>, e.g. <span class="searchterm">ho\w{5}\skaua</span> to find sentences containing a 7-letter word starting with ho and followed by a space and kaua<br />
+  <li><span class="searchtype">No Diacriticals</span>: applies only to Regex searches and means diacritical marks and ‘okina are ignored. For example, searching for <span class="searchterm">ho‘okipa</span> with Regex and No Diacriticals matches <span class="searchterm">hookipa</span> as well as <span class="searchterm">ho‘okipa</span>; searching for <span class="searchterm">hookipa</span> returns the same results. Without No Diacriticals, searching for <span class="searchterm">ho‘okipa</span> returns only results with <span class="searchterm">ho‘okipa</span> while searching for <span class="searchterm">hookipa</span> matches only on <span class="searchterm">hookipa</span></li>
+</ul>
+<h3>Where do the sentences come from?</h3>
+<ul>
+  <li><a class="fancy"target="_blank" href="https://puke.ulukau.org/ulukau-books/?a=p&p=bookbrowser&e=-------en-20--1--txt-txPT-----------">Ulukau</a> (all Hawaiian-language documents)</li>
+  <li><a class="fancy"target="_blank" href="https://nupepa.org/gsdl2.5/cgi-bin/nupepa?e=p-0nupepa--00-0-0--010---4-----text---0-1l--1haw-Zz-1---20-about---0003-1-0000utfZz-8-00&a=d&cl=CL2">Nupepa</a> (all newspaper issues that have been transcribed)</li>
+  <li><a class="fancy"target="_blank" href="https://keaolama.org/">Ke Aolama</a> (all articles)</li>
+  <li><a class="fancy"target="_blank" href="https://www.civilbeat.org/projects/ka-ulana-pilina/">Ka Ulana Pilina</a> (Civil Beat, all articles)</li>
+  <li><a class="fancy"target="_blank" href="https://www.staradvertiser.com/category/editorial/kauakukalahale/">Kauakukalahale</a> (Honolulu Star Advertiser, all articles)</li>
+  <li><a class="fancy"target="_blank" href="https://www2.hawaii.edu/~kroddy/moolelo/">Ka Paa Moolelo</a> (all documents)</li>
+  <li><a class="fancy"target="_blank" href="https://baibala.org/cgi-bin/bible?e=d-1off-01994-bible--00-1-0--01994v2-0--4--Sec---1--1en-Zz-1-other---20000-frameset-search-browse----011-01994v1--210-0-2-escapewin&cl=&d=NULL.2.1.1&cid=&bible=&d2=1&toc=0&gg=text#a1-">Baibala (full bible, 2012 edition)</a> (New and Old Testament)</li>
+  <li><a class="fancy"target="_blank" href="https://ehooululahui.maui.hawaii.edu/?page_id=35">Ehooululahui</a> (a few full moʻolelo from UHMC)</li>
+  <li>Various other individual documents</li>
+</ul>
+<h4>Questions or concerns?</h4>
+<p>Please email <b><a class="fancy"href="mailto:hawaiian-grammar-grp@hawaii.edu">hawaiian-grammar-grp@hawaii.edu</a></b> with any bugs, feature requests, suggestions, etc.</p>
+<h6>There are currently <?=$sourceCount?> documents and <?=$sentenceCount?> sentences in the database.</h6>

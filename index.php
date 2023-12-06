@@ -1,89 +1,58 @@
 <?php
 include 'db/funcs.php';
-$word = $_GET['search'];
+$word = isset($_GET['search']) ? $_GET['search'] : "";
 $normalizedWord = normalizeString( $word );
-$pattern = $_GET['searchpattern'];
+$pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "";
 if( !$pattern ) {
-    if ($word == $normalizedWord) {
+    //if ($word == $normalizedWord) {
         $pattern = 'any';
-    } else {
-        $pattern = 'exact';
+    //} else {
+    //    $pattern = 'exact';
+    //}
+}
+if( $word ) {
+    if( $pattern == 'regex' ) {
+        $word = urlencode( $word );
     }
 }
-$laana = new Laana();
+$doSources = isset( $_GET['sources'] );
+$doResources = isset( $_GET['resources'] );
+$nodiacriticals = ( isset( $_REQUEST['nodiacriticals'] ) && $_REQUEST['nodiacriticals'] == 1 ) ? 1 : 0;
+$nodiacriticalsparam = ($nodiacriticals) ? "&nodiacriticals=1" : "";
 debuglog( "pattern: $pattern; word: $word" );
 $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 //error_log( var_export( $_SERVER, true ) );
 ?>
 <!DOCTYPE html>
 <html lang="en" class="">
-   <head>
-    <meta property="og:image" itemprop="image primaryImageOfPage" content="./static/images/previewimage.jpg">
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <!-- Sorry! I promise the tracker is so I can make the website better! -->
-<!--
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-0FCELMK3D7"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
+    <head>
+        <?php include 'common-head.html'; ?>
+        <title><?=$word?> - Noiʻiʻōlelo</title>
+    </head>
 
-      gtag('config', 'G-0FCELMK3D7');
-    </script>
--->
-      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      
-      <title><?=$word?> - Laʻana!</title>
-      <meta name="description" content="Hawaiian dictionary search for malie">
-      
-      <link rel="stylesheet" type="text/css" href="./static/main.css">
-          <!--
-      <link rel="stylesheet" type="text/css" href="./static/fonts.css">
-          -->
-      <!-- Icons-->
-      <link rel="apple-touch-icon" sizes="180x180" href="./static/icons/180.png">
-      <link rel="icon" type="image/png" sizes="32x32" href="./static/icons/32.png">
-      <link rel="icon" type="image/png" sizes="16x16" href="./static/icons/16.png">
+    <body id=fadein onload="changeid()">
+        <script>
+            var pattern ="<?=$pattern?>";
+        </script>
+        <div class="headerlinks">
+        <?= ($doSources) ? '<a href="/"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?sources"><button class="linkbutton" type="button">Sources</button></a>' ?>
+        <?= ($doResources) ? '<a href="/"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?resources"><button class="linkbutton" type="button">Resources</button></a>' ?>
+    </div>
 
-     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-      <script src="https://unpkg.com/infinite-scroll@4/dist/infinite-scroll.pkgd.js"></script>
-      <script type="text/javascript" src="./static/helpers.js"></script>
-
-<script>
-  function changeid() {
-    var theBody = document.getElementById("fadein")
-    if (window.location.pathname=='/') {
-      theBody.style.opacity='1'
-    }
-    else {
-      theBody.id='nofadein'
-    }
-  }
-</script>
-
-<head>
-  <div class="headerlinks">
-    <a href="?about"><button class="linkbutton" type="button">About</button></a>
-    <a href="?sources"><button class="linkbutton" type="button">Sources</button></a>
-  </div>
-</head>
-
-   <body id=fadein onload="changeid()">
        <a href="<?=$base?>" class="nostyle">
-         <div class="titletext">
-           <center>
-             <h1><font size="7">Laʻana!</font></h1>
-             <p>Hawaiian Example Sentences</p>
-           </center>
+         <div class="titletext nostyle">
+               <h1>Noiʻiʻōlelo</h1>
+             <p>Hawaiian Text Search</p>
          </div>
        </a>
-        
+ <?php if( !($doSources || $doResources) ) { ?>
+       
        <center>
          <form method="get">
           <input type="hidden" id="search-pattern" name="searchpattern" value="<?=$pattern?>" />
-            <div class="search-bar">
-                <input name="search" id="searchbar" type="text" size="40" style="width:40em;" placeholder="Enter anything in Hawaiian!" value="<?=$word?>" required />
+          <input type="hidden" id="nodiacriticals" name="nodiacriticals" value="<?=$nodiacriticals?>" />
+          <div class="search-bar">
+              <input name="search" id="searchbar" type="text" size="40" style="width:40em;" placeholder="Type a word or pattern in Hawaiian" value="<?=urldecode( $word )?>" required />
                 <button type="submit" class="search-button">
                     <i>Go!</i>
                 </button>
@@ -114,73 +83,186 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
           <input id="any" type="radio" name="pattern" value="Any"  onclick="setPattern('any')"/>
           &nbsp;&nbsp;
           <label for="regex">Regex</label>
-          <input id="regex" type="radio" name="pattern" value="Regex"  onclick="setPattern('regex')"/>
+          <input id="regex" type="radio" name="pattern" value="Regex" onclick="setPattern('regex')"/>
+          &nbsp;
+          <label for="nodiacriticals">No diacriticals</label>
+          <input id="checkbox-nodiacriticals" type="checkbox" name="checkbox-nodiacriticals" <?=($nodiacriticals)?'checked':''?> onclick="setNoDiacriticals()"/>
           </li>
 			</ul>
 		</div>
-    </center>
-    <script>
-     let el = document.getElementById('<?=$pattern?>');
-     if( el ) {
-         el.checked = true;
-     }
-     <?php
-     if( $word ) {
-         if( $pattern == 'regex' ) {
-             $word = urlencode( $word );
-         }
-     ?>
-         $(document).ready(function() {
-             var pageNumber = 0;
-             let $container = $('.sentences').infiniteScroll({
-                 path: 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}',
-                 history: false,
-                 prefill: true,
-                 debug: true,
-                 //responseBody: 'json',
-                 append: 'div.hawaiiansentence',
-             });
-         });
-     <?php
-     }
-     ?>
-    </script>
-     <div class="sentences">
-<?php
+       </center>
+ <?php } ?>
 
-    if( !$word ) {
-        if( isset( $_GET['sources'] ) ) {
-            $rows = $laana->getSources();
-            //var_export( $rows );
-            foreach( $rows as $row ) {
-                $source = $row['sourcename'];
-                $authors = $row['authors'];
-                $link = $row['link'];
-                $sourcelink = "<a href='$link' target='_blank'>$source</a>";
-                $count = $row['count'];
- ?>
-          <div class="hawaiiansentence">
-              <p class='title'><?=$sourcelink?></p>
-              <p class='authors'>Authors: <?=$authors?></p>
-          </div>
-          <div class="engsentence">
-              <p class='source'><?=$count?> sentences</p>
-          </div>
-          <hr class='sources'>
 <?php
-}
-} else {
-    if( isset( $_GET['about'] ) ) {
-        include 'about.html';
-    } else {
-        $sentenceCount = number_format($laana->getSentenceCount());
-        $sourceCount = number_format($laana->getSourceCount());
+     if( $doSources ) {
+     ?>
+<div class="sentences" style="padding:.6em;">
+    Type into the Search box to narrow the sources shown. Click on the item under Name to go to the source location, to the item under HTML for the version stored in Noiiolelo and under Plain for a text-only version. Hover on the item under HTML or Plain to see the document inline. Dismiss the inline window with the close button at the top right or by clicking anywhere outside the inline window. You can scroll the inline window and also search in it with Ctrl-F/Cmd-F. 
+</div>
+<?php
+     }
+?>
+
+ <div class="sentences" id="sentences">
+
+     <script>
+         $(document).ready(function() {
+             let el = document.getElementById( pattern );
+             if( el ) {
+                 el.checked = true;
+             }
+         });
+     </script>
+     
+     <?php
+     if( !$word ) {
+         if( $doSources ) {
+     ?>
+         <script>
+	     $(document).ready(function () {
+             $("#<?=$pattern?>").prop( "checked", true );
+             $('#table').DataTable({
+                 paging: false,
+                 order: [[ 1, "asc" ]],
+                 ordering: true,
+                 /*
+                    responsive: {
+                    details: {
+                    display: $.fn.dataTable.Responsive.display.childRow,
+                    type: ''
+                    }
+                    },
+                  */
+             }
+             );
+	     });
+              const delay = 1000;
+              $(document).ready(function() {
+                  $(".context").each( function( i, obj ) {
+                      $(obj).on( 'mouseenter', function() {
+                          if( $(obj).prop('hovertimeout') != null ) {
+                              clearTimeout( $(obj).prop('hovertimeout') );
+                          }
+                          let sourceid = $(obj).attr('sourceid');
+                          let simplified = parseInt( $(obj).attr('simplified') );
+                          $(obj).prop('hovertimeout', setTimeout( function() {
+                              showHoverBox( sourceid, simplified );
+                          }, delay ) );
+                      });
+                      $(obj).on('mouseleave', function () {
+                          if( $(obj).prop( 'hovertimeout') != null ) {
+                              clearTimeout( $(obj).prop('hovertimeout') );
+                              $(obj).prop( 'hovertimeout', null );
+                          }
+                      });
+                  });
+              });
+                  
+              function showHoverBox( sourceid, s ) {
+                 let url = "rawpage?id=" + sourceid;
+                 if( s ) {
+                     url += "&simplified";
+                 }
+                 fetch( url )
+                     .then(response => response.text())
+                     .then(pageContents => {
+                         // Create and display the hover box
+                         let hoverBox = document.getElementById('hoverBox');
+                         let hoverBody = document.getElementById('hoverBody');
+                         let styles = "<style>a {background:unset !important; color: blue !important;}</style>";
+                         //hoverBody.innerHTML = "<div>" + styles + pageContents + "</div>";
+                         hoverBody.innerHTML = pageContents;
+                         hoverBox.style.display = 'block';
+                         hoverBox.scrollTop = 0;
+                         hoverBody.scrollTop = 0;
+                     })
+                     .catch(error => console.error('Error fetching content:', error));
+              }
+              function hideHoverBox() {
+                  // Hide the hover box on mouseout
+                  var hoverBox = document.getElementById('hoverBox');
+                  hoverBox.style.display = 'none';
+              }
+              document.getElementById('sentences').onclick = hideHoverBox;
+              document.getElementsByTagName('body').item(0).onclick = hideHoverBox;
+         </script>
+         <div id="hoverBox">
+             <div style="text-align:right;"><button onClick="hideHoverBox()">X</button></div>
+             <div id="hoverBody"></div>
+         </div>
+         <table id="table"><thead>
+             <tr><th>Group (ID)</th><th style="width:10em;">Name</th><th style="15em;">HTML</th><th>Plain</th><th>Authors</th><th style="text-align:right;">Sentences</th></tr>
+         </thead><tbody>
+             <?php
+             $laana = new Laana();
+             $rows = $laana->getSources();
+             //var_export( $rows );
+             foreach( $rows as $row ) {
+                 $source = $row['sourcename'];
+                 $short = substr( $source, 0, 20 );
+                 $sourceid = $row['sourceid'];
+                 $plainlink = "<a class='context fancy' sourceid='$sourceid' simplified='1' href='rawpage?simplified&id=$sourceid' target='_blank'>Plain</a>";
+                 $htmllink = "<a class='context fancy' sourceid='$sourceid' simplified='0' href='rawpage?id=$sourceid' target='_blank'>HTML</a>";
+                 $authors = $row['authors'];
+                 $link = $row['link'];
+                 $group = $row['groupname'] . " ($sourceid)";
+                 $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
+                 $count = $row['count'];
+             ?>
+                    <tr>
+                        <td class="hawaiiansentence"><?=$group?></td>
+                        <td class="hawaiiansentence"><?=$sourcelink?></td>
+                        <td class="hawaiiansentence"><?=$htmllink?></td>
+                        <td class="hawaiiansentence"><?=$plainlink?></td>
+                        <td class='authors'><?=$authors?></td>
+                        <td class="hawaiiansentence" style="text-align:right;"><?=$count?></td>
+                    </tr>
+                <?php
+                }
+                ?>
+            </tbody></table>
+<?php
+        } else if( $doResources ) {
+            include 'resources.html';
+        } else {
+            $laana = new Laana();
+            $sentenceCount = $sourceCount = 0;
+            $sentenceCount = number_format($laana->getSentenceCount());
+            $sourceCount = number_format($laana->getSourceCount());
             include 'overview.html';
         }
-        }
-        }
+    } else {
+        /* Word passed */
 ?>
-          </div>
-        
+        <script>
+        $(document).ready(function() {
+             var pageNumber = 0;
+             let url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}<?=$nodiacriticalsparam?>';
+            let $container = $('.sentences').infiniteScroll({
+                path: url,
+                history: false,
+                prefill: true,
+                debug: true,
+                //responseBody: 'json',
+                append: 'div.hawaiiansentence',
+                status: '.page-load-status',
+            });
+        });
+        </script>
+
+        <div class="page-load-status">
+            <!-- -
+            <p class="infinite-scroll-request">Loading...</p>
+ -->
+            <div class="loader-ellips infinite-scroll-request">
+                <span class="loader-ellips__dot"></span>
+                <span class="loader-ellips__dot"></span>
+                <span class="loader-ellips__dot"></span>
+                <span class="loader-ellips__dot"></span>
+            </div>
+        </div>
+
+<?php } ?>
+      </div>
    </body>
 </html>

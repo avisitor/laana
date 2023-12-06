@@ -12,8 +12,8 @@ function debuglog( $msg ) {
     $defaultTimezone = 'Pacific/Honolulu';
     $now = new DateTimeImmutable( "now", new DateTimeZone( $defaultTimezone ) );
     $now = $now->format( 'Y-m-d H:i:s' );
-    //error_log( "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n", 3, "/tmp/php_errorlog" );
-    error_log( "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n" );
+    error_log( "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n", 3, "/tmp/php_errorlog" );
+    //error_log( "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n" );
 }
 
 function logRequest() {
@@ -62,7 +62,7 @@ class DB {
         }
     }
 
-    public function getDBRows( $sql, $values = '' ) {
+    public function getDBRows( $sql, $values = [] ) {
         if( $this->conn == null ) {
             return [];
         }
@@ -72,7 +72,7 @@ class DB {
         }
         try {
             $stmt = $this->conn->prepare( $sql );
-            if( $values ) {
+            if( $values && sizeof($values) > 0 ) {
                 $stmt->execute( $values );
             } else {
                 $stmt->execute();
@@ -122,6 +122,16 @@ class DB {
         }
     }
 
+    private function abbreviatedValues( $values ) {
+        $v = [];
+        if( $values && sizeof($values) > 0 ) {
+            foreach( $values as $key => $value ) {
+                $v[$key] = substr( $value, 0, 150 );
+            }
+        }
+        return $v;
+    }
+    
     public function executePrepared( $sql, $values ) {
         if( $this->conn == null ) {
             debuglog( "executePrepared: null connection");
@@ -130,7 +140,8 @@ class DB {
         //echo( $sql . " - " . ($values) ? var_export( $values, true ) : '' . "\n" );
         debuglog( "executePrepared: $sql");
         if( $values && sizeof( $values ) > 0 ) {
-            debuglog( "executePrepared: " . var_export( $values, true) );
+            $v = $this->abbreviatedValues( $values );
+            debuglog( "executePrepared: " . var_export( $v, true) );
         }
         try {
             $stmt = $this->conn->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
@@ -214,7 +225,7 @@ class DB {
 $a = array( 'ō', 'ī', 'ē', 'ū', 'ā', 'Ō', 'Ī', 'Ē', 'Ū', 'Ā', '‘', 'ʻ' );
 $b = array('o', 'i', 'e', 'u', 'a', 'O', 'I', 'E', 'U', 'A', '', '' );
 $a = array( 'ō', 'ī', 'ē', 'ū', 'ā', 'Ō', 'Ī', 'Ē', 'Ū', 'Ā', '‘', 'ʻ' );
-$b = array('o', 'i', 'e', 'u', 'a', 'O', 'I', 'E', 'U', 'A', 'ʻ', 'ʻ' );
+//$b = array('o', 'i', 'e', 'u', 'a', 'O', 'I', 'E', 'U', 'A', 'ʻ', 'ʻ' );
 
 function sqlNormalize() {
     global $a, $b;
@@ -225,6 +236,14 @@ function sqlNormalize() {
     return $search;
 }
 
+function sqlNormalizeOkina() {
+    $search = "preg_replace(hawaiianText, '/\‘|\ʻ/', '')";
+    $search = "preg_replace(hawaiianText, '‘', '')";
+    $search = "replace(hawaiianText,'ʻ','')";
+    $search = "hawaiianText";
+    return $search;
+}
+
 function normalizeString( $term ) {
     global $a, $b;
     return str_replace($a, $b, $term);
@@ -232,7 +251,7 @@ function normalizeString( $term ) {
 
 class Laana extends DB {
     private $pageNumber = 0;
-    private $pageSize = 10;
+    private $pageSize = 100;
     
     public function getRandomWord( $minlength = 5 ) {
         $count = $this->getSentenceCount();
@@ -252,19 +271,39 @@ class Laana extends DB {
         return $word;
     }
     
-    public function getSentences( $term, $pattern, $pageNumber = -1 ) {
+    public function getSentences( $term, $pattern, $pageNumber = -1, $options = [] ) {
         debuglog("Laana::getSentences($term,$pattern,$pageNumber)");
+        $useRegex = true;
         $useRegex = false;
         $normalizedTerm = normalizeString( $term );
         $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
+        $search = "hawaiianText";
         if( $useRegex ) {
+            if( $pattern != 'exact' ) {
+                // Match with or without diacriticals
+                //$search = sqlNormalize();
+                //$term = str_replace( 'ʻ', 'ʻ*', $term );
+
+                if( $pattern == 'regex' ) {
+                    if( isset( $options['nodiacriticals'] ) ) {
+                        $search = 'simplified';
+                        $term = $normalizedTerm;
+                    }
+                } else {
+                    $search = 'simplified';
+                    $term = $normalizedTerm;
+                    $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
+                }
+            }
+            debuglog("Laana::getSentences term=$term, normalizedTerm=$normalizedTerm, words=" . var_export( $words, true ) );
+        } else {
             if( $normalizedTerm == $term ) {
+                // No diacriticals in the search term
                 $search = sqlNormalize();
             } else {
                 $search = "hawaiianText";
             }
-        } else {
-            $search = "hawaiianText";
+            //$search = sqlNormalizeOkina();
             $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $normalizedTerm );
             $term = $normalizedTerm;
         }
@@ -277,28 +316,31 @@ class Laana extends DB {
             ];
         } else if( sizeof( $words ) < 2 || $pattern == 'exact' ) {
             if( $useRegex ) {
-                $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP " . "'" . "[[:space:]]" . $term . "[[:space:]]" . "' and s.sourceID = o.sourceID";
+                $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP " . "'" . "[[:<:]]" . $term . "[[:>:]]" . "' and s.sourceID = o.sourceID";
             } else {
-                $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where $search like '% $term %' and s.sourceID = o.sourceID";
+                $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where ($search like '% $term %' or $search like '% $term.%' or $search like '% $term,%' or $search like '% $term;%' or $search like '% $term!%') and s.sourceID = o.sourceID";
+
+                
+                $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences o inner join sources s on s.sourceID = o.sourceID where match(o.hawaiianText) against ('\"$term\"') and hawaiianText like '%$term%'";
             }
         } else {
             if( $useRegex ) {
-                $sql = "select authors,sourceName,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP '(";
+                $sql = "select authors,sourceName,s.sourceID,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP '(";
                 if( $pattern == 'order' ) {
                     $sql .= '.*';
                     foreach( $words as $word ) {
-                        $sql .= "[[:space:]]" . $word . "[[:space:]]" . '.*';
+                        $sql .= "[[:<:]]" . $word . "[[:>:]].*";
                     }
                 } else {
                     // any
                     foreach( $words as $word ) {
-                        $sql .= "[[:space:]]" . $word . "[[:space:]]" . '|';
+                        $sql .= "[[:<:]]" . $word . "[[:>:]]|";
                     }
                 }
                 $sql = trim( $sql, '.*|' );
                 $sql .= ")'";
             } else {
-                $sql = "select authors,sourceName,hawaiianText,sentenceid from sentences s, sources o where (";
+                $sql = "select authors,sourceName,s.sourceID,hawaiianText,sentenceid from sentences s, sources o where (";
                 if( $pattern == 'order' ) {
                     $sql .= " $search like '%";
                     foreach( $words as $word ) {
@@ -315,18 +357,18 @@ class Laana extends DB {
                 $sql .= ')';
             }
             $sql .= " and s.sourceID = o.sourceID group by sentenceID";
+
+                
+                if( $pattern != 'order' ) {
+                    $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences o inner join sources s on s.sourceID = o.sourceID where match(o.hawaiianText) against ('$term')";
+                }
+
         }
         $sql .= " order by rand()";
         if( $pageNumber >= 0 ) {
             $sql .= " limit " . $pageNumber * $this->pageSize . "," . $this->pageSize;
         }
-        if( sizeof( $values ) > 0 ) {
-            debuglog( "getSentences: " . $sql . "\n" . var_export( $values, true ) );
-            $rows = $this->getDBRows( $sql, $values );
-        } else {
-            debuglog( "getSentences: " . $sql );
-            $rows = $this->getDBRows( $sql );
-        }
+        $rows = $this->getDBRows( $sql, $values );
         debuglog( "getSentences result: " . var_export( $rows, true ) );
         return $rows;
     }
@@ -350,7 +392,7 @@ class Laana extends DB {
     }
     
     public function getSources() {
-        $sql = "select o.sourceID,sourceName,authors,link,count(sentenceID) count from sources o,sentences s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
+        $sql = "select o.*,count(sentenceID) count from sources o,sentences s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
         $rows = $this->getDBRows( $sql );
         return $rows;
     }
@@ -381,9 +423,21 @@ class Laana extends DB {
     
     public function getSentenceCount() {
         $sql = "select count(sentenceID) count from sentences";
-        $rows = $this->getDBRows( $sql );
-        debuglog( "getSentenceCount: " . var_export( $rows, true ) );
-        return $rows[0]['count'];
+        $sql = "select count(*) count from sentences";
+        $sql = "select value count from stats where name = 'sentences'";
+        $row = $this->getOneDBRow( $sql );
+        debuglog( "getSentenceCount: " . var_export( $row, true ) );
+        return $row['count'];
+    }
+
+    public function updateCounts() {
+        $sql = "update stats set value=(select count(*) from sentences) where name = 'sentences'";
+        $status = $this->executeSQL( $sql );
+        if( $status == 1 ) {
+            $sql = "update stats set value=(select count(*) from sources) where name = 'sources'";
+            $status = $this->executeSQL( $sql );
+        }
+        return $status;
     }
 
     public function getSourceIDs() {
@@ -401,12 +455,14 @@ class Laana extends DB {
         $groupname = $params['groupname'] ?: '';
         $date = $params['date'] ?: '';
         $title = $params['title'] ?: '';
+        $authors = $params['authors'] ?: '';
         $name = $params['sourcename'];
         $values = [
             'name' => $name,
             'link' => $link,
+            'authors' => $authors,
             'groupname' => $groupname,
-            'title' => $title,
+            'title' => substr($title, 0, 140),
         ];
         if( $date ) {
             $values['date'] = $date;
@@ -428,14 +484,15 @@ class Laana extends DB {
         $row = $this->getSourceByName( $name );
         if( $row['sourceid'] && $link ) {
             $datespec = ($params['date']) ? ", date = :date" : "";
-            $sql = "update sources set link = :link, groupname = :groupname, " .
+            $sql = "update sources set link = :link, groupname = :groupname, authors = :authors, " .
                    "title = :title$datespec where sourceName = :name";
             return $this->patchSource( $sql, $params );
         } else {
+            $authors = $params['authors'] ?: '';
             $datekey = ($params['date']) ? ", date" : "";
             $datevalue = ($params['date']) ? ", :date" : "";
-            $sql = "replace into sources(sourceName, link, groupname$datekey, title) " .
-                   "values(:name, :link, :groupname$datevalue, :title)";
+            $sql = "replace into sources(sourceName, link, authors, groupname$datekey, title) " .
+                   "values(:name, :link, :authors, :groupname$datevalue, :title)";
             return $this->patchSource( $sql, $params );
         }
     }
@@ -502,7 +559,8 @@ class Laana extends DB {
     public function addRawText( $sourceID, $rawtext ) {
         $this->addContentRow( $sourceID );
         $sql = "update contents set html=:text where sourceid=:sourceID";
-        $safe = mb_convert_encoding(html_entity_decode($rawtext), "UTF-8");
+        $safe = $rawtext;
+        //$safe = mb_convert_encoding(html_entity_decode($rawtext), "UTF-8");
         //echo "addRawText: $safe\n";
         $values = [
             'sourceID' => $sourceID,
@@ -537,6 +595,22 @@ class Laana extends DB {
         ];
         $row = $this->getOneDBRow( $sql, $values );
         return $row['text'];
+    }
+    public function removeContents( $sourceid ) {
+        $sql = "delete from contents where sourceID = :sourceid";
+        $values = [
+            'sourceid' => $sourceid,
+        ];
+        $result = $this->executePrepared( $sql, $values );
+        return $result;
+    }
+    public function removeSentences( $sourceid ) {
+        $sql = "delete from sentences where sourceID = :sourceid";
+        $values = [
+            'sourceid' => $sourceid,
+        ];
+        $result = $this->executePrepared( $sql, $values );
+        return $result;
     }
 }
 ?>

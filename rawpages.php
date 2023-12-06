@@ -8,12 +8,14 @@ $count = sizeof( $rows );
 ?>
 <html>
     <head>
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet">
-        <link rel="stylesheet" type="text/css" href="static/main.css">
+        <?php include 'common-head.html'; ?>
+        <title>Saved Noiiolelo Documents</title>
         <style>
-            body {
-                padding: 1em;
-            }
+         body {
+             padding: 1em;
+             color: white;
+             background-image: linear-gradient(to bottom, rgba(50,50,255,0.9), rgba(80,151,255,1));
+         }
         </style>
     </head> 
     <body>

@@ -6,7 +6,12 @@ function testParse( $key ) {
     global $parsermap, $urlmap;
     $parser = $parsermap[$key];
     $url = $urlmap[$key];
-    $sentences = $parser->extractSentences( $url );
+    $options = [];
+    if( $key == 'baibala' ) {
+        // It contains a huge number of pages, takes a long time to read them all
+        $options = ['continue'=>false,];
+    }
+    $sentences = $parser->extractSentences( $url, $options );
     var_export( $sentences );
 }
 
@@ -16,6 +21,7 @@ if( !$parser ) {
     $values = join( ",", array_keys( $parsermap ) );
     echo "Specify a parser: $values\n";
 } else {
+    setDebug( true );
     testParse( $parserkey );
 }
 ?>

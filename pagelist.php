@@ -5,25 +5,14 @@ $pages = $parser->getPageList();
 ?>
 <!DOCTYPE html>
 <html lang="en" class="">
-   <head>
-      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      
+    <head>
+        <?php include 'common-head.html'; ?>
       <title><?=$sourceName?></title>
-      
-     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet">
-      
-      <link rel="stylesheet" type="text/css" href="./static/main.css">
-      <link rel="stylesheet" type="text/css" href="./static/fonts.css">
-      <!-- Icons-->
-      <link rel="apple-touch-icon" sizes="180x180" href="./static/icons/180.png">
-      <link rel="icon" type="image/png" sizes="32x32" href="./static/icons/32.png">
-      <link rel="icon" type="image/png" sizes="16x16" href="./static/icons/16.png">
-
      <style>
-     body {
-        padding: 0.5em;
-     }
+      body {
+          padding: 0.5em;
+          background-image: linear-gradient(to bottom, rgba(50,50,255,0.9), rgba(80,151,255,1));
+      }
      .box {
         display: flex;
         flex-flow: row wrap;
@@ -68,10 +57,14 @@ $pages = $parser->getPageList();
       border-top-color: #1b435e;
       background: #1b435e;
       }
+      h1,h2 {
+          text-align: center;
+          color: white;
+      }
    </style>
    </head>
    <body>
-     <h1 style='text-align:center;'><?=$sourceName?></h1>
+     <h1><?=$sourceName?></h1>
      <div class='box'>
          <?php
          foreach( $pages as $page ) {
