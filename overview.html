@@ -17,18 +17,26 @@ is inspired by the <a class="fancy"href="https://laana.org">Laana</a> website of
 <p>The default search option (selected from "Search Options") is "Any". All searches except for "Regex" and "Exact" are case-insensitive. These are the choices:</p>
 <ul>
   <li><span class="searchtype">Any</span>: matches sentences with any of the words in your search expression, e.g. <span class="searchterm">hale kuai</span> returns sentences containing <span class="searchterm">hale</span>, <span class="searchterm">kuai</span> or both</li>
-  <li><span class="searchtype">Order</span>: matches sentences that includes all the words in your search expression in the order given, also if other words come between them, e.g. <span class="searchterm">hale kuai</span> returns sentences like <span class="searchterm">Ua koha oia i ka hale no ke kuai ana</span> but not <span class="searchterm">Ua kuai oia i ka hale</span></li>
-  <li><span class="searchtype">Exact</span>: matches your search expression exactly as entered, including Hawaiian characters e.g. <span class="searchterm">hale kuai</span> returns sentences containing <span class="searchterm">hale kuai</span> but not <span class="searchterm">hale kū‘ai</span></li>
+  <li><span class="searchtype">All</span>: matches sentences that includes all the words in your search expression in any order, e.g. <span class="searchterm">hale kuai</span> returns sentences like <span class="searchterm">Ua koha oia i ka hale no ke kuai ana</span> as well as <span class="searchterm">Ua kuai oia i ka hale</span></li>
+  <li><span class="searchtype">Exact</span>: matches your search expression exactly as entered. Whether or not Hawaiian characters are treated the same as characters without diacritical marks depends on the No Diacriticals setting below. If No Diacriticals is not set, <span class="searchterm">hale kuai</span> returns sentences containing <span class="searchterm">hale kuai</span> but not <span class="searchterm">hale kū‘ai</span> while if it is set, both are returned</li>
   <li><span class="searchtype">Regex</span>: matches your <a class="fancy" target="_blank" href="https://www.guru99.com/regular-expressions.html">regular expression</a>, e.g. <span class="searchterm">ho\w{5}\skaua</span> to find sentences containing a 7-letter word starting with ho and followed by a space and kaua<br />
-  <li><span class="searchtype">No Diacriticals</span>: applies only to Regex searches and means diacritical marks and ‘okina are ignored. For example, searching for <span class="searchterm">ho‘okipa</span> with Regex and No Diacriticals matches <span class="searchterm">hookipa</span> as well as <span class="searchterm">ho‘okipa</span>; searching for <span class="searchterm">hookipa</span> returns the same results. Without No Diacriticals, searching for <span class="searchterm">ho‘okipa</span> returns only results with <span class="searchterm">ho‘okipa</span> while searching for <span class="searchterm">hookipa</span> matches only on <span class="searchterm">hookipa</span></li>
+  <li><span class="searchtype">No Diacriticals</span>: applies only to Regex and Exact searches and means diacritical marks and ‘okina are ignored. For example, searching for <span class="searchterm">ho‘okipa</span> with Regex and No Diacriticals matches <span class="searchterm">hookipa</span> as well as <span class="searchterm">ho‘okipa</span>; searching for <span class="searchterm">hookipa</span> returns the same results. Without No Diacriticals, searching for <span class="searchterm">ho‘okipa</span> returns only results with <span class="searchterm">ho‘okipa</span> while searching for <span class="searchterm">hookipa</span> matches only on <span class="searchterm">hookipa</span></li>
+</ul>
+<p>The default sort option (selected from "Search Options") is "Random". Search results are returned in random order. These are the choices:</p>
+<ul>
+  <li><span class="searchtype">Random</span>: returns search results in random order</li>
+  <li><span class="searchtype">Alphabetical</span>: returns search results in alphabetical order</li>
+  <li><span class="searchtype">By source</span>: returns search results by source document and then in alphabetical order</li>
+  <li><span class="searchtype">By length</span>: returns search results by sentence length in ascending order</li>
+  <li><span class="searchtype">By length descending</span>: returns search results by sentence length in descending order</li>
 </ul>
 <h3>Where do the sentences come from?</h3>
 <ul>
   <li><a class="fancy"target="_blank" href="https://puke.ulukau.org/ulukau-books/?a=p&p=bookbrowser&e=-------en-20--1--txt-txPT-----------">Ulukau</a> (all Hawaiian-language documents)</li>
   <li><a class="fancy"target="_blank" href="https://nupepa.org/gsdl2.5/cgi-bin/nupepa?e=p-0nupepa--00-0-0--010---4-----text---0-1l--1haw-Zz-1---20-about---0003-1-0000utfZz-8-00&a=d&cl=CL2">Nupepa</a> (all newspaper issues that have been transcribed)</li>
-  <li><a class="fancy"target="_blank" href="https://keaolama.org/">Ke Aolama</a> (all articles)</li>
-  <li><a class="fancy"target="_blank" href="https://www.civilbeat.org/projects/ka-ulana-pilina/">Ka Ulana Pilina</a> (Civil Beat, all articles)</li>
-  <li><a class="fancy"target="_blank" href="https://www.staradvertiser.com/category/editorial/kauakukalahale/">Kauakukalahale</a> (Honolulu Star Advertiser, all articles)</li>
+  <li><a class="fancy"target="_blank" href="https://keaolama.org/">Ke Aolama</a> (all articles to <?=$groupdates['keaolama']?>)</li>
+  <li><a class="fancy"target="_blank" href="https://www.civilbeat.org/projects/ka-ulana-pilina/">Ka Ulana Pilina</a> (Civil Beat, all articles to  <?=$groupdates['kaulanapilina']?>)</li>
+  <li><a class="fancy"target="_blank" href="https://www.staradvertiser.com/category/editorial/kauakukalahale/">Kauakukalahale</a> (Honolulu Star Advertiser, all articles to  <?=$groupdates['kauakukalahale']?>)</li>
   <li><a class="fancy"target="_blank" href="https://www2.hawaii.edu/~kroddy/moolelo/">Ka Paa Moolelo</a> (all documents)</li>
   <li><a class="fancy"target="_blank" href="https://baibala.org/cgi-bin/bible?e=d-1off-01994-bible--00-1-0--01994v2-0--4--Sec---1--1en-Zz-1-other---20000-frameset-search-browse----011-01994v1--210-0-2-escapewin&cl=&d=NULL.2.1.1&cid=&bible=&d2=1&toc=0&gg=text#a1-">Baibala (full bible, 2012 edition)</a> (New and Old Testament)</li>
   <li><a class="fancy"target="_blank" href="https://ehooululahui.maui.hawaii.edu/?page_id=35">Ehooululahui</a> (a few full moʻolelo from UHMC)</li>

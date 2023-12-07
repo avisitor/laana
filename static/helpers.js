@@ -16,13 +16,17 @@ function displaySearchOptions() {
 	}
 }
 
-function setPattern( pattern ) {
-	document.getElementById('search-pattern').value = pattern;
+function setPattern( value ) {
+	document.getElementById('search-pattern').value = value;
+}
+
+function setOrder( value ) {
+	document.getElementById('order').value = value;
 }
 
 function setNoDiacriticals() {
     let state = document.getElementById('checkbox-nodiacriticals').checked;
-	document.getElementById('nodiacriticals').value = state;
+	document.getElementById('nodiacriticals').value = (state) ? 1 : 0;
 }
 
 function changeid() {
@@ -35,4 +39,13 @@ function changeid() {
     }
 }
 
- 
+function patternSelected(object) {
+    let value = object.value;  
+    console.log(value);
+    setPattern( value );
+}
+function orderSelected(object) {
+    let value = object.value;  
+    console.log(value);
+    setOrder( value );
+}

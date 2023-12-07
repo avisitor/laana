@@ -19,7 +19,7 @@ div.titletext{
 div.titletext p {
     margin:-1em;
     color: white;
-    padding-bottom: 20px;
+    padding-bottom: 10px;
     font-size: .4em;
 }
 
@@ -121,6 +121,20 @@ div.searchoptions {
     padding-right: 3em;
 }
 
+#search-options {
+    width: fit-content;
+    margin-top: .2em;
+    padding: .4em;
+    background-color: white;
+    border-radius: 6px;
+    text-align: left;
+}
+
+#search-options div {
+    margin-top: .2em;
+    height: fit-content;
+}
+
 #fadein {
     background-image: url("images/hawaiian-background.jpg"); /* url("https://www.hawaii-aloha.com/wp-content/uploads/2018/10/Hawaiian-Language-DuoLingo.jpg"); url("images/bg-min.jpg"); */
     background-position: center; /* Center the image */
@@ -167,8 +181,9 @@ head {
 .search-button {
     font-family:Open Sans,Arial;
     font-size:16px;
-    height: 46px;
+    height: 40px;
     width: 80px;
+    border-radius: 6px;
 }
 
 @media screen and (min-width:300px) and (max-width:500px) {

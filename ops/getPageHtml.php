@@ -2,13 +2,22 @@
 include '../db/funcs.php';
 $word = $_REQUEST['word'];
 $pattern = strtolower( $_REQUEST['pattern'] );
+$order = strtolower( $_REQUEST['order'] );
 $page = $_REQUEST['page'];
-$nodiacriticals = isset( $_REQUEST['nodiacriticals'] );
+$nodiacriticals = isset( $_REQUEST['nodiacriticals'] ) || ($pattern == 'any') || ($pattern == 'all');
 
 // For some reason infiniteScroll skips the requests for the first two pages
 if( $page >= 2 ) {
     $page -= 2;
 }
+$orders = [
+    'alpha' => "hawaiianText",
+    'rand' => 'rand()',
+    'length' => 'length(hawaiianText),hawaiianText',
+    'length desc' => 'length(hawaiianText) desc,hawaiianText',
+    'source' => 'sourcename,hawaiianText',
+];
+$orderBy = (isset($orders[$order])) ? $orders[$order] : '';
 debuglog( $_REQUEST );
 $laana = new Laana();
 $output = "";
@@ -28,34 +37,46 @@ if( $word ) {
         "/u|ū|Ū/" => "ʻ*[uŪū]",
     ];
     $repl = "<span>$1</span>";
-    $target = ($pattern == 'exact') ? $word : normalizeString( $word );
+    $target = ($nodiacriticals) ? normalizeString( $word ) :  $word;
     //$target = normalizeString( $word );
-    if( $pattern != 'exact' ) {
+    if( $pattern != 'exact' && $pattern != 'regex' ) {
         $target = str_replace( 'ʻ', 'ʻ*', $target );
     }
     $targetwords = preg_split( "/[\s]+/",  $target );
     $tw = '';
+    $pat = '';
+    if( $pattern == 'exact' || $pattern == 'regex' ) {
+        $target = preg_replace( '/^‘/', '', $target );
+    }
     if( $pattern == 'exact' ) {
         $tw = "\\b$target\\b";
-    } else if( $pattern == 'any' ) {
+    } else if( $pattern == 'any' || $pattern == 'all' ) {
         $tw = '\\b' . implode( '\\b|\\b', $targetwords ) . '\\b';
-    } else {
-        // order
+    } else if( $pattern == 'order' ) {
         $tw = '\\b' . implode( '\\b.*\\b', $targetwords ) . '\\b';
+    } else if( $pattern == 'regex' ) {
+        $tw = str_replace( "[[:>:]]", "\\b", str_replace("[[:<:]]", "\\b", $target) );
     }
-    $expanded = "/(" . preg_replace( array_keys( $replace ),
-                                     array_values( $replace ),
-                                     $tw ) . ")/ui";
+    if( $tw ) {
+        $expanded = "/(" . preg_replace( array_keys( $replace ),
+                                         array_values( $replace ),
+                                         $tw ) . ")/ui";
     
-    $pat = "/(" . $tw . ")/ui";
-    if( $pattern != 'exact' ) {
-        $pat = $expanded;
+        $pat = "/(" . $tw . ")/ui";
+        if( $pattern != 'exact' && $pattern != 'regex' ) {
+            $pat = $expanded;
+        }
+        $repl = '<span class="match">$1</span>';
+        debuglog( "getPageHTML highlight: target=$target, pat=$pat, repl=$repl");
+    } else {
+        debuglog( "getPageHTML highlight: nothing to match" );
     }
-    $repl = '<span class="match">$1</span>';
-    debuglog( "getPageHTML highlight: target=$target, pat=$pat, repl=$repl");
     $options = [];
     if( $nodiacriticals ) {
         $options['nodiacriticals'] = true;
+    }
+    if( $orderBy ) {
+        $options['orderby'] = $orderBy;
     }
     $rows = $laana->getSentences( $word, $pattern, $page, $options );
     foreach( $rows as $row ) {
@@ -69,7 +90,7 @@ if( $word ) {
         $idlink = "<a class='fancy' href='context?id=$sentenceid&raw' target='_blank'>Context</a>";
         $simplified = "<a class='fancy' href='context?id=$sentenceid' target='_blank'>Simplified</a>";
         $snapshot = "<a class='fancy' href='rawpage?id=$sourceid' target='_blank'>Snapshot</a>";
-        if( $pattern == 'regex' ) {
+        if( !$pat ) {
             $sentence = $row['hawaiiantext'];
         } else {
             $sentence = preg_replace($pat, $repl, $row['hawaiiantext'] );

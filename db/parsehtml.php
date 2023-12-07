@@ -879,6 +879,22 @@ class KauakukalahaleHTML extends HtmlParse {
         return $text;
     }
     
+    public function extractDate( $dom ) {
+        debugPrint( "KauakukalahaleHTML::extractDate()" );
+        $this->date = '';
+        $xpath = new DOMXpath( $dom );
+        $query = "//li[contains(@class, 'postdate')]";
+        $paragraphs = $xpath->query( $query );
+        if( $paragraphs->length > 0 ) {
+            $p = $paragraphs->item(0);
+            $date = trim( $p->nodeValue );
+            $this->date = date("Y-m-d", strtotime($date));
+        }
+        debuglog( "KauakukalahaleHTML:extractDate: " . $this->date );
+        debugPrint( "KauakukalahaleHTML:extractDate: " . $this->date );
+        return $this->date;
+    }
+    
     public function getContents( $url, $options=[] ) {
         $text = parent::getContents( $url, $options );
         $text = $this->updateVisibility( $text );

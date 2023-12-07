@@ -63,10 +63,10 @@ class DB {
     }
 
     public function getDBRows( $sql, $values = [] ) {
+        debuglog( "getDBRows sql: " . $sql );
         if( $this->conn == null ) {
             return [];
         }
-        debuglog( "getDBRows sql: " . $sql );
         if( $values && sizeof( $values ) > 0 ) {
             debuglog( "getDBRows values: " . var_export( $values, true ) );
         }
@@ -272,99 +272,42 @@ class Laana extends DB {
     }
     
     public function getSentences( $term, $pattern, $pageNumber = -1, $options = [] ) {
-        debuglog("Laana::getSentences($term,$pattern,$pageNumber)");
-        $useRegex = true;
-        $useRegex = false;
+        debuglog("Laana::getSentences($term,$pattern,$pageNumber," . var_export( $options, true ) . ")");
+        $nodiacriticals = isset($options['nodiacriticals']) ? $options['nodiacriticals'] : false;
+        $orderBy = isset($options['orderby']) ? "order by " . $options['orderby'] : '';
         $normalizedTerm = normalizeString( $term );
-        $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
         $search = "hawaiianText";
-        if( $useRegex ) {
-            if( $pattern != 'exact' ) {
-                // Match with or without diacriticals
-                //$search = sqlNormalize();
-                //$term = str_replace( 'ʻ', 'ʻ*', $term );
-
-                if( $pattern == 'regex' ) {
-                    if( isset( $options['nodiacriticals'] ) ) {
-                        $search = 'simplified';
-                        $term = $normalizedTerm;
-                    }
-                } else {
-                    $search = 'simplified';
-                    $term = $normalizedTerm;
-                    $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
-                }
-            }
-            debuglog("Laana::getSentences term=$term, normalizedTerm=$normalizedTerm, words=" . var_export( $words, true ) );
-        } else {
-            if( $normalizedTerm == $term ) {
-                // No diacriticals in the search term
-                $search = sqlNormalize();
-            } else {
-                $search = "hawaiianText";
-            }
-            //$search = sqlNormalizeOkina();
-            $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $normalizedTerm );
-            $term = $normalizedTerm;
-        }
         $values = [];
+
+        if( $nodiacriticals ) {
+            if( $pattern == 'regex' || $pattern == 'exact' ) {
+                $search = "simplified";
+                $term = $normalizedTerm;
+            }
+        }
         if( $pattern == 'regex' ) {
             $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP :term and s.sourceID = o.sourceID";
             $term = preg_replace( '/\\\/', '\\\\', $term );
             $values = [
                 'term' => $term,
             ];
-        } else if( sizeof( $words ) < 2 || $pattern == 'exact' ) {
-            if( $useRegex ) {
-                $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP " . "'" . "[[:<:]]" . $term . "[[:>:]]" . "' and s.sourceID = o.sourceID";
-            } else {
-                $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where ($search like '% $term %' or $search like '% $term.%' or $search like '% $term,%' or $search like '% $term;%' or $search like '% $term!%') and s.sourceID = o.sourceID";
-
-                
-                $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences o inner join sources s on s.sourceID = o.sourceID where match(o.hawaiianText) against ('\"$term\"') and hawaiianText like '%$term%'";
-            }
+        } else if( $pattern == 'exact' ) {
+            $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP '(^|,|;|\\\s)" . $term . "[[:>:]]' and s.sourceID = o.sourceID";
         } else {
-            if( $useRegex ) {
-                $sql = "select authors,sourceName,s.sourceID,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP '(";
-                if( $pattern == 'order' ) {
-                    $sql .= '.*';
-                    foreach( $words as $word ) {
-                        $sql .= "[[:<:]]" . $word . "[[:>:]].*";
-                    }
-                } else {
-                    // any
-                    foreach( $words as $word ) {
-                        $sql .= "[[:<:]]" . $word . "[[:>:]]|";
-                    }
+            if( $pattern == 'all' ) {
+                $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
+                $term = "";
+                foreach( $words as $word ) {
+                    $term .= "+$word ";
                 }
-                $sql = trim( $sql, '.*|' );
-                $sql .= ")'";
-            } else {
-                $sql = "select authors,sourceName,s.sourceID,hawaiianText,sentenceid from sentences s, sources o where (";
-                if( $pattern == 'order' ) {
-                    $sql .= " $search like '%";
-                    foreach( $words as $word ) {
-                        $sql .= $word . " %";
-                    }
-                    $sql .= "'";
-                } else {
-                    // any
-                    foreach( $words as $word ) {
-                        $sql .= "$search like '% $word %' or ";
-                    }
-                }
-                $sql = trim( $sql, ' or ' );
-                $sql .= ')';
+                $term = trim( $term );
             }
-            $sql .= " and s.sourceID = o.sourceID group by sentenceID";
-
-                
-                if( $pattern != 'order' ) {
-                    $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences o inner join sources s on s.sourceID = o.sourceID where match(o.hawaiianText) against ('$term')";
-                }
-
+            $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences o inner join sources s on s.sourceID = o.sourceID where match(o.hawaiianText) against (:term IN BOOLEAN MODE)";
+            $values = [
+                'term' => $term,
+            ];
         }
-        $sql .= " order by rand()";
+        $sql .= " $orderBy";
         if( $pageNumber >= 0 ) {
             $sql .= " limit " . $pageNumber * $this->pageSize . "," . $this->pageSize;
         }
@@ -421,6 +364,12 @@ class Laana extends DB {
         return $row;
     }
     
+    public function getLatestSourceDates() {
+        $sql = "select groupname,max(date) date from sources o group by groupname";
+        $rows = $this->getDBRows( $sql );
+        return $rows;
+    }
+    
     public function getSentenceCount() {
         $sql = "select count(sentenceID) count from sentences";
         $sql = "select count(*) count from sentences";
@@ -440,9 +389,17 @@ class Laana extends DB {
         return $status;
     }
 
-    public function getSourceIDs() {
-        $sql = "select sourceID from sources order by sourceID";
-        $rows = $this->getDBRows( $sql );
+    public function getSourceIDs( $groupname = '' ) {
+        if( !$groupname ) {
+            $sql = "select sourceID from sources order by sourceID";
+            $rows = $this->getDBRows( $sql );
+        } else {
+            $sql = "select sourceID from sources where groupname = :groupname order by sourceID";
+            $values = [
+                'groupname' => $groupname,
+            ];
+            $rows = $this->getDBRows( $sql, $values );
+        }
         $sourceIDs = [];
         foreach( $rows as $row ) {
             $sourceIDs[] = $row['sourceid'];
@@ -475,6 +432,24 @@ class Laana extends DB {
         }
     }
 
+    public function updateSource( $params ) {
+        if( !isset( $params['date'] ) ) {
+            $params['date'] = '';
+        }
+        $sql = "update sources set link = :link, " .
+               "groupname = :groupname, " .
+               "authors = :authors, " .
+               "title = :title, " .
+               "date = :date " .
+               "where sourceName = :name";
+        if( $this->executePrepared( $sql, $params ) ) {
+            $row = $this->getSourceByName( $name );
+            return $row['sourceid'];
+        } else {
+            return null;
+        }
+    }
+    
     public function addSource( $name, $params = [] ) {
         $params['sourcename'] = $name;
         if( !$params['date'] ) {
@@ -483,10 +458,7 @@ class Laana extends DB {
         $link = $params['link'] ?: '';
         $row = $this->getSourceByName( $name );
         if( $row['sourceid'] && $link ) {
-            $datespec = ($params['date']) ? ", date = :date" : "";
-            $sql = "update sources set link = :link, groupname = :groupname, authors = :authors, " .
-                   "title = :title$datespec where sourceName = :name";
-            return $this->patchSource( $sql, $params );
+            return $this->updateSource( $params );
         } else {
             $authors = $params['authors'] ?: '';
             $datekey = ($params['date']) ? ", date" : "";
