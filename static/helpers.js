@@ -49,3 +49,33 @@ function orderSelected(object) {
     console.log(value);
     setOrder( value );
 }
+
+$(document).ready(function() {
+    $('.slide').on('click', function(){
+        $('#fade-help').toggleClass('show');
+        $('#help-div').toggleClass('show');
+    });
+    let url = 'overview.html';
+    let slider = document.getElementById('fade-help');
+    if( slider ) {
+        fetch( url )
+            .then(response => response.text())
+            .then(pageContents => {
+                let parser = new DOMParser();
+                const doc = parser.parseFromString(pageContents, 'text/html');
+                let helpdiv = doc.getElementById('search-option-help');
+                slider.innerHTML = "<div id='help-div'>" +  helpdiv.innerHTML + "</div>";
+            })
+            .catch(error => console.error('Error fetching content:', error));
+    }
+    
+    el = document.getElementById( 'searchtype' );
+    if( el ) {
+        el.value = pattern;
+    }
+    el = document.getElementById( 'select-order' );
+    if( el ) {
+        el.value = orderBy;
+    }
+});
+

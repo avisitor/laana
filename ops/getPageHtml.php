@@ -16,6 +16,9 @@ $orders = [
     'length' => 'length(hawaiianText),hawaiianText',
     'length desc' => 'length(hawaiianText) desc,hawaiianText',
     'source' => 'sourcename,hawaiianText',
+    'source desc' => 'sourcename desc,hawaiianText',
+    'date' => 'date,hawaiianText',
+    'date desc' => 'date desc,hawaiianText',
 ];
 $orderBy = (isset($orders[$order])) ? $orders[$order] : '';
 debuglog( $_REQUEST );
@@ -85,6 +88,7 @@ if( $word ) {
         $sentenceid = $row['sentenceid'];
         $authors = $row['authors'];
         $sourceid = $row['sourceid'];
+        $date = $row['date'];
         $link = isset($row['link']) ? $row['link'] : '';
         $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
         $idlink = "<a class='fancy' href='context?id=$sentenceid&raw' target='_blank'>Context</a>";
@@ -104,10 +108,11 @@ if( $word ) {
               <p style='font-size:0.6em;margin-bottom:0;'>
               <span class='hawaiiansentence source'>$sourcelink</span>&nbsp;&nbsp;$snapshot
               </p><p style='font-size:0.5em;margin-top:0.1em;'>
-              <span class='source'>$authors</span>&nbsp;&nbsp;
+              <span class='date'>$date</span>&nbsp;&nbsp;
+              <span class='author'>$authors</span>&nbsp;&nbsp;
               <span class='source'>$idlink</span>&nbsp;&nbsp;
               <span class='source'>$simplified</span>&nbsp;&nbsp;
-              <span class='source'><a class='fancy' target='_blank' href='$translate'>translate</a>
+              <span class='source'><a class='fancy' target='_blank' href='$translate'>Translate</a>
               </p>
             </div>
             <hr>

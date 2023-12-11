@@ -5,6 +5,7 @@ CREATE TABLE `sentences` (
   `englishText` varchar(255) DEFAULT NULL,
   created DATETIME DEFAULT CURRENT_TIMESTAMP,
   FULLTEXT (hawaiianText),
+  KEY `sourceID` (`sourceID`),
   PRIMARY KEY (sourceID, hawaiianText(100)),
   UNIQUE KEY `sentenceID` (`sentenceID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8;

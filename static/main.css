@@ -95,6 +95,18 @@ p.source{
     line-height:0.5;
 }
 
+span.author {
+    color: #f66;
+    display: inline-block;
+    width: 10em;
+}
+
+span.date {
+    color: #8f8;
+    display: inline-block;
+    width: 6em;
+}
+
 span.match {
     font-weight: bold;
     color: #4af;
@@ -619,4 +631,60 @@ div.page-load-status {
 .loader-ellips__dot:nth-child(4) {
   animation-name: reveal;
   animation-direction: reverse;
+}
+
+.box {
+    display: block;  
+    background: rgba(0, 0, 230, 0.7);
+    margin-bottom: 1em;
+    color:white;
+    margin: auto;
+    border: 2px solid lightblue;
+    border-radius: 8px;
+}
+
+#help-div {
+    opacity: 0;
+    padding: .5em;
+    visibility: hidden;
+    transition: opacity .5s .7s ease-out;
+}
+#help-div.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+#fade-help {
+    height: 25em;
+    max-height: 75% !important;
+    width: 1px;
+    opacity: 0;
+    position: fixed;
+    top: 11em;
+    left: 0;
+    z-index: 999;
+    transition: all .75s ease;
+    overflow: auto;
+}
+#fade-help.show {
+    opacity: .9;
+    width: 96%;
+    left: 2%;
+}
+.slide {
+    position: fixed;
+    top: .2em;
+    left: .2em;
+    z-index: 1000;
+    padding: .3em;
+    border-radius:5px;
+    border: 1px blue solid;
+    font-weight: bold;
+    background-color: lightblue;
+    text-decoration: none;
+}
+.slide:hover {
+    color: #ff7f50 !important;
+    text-decoration: none;
+    transition-duration: 0.1s;
 }

@@ -273,6 +273,7 @@ class Laana extends DB {
     
     public function getSentences( $term, $pattern, $pageNumber = -1, $options = [] ) {
         debuglog("Laana::getSentences($term,$pattern,$pageNumber," . var_export( $options, true ) . ")");
+        $countOnly = isset($options['count']) ? $options['count'] : false;
         $nodiacriticals = isset($options['nodiacriticals']) ? $options['nodiacriticals'] : false;
         $orderBy = isset($options['orderby']) ? "order by " . $options['orderby'] : '';
         $normalizedTerm = normalizeString( $term );
@@ -285,14 +286,19 @@ class Laana extends DB {
                 $term = $normalizedTerm;
             }
         }
+        if( $countOnly ) {
+            $targets = "count(*) count";
+        } else {
+            $targets = "authors,date,sourceName,s.sourceID,link,hawaiianText,sentenceid";
+        }
         if( $pattern == 'regex' ) {
-            $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP :term and s.sourceID = o.sourceID";
+            $sql = "select $targets from sentences s, sources o where $search REGEXP :term and s.sourceID = o.sourceID";
             $term = preg_replace( '/\\\/', '\\\\', $term );
             $values = [
                 'term' => $term,
             ];
         } else if( $pattern == 'exact' ) {
-            $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences s, sources o where $search REGEXP '(^|,|;|\\\s)" . $term . "[[:>:]]' and s.sourceID = o.sourceID";
+            $sql = "select $targets from sentences s, sources o where $search REGEXP '(^|,|;|\\\s)" . $term . "[[:>:]]' and s.sourceID = o.sourceID";
         } else {
             if( $pattern == 'all' ) {
                 $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
@@ -302,18 +308,32 @@ class Laana extends DB {
                 }
                 $term = trim( $term );
             }
-            $sql = "select authors,sourceName,s.sourceID,link,hawaiianText,sentenceid from sentences o inner join sources s on s.sourceID = o.sourceID where match(o.hawaiianText) against (:term IN BOOLEAN MODE)";
+            $sql = "select $targets from sentences o inner join sources s on s.sourceID = o.sourceID where match(o.hawaiianText) against (:term IN BOOLEAN MODE)";
             $values = [
                 'term' => $term,
             ];
         }
+        // NUll dates show up as first
+        if( preg_match( '/^date/', $options['orderby'] ) ) {
+            $sql .= ' and not isnull(date)';
+        }
         $sql .= " $orderBy";
-        if( $pageNumber >= 0 ) {
+        if( $pageNumber >= 0 && !$countOnly ) {
             $sql .= " limit " . $pageNumber * $this->pageSize . "," . $this->pageSize;
         }
         $rows = $this->getDBRows( $sql, $values );
         debuglog( "getSentences result: " . var_export( $rows, true ) );
         return $rows;
+    }
+    
+    public function getMatchingSentenceCount( $term, $pattern, $pageNumber = -1, $options = [] ) {
+        debuglog("Laana::getMatchingSentenceCount($term,$pattern,$pageNumber," . var_export( $options, true ) . ")");
+        $options['count'] = true;
+        $rows = $this->getSentences( $term, $pattern, $pageNumber, $options );
+        if( sizeof( $rows ) > 0 ) {
+            return $rows[0]['count'];
+        }
+        return 0;
     }
     
     public function getSentencesBySourceID( $sourceid ) {
@@ -334,9 +354,17 @@ class Laana extends DB {
         return $row;
     }
     
-    public function getSources() {
-        $sql = "select o.*,count(sentenceID) count from sources o,sentences s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
-        $rows = $this->getDBRows( $sql );
+    public function getSources( $groupname = '' ) {
+        if( !$groupname ) {
+            $sql = "select o.*,count(sentenceID) count from sources o,sentences s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
+            $rows = $this->getDBRows( $sql );
+        } else {
+            $sql = "select o.*,count(sentenceID) count from sources o,sentences s where o.sourceID = s.sourceID and groupname = :groupname  group by o.sourceID order by sourceName";
+            $values = [
+                'groupname' => $groupname,
+            ];
+            $rows = $this->getDBRows( $sql, $values );
+        }
         return $rows;
     }
     
@@ -433,17 +461,25 @@ class Laana extends DB {
     }
 
     public function updateSource( $params ) {
+        unset( $params['sourceid'] );
+        unset( $params['start'] );
+        unset( $params['end'] );
+        unset( $params['created'] );
+        unset( $params['count'] );
         if( !isset( $params['date'] ) ) {
             $params['date'] = '';
+        }
+        if( !isset( $params['authors'] ) ) {
+            $params['authors'] = '';
         }
         $sql = "update sources set link = :link, " .
                "groupname = :groupname, " .
                "authors = :authors, " .
                "title = :title, " .
                "date = :date " .
-               "where sourceName = :name";
+               "where sourceName = :sourcename";
         if( $this->executePrepared( $sql, $params ) ) {
-            $row = $this->getSourceByName( $name );
+            $row = $this->getSourceByName( $source['sourcename'] );
             return $row['sourceid'];
         } else {
             return null;

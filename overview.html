@@ -13,6 +13,7 @@ is inspired by the <a class="fancy"href="https://laana.org">Laana</a> website of
   <li><a class="fancy"href="?search=kona makuakāne&searchpattern=exact">kona makuakāne (exact)</a></li>
   <li><a class="fancy"href="?search=<?=$laana->getRandomWord()?>">Search for a random sentence</a></li>
 </ul>
+<div id='search-option-help'>
 <h3>Search options</h3>
 <p>The default search option (selected from "Search Options") is "Any". All searches except for "Regex" and "Exact" are case-insensitive. These are the choices:</p>
 <ul>
@@ -26,10 +27,22 @@ is inspired by the <a class="fancy"href="https://laana.org">Laana</a> website of
 <ul>
   <li><span class="searchtype">Random</span>: returns search results in random order</li>
   <li><span class="searchtype">Alphabetical</span>: returns search results in alphabetical order</li>
-  <li><span class="searchtype">By source</span>: returns search results by source document and then in alphabetical order</li>
+  <li><span class="searchtype">By date</span>: returns search results by source document in date order and then by sentence in alphabetical order; note: source documents without dates are not included</li>
+  <li><span class="searchtype">By date descending</span>: returns search results by source document in descending date order and then by sentence in alphabetical order; note: source documents without dates are not included</li>
+  <li><span class="searchtype">By source</span>: returns search results by source document in alphabetical order and then by sentence in alphabetical order</li>
+  <li><span class="searchtype">By source descending</span>: returns search results by source document in descending alphabetical order and then by sentence in alphabetical order</li>
   <li><span class="searchtype">By length</span>: returns search results by sentence length in ascending order</li>
   <li><span class="searchtype">By length descending</span>: returns search results by sentence length in descending order</li>
 </ul>
+<p>For each sentence found, the following links are provided:</p>
+  <ul>
+    <li><span class="searchtype">Source name</span>: takes you to the original source website</li>
+    <li><span class="searchtype">Snapshot</span>: a snapshot of the original source</li>
+    <li><span class="searchtype">Context</span>: location of the sentence in the snapshot, if possible</li>
+    <li><span class="searchtype">Simplified</span>: location of the sentence in the plain text of the snapshot</li>
+    <li><span class="searchtype">Translate</span>: a Google Translate page for the sentence</li>
+  </ul>
+</div>
 <h3>Where do the sentences come from?</h3>
 <ul>
   <li><a class="fancy"target="_blank" href="https://puke.ulukau.org/ulukau-books/?a=p&p=bookbrowser&e=-------en-20--1--txt-txPT-----------">Ulukau</a> (all Hawaiian-language documents)</li>
@@ -39,7 +52,7 @@ is inspired by the <a class="fancy"href="https://laana.org">Laana</a> website of
   <li><a class="fancy"target="_blank" href="https://www.staradvertiser.com/category/editorial/kauakukalahale/">Kauakukalahale</a> (Honolulu Star Advertiser, all articles to  <?=$groupdates['kauakukalahale']?>)</li>
   <li><a class="fancy"target="_blank" href="https://www2.hawaii.edu/~kroddy/moolelo/">Ka Paa Moolelo</a> (all documents)</li>
   <li><a class="fancy"target="_blank" href="https://baibala.org/cgi-bin/bible?e=d-1off-01994-bible--00-1-0--01994v2-0--4--Sec---1--1en-Zz-1-other---20000-frameset-search-browse----011-01994v1--210-0-2-escapewin&cl=&d=NULL.2.1.1&cid=&bible=&d2=1&toc=0&gg=text#a1-">Baibala (full bible, 2012 edition)</a> (New and Old Testament)</li>
-  <li><a class="fancy"target="_blank" href="https://ehooululahui.maui.hawaii.edu/?page_id=35">Ehooululahui</a> (a few full moʻolelo from UHMC)</li>
+  <li><a class="fancy"target="_blank" href="https://ehooululahui.maui.hawaii.edu/">Ehooululahui</a> (a few full moʻolelo from UHMC)</li>
   <li>Various other individual documents</li>
 </ul>
 <h4>Questions or concerns?</h4>

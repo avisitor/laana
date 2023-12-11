@@ -2,7 +2,7 @@
 include 'db/funcs.php';
 $word = isset($_GET['search']) ? $_GET['search'] : "";
 $normalizedWord = normalizeString( $word );
-$pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "Any";
+$pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "any";
 if( $word ) {
     if( $pattern == 'regex' ) {
         $word = urlencode( $word );
@@ -41,6 +41,15 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
          </div>
        </a>
 
+<?php
+     if( $word ) {
+?>
+       <a class="slide" href="#">Help</a>
+       <div id="fade-help" class="box"></div>
+<?php
+      }
+?>
+     
 <?php if( !($doSources || $doResources) ) { ?>
        
        <center>
@@ -81,7 +90,10 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 			<select id="select-order" class="dd-menu" value ="<?=$order?>" onchange="orderSelected(this)">
                 <option value="rand">Random</option>
                 <option value="alpha">Alphabetical</option>
+                <option value="date">By date</option>
+                <option value="date desc">By date descending</option>
                 <option value="source">By source</option>
+                <option value="source desc">By source descending</option>
                 <option value="length">By length</option>
                 <option value="length desc">By length descending</option>
 			</select>
@@ -110,14 +122,6 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 ?>
 
  <div class="sentences" id="sentences">
-     <script>
-         $(document).ready(function() {
-             el = document.getElementById( 'searchtype' );
-             el.value = pattern;
-             el = document.getElementById( 'select-order' );
-             el.value = orderBy;
-         });
-     </script>
      
      <?php
      if( !$word ) {
@@ -126,7 +130,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 
          <script>
 	     $(document).ready(function () {
-             $("#<?=$pattern?>").prop( "checked", true );
+             //$("#<?=$pattern?>").prop( "checked", true );
              $('#table').DataTable({
                  paging: false,
                  order: [[ 1, "asc" ]],
@@ -245,7 +249,19 @@ foreach( $rows as $row ) {
 }
 } else {
     /* Word passed */
+    $options = [];
+    if( $nodiacriticals ) {
+        $options['nodiacriticals'] = true;
+    }
+    if( $orderBy ) {
+        $options['orderby'] = $orderBy;
+    }
+    $count = 0;
+    $params = $options;
+    $params['count'] = true;
+    $count = number_format( $laana->getMatchingSentenceCount( $word, $pattern, -1, $params ) );
 ?>
+<div><?=$count?> matching sentences</div><br />
 
     <script>
      $(document).ready(function() {
