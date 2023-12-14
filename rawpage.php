@@ -5,7 +5,7 @@ $sourceID = $_GET['id'] ?: '';
 $type = isset($_GET['simplified']) ? 'text' : 'html';
 
 if( $sourceID ) {
-    $sql = "select $type from contents where sourceid = :sourceid";
+    $sql = "select $type from " . CONTENTS . " where sourceid = :sourceid";
     $values = [
         'sourceid' => $sourceID,
     ];

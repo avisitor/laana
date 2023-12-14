@@ -30,8 +30,8 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 
     <body id=fadein onload="changeid()">
         <div class="headerlinks">
-        <?= ($doSources) ? '<a href="/"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?sources"><button class="linkbutton" type="button">Sources</button></a>' ?>
-        <?= ($doResources) ? '<a href="/"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?resources"><button class="linkbutton" type="button">Resources</button></a>' ?>
+        <?= ($doSources) ? '<a href="' . $base . '"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?sources"><button class="linkbutton" type="button">Sources</button></a>' ?>
+        <?= ($doResources) ? '<a href="' . $base . '"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?resources"><button class="linkbutton" type="button">Resources</button></a>' ?>
     </div>
 
        <a href="<?=$base?>" class="nostyle">
@@ -193,6 +193,8 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
               // Hide the hover box on mouseout
               var hoverBox = document.getElementById('hoverBox');
               hoverBox.style.display = 'none';
+              let hoverBody = document.getElementById('hoverBody');
+              hoverBody.innerHTML = '';
           }
           document.getElementById('sentences').onclick = hideHoverBox;
           document.getElementsByTagName('body').item(0).onclick = hideHoverBox;

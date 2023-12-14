@@ -11,19 +11,6 @@ function getParser( $key ) {
     }
 }
 
-function hasRaw( $sourceid ) {
-    $sql = "select sources.sourceid sourceid,sources.sourcename from sources,contents where sources.sourceid=contents.sourceid and sources.sourceid = :sourceid and not html is null";
-    $values = [
-        'sourceid' => $sourceid,
-    ];
-    //echo "$sql [$sourceid]\n";
-    $db = new DB();
-    $row = $db->getOneDBRow( $sql, $values );
-    //echo( var_export( $row, true ) . "\n" );
-    $id = isset($row['sourceid']) ? $row['sourceid'] : '';
-    return $id;
-}
-
 function saveRaw( $parser, $url, $sourceName ) {
     //$parser = new KaPaaMooleloHTML();
     //$parser->initialize( $url );
@@ -67,7 +54,7 @@ function checkRaw( $url ) {
         echo "No source registered for $title\n";
         return false;
     } else {
-        $present = hasRaw( $sourceID );
+        $present = $laana->hasRaw( $sourceID );
         if( $present ) {
             echo "$sourceName already has HTML\n";
             return true;
@@ -105,7 +92,7 @@ function addSentences( $parser, $sourceID, $link, $text ) {
 // A few documents we failed to extract sentences from
 function getFailedDocuments( $parser ) {
     $db = new DB();
-    $sql = 'select sourceid from contents where sourceid not in (select distinct sourceid from sentences) and sourceid > 1700 order by sourceid';
+    $sql = 'select sourceid from " . CONTENTS . " where sourceid not in (select distinct sourceid from " . SENTENCES . ") order by sourceid';
     $rows = $db->getDBRows( $sql );
     //echo( var_export( $rows, true ) . "\n" );
     foreach( $rows as $row ) {
@@ -140,7 +127,7 @@ function saveDocument( $parser, $sourceID, $options ) {
     //continue;
     
     $text = "";
-    $present = hasRaw( $sourceID );
+    $present = $laana->hasRaw( $sourceID );
     echo "saveDocument: hasRaw: $present\n";
 
     $didWork = 0;

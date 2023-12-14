@@ -4,8 +4,8 @@ include 'saveFuncs.php';
 $groupname = (isset( $argv[1] ) ) ? $argv[1] : '';
 if( $groupname ) {
     $db = new DB();
-    foreach( ['sentences', 'contents', 'sources'] as $table ) {
-        $sql = "delete from $table where sourceid  in (select sourceid from sources where groupname = '$groupname')";
+    foreach( [SENTENCES, CONTENTS, SOURCES] as $table ) {
+        $sql = "delete from $table where sourceid in (select sourceid from " . SOURCES . " where groupname = '$groupname')";
         $values = [
             'table' => $table,
             'groupname' => $groupname,
