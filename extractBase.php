@@ -55,15 +55,15 @@ $sourceLink = $source['link'] ?: '';
              var text = "";
              if( sourceID ) {
              } else {
-                 text += "insert ignore into sources(sourceName,link) values('<?=$sourceName?>', '<?=$url?>');\n";
+                 text += "insert ignore into " . SOURCES . "(sourceName,link) values('<?=$sourceName?>', '<?=$url?>');\n";
              }
              lines.forEach( function(sentence) {
                  if( sentence.length > 0 ) {
-                     text += "insert into sentences(hawaiianText,sourceID) ";
+                     text += "insert into " . SENTENCES . "(hawaiianText,sourceID) ";
                      if( sourceID ) {
                          text += "values('" + sentence + "'," + sourceID + ");\n";
                      } else {
-                         text += "select '" + sentence + "',sourceID from sources where " +
+                         text += "select '" + sentence + "',sourceID from " . SOURCES . " where " +
                                "sourceName = '<?=$sourceName?>';\n";
                      }
                  }
@@ -139,7 +139,7 @@ $rows = 0;
 if( $url ) {
     echo "<h5><a href='$url'>$url</a></h5>\n";
     if( !$source || sizeof($source) < 1 ) {
-        echo "<h6>Do this first:<br />\ninsert into sources(sourceName,link) values('$sourceName', '$url');</h6><br />\n";
+        echo "<h6>Do this first:<br />\ninsert into " . SOURCES . "(sourceName,link) values('$sourceName', '$url');</h6><br />\n";
     } else {
         echo "<span class='source'>$sourceName - $sourceID</span><br />\n";
     }

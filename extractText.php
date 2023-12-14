@@ -55,7 +55,7 @@
                     var select = document.getElementById( 'source' );
                     var sourceID = select.value;
                     for( var i = 0; i < data.length; i++ ) {
-                        var line = "insert into sentences(hawaiianText,sourceID) values('" + data[i] +
+                        var line = "insert into " . SENTENCES . "(hawaiianText,sourceID) values('" + data[i] +
                                  "'," + sourceID + ");\n";
                         text += line;
                     }
