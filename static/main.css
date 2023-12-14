@@ -79,6 +79,11 @@ div.hawaiiansentence{
     font-size:24px;
 }
 
+/* The source and snapshot links under each sentence */
+span.hawaiiansentence.source {
+    font-size: .9em;
+}
+
 p.title{
     font-size:16px;
     color: #eee;

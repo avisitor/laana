@@ -106,7 +106,7 @@ if( $word ) {
             <div class="hawaiiansentence">
               <p class='title'>$sentence</p>
               <p style='font-size:0.6em;margin-bottom:0;'>
-              <span class='hawaiiansentence source'>$sourcelink</span>&nbsp;&nbsp;$snapshot
+              <span class='hawaiiansentence source'>$sourcelink&nbsp;&nbsp;$snapshot</span>
               </p><p style='font-size:0.5em;margin-top:0.1em;'>
               <span class='date'>$date</span>&nbsp;&nbsp;
               <span class='author'>$authors</span>&nbsp;&nbsp;
