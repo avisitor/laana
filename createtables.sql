@@ -12,7 +12,7 @@ CREATE TABLE `sentences` (
 
 CREATE TABLE `sources` (
   `sourceID` int(11) NOT NULL AUTO_INCREMENT,
-  `sourceName` text DEFAULT NULL,
+  `sourceName` varchar(200) DEFAULT NULL,
   `authors` text DEFAULT NULL,
   `link` text DEFAULT NULL,
   `start` int(11) DEFAULT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE `sources` (
   created DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`sourceID`),
   UNIQUE KEY `sourceID` (`sourceID`),
-  UNIQUE KEY `sourceName` (`sourceName`) USING HASH
+  UNIQUE KEY `sourceName` (`sourceName`)
 ) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8;
 
 CREATE TABLE `searchstats` (
