@@ -1350,7 +1350,7 @@ class UlukauHTML extends HtmlParse {
 
             $subject = $docdiv->getAttribute( "data-subject" );
             $language = $docdiv->getAttribute( "data-language" );
-            echo "author=$author, title=$title, subject=$subject, language=$language\n";
+            //echo "author=$author, title=$title, subject=$subject, language=$language\n";
 
             $count = $docdiv->childNodes->length;
             $leftdiv = $docdiv->childNodes->item(1);
@@ -1358,10 +1358,10 @@ class UlukauHTML extends HtmlParse {
             if( $otherdivs->length > 0 ) {
                 $this->image = $this->domain . $otherdivs->item(0)->getAttribute( 'data-src' );
             }
-            echo "image: $this->image\n";
+            //echo "image: $this->image\n";
             $anchors = $xpath->query( 'div/div[contains(@class, "tt")]/b/a', $docdiv );
             if( $anchors->count() < 1 ) {
-            echo "No anchors under tt/b/a\n";
+                //echo "No anchors under tt/b/a\n";
                 continue;
             }
             $a = $anchors->item(0);

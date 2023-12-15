@@ -1,8 +1,3 @@
-<?php
-$base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
-$sourceName = $parser->getSourceName();
-$pages = $parser->getPageList();
-?>
 <!DOCTYPE html>
 <html lang="en" class="">
     <head>
@@ -64,6 +59,11 @@ $pages = $parser->getPageList();
    </style>
    </head>
    <body>
+<?php
+$base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
+$sourceName = $parser->getSourceName();
+$pages = $parser->getPageList();
+?>
      <h1><?=$sourceName?></h1>
      <div class='box'>
          <?php
@@ -78,11 +78,8 @@ $pages = $parser->getPageList();
              }
              $getsentences = "$pageextract?url=" . urlencode($link) . "&title=" . urlencode($title);
          ?>
-         <!-- <tr><td style='width:100%;text-align:center;padding-bottom:1em;'><?=$image?><a href="<?=$link?>" target="_blank"><?=$title?></a><br><a href="<?=$getsentences?>" target="_blank">Parse it</td></tr> -->
-         <div class='item'><?=$image?><a href="<?=$link?>" target="_blank"><?=$title?></a><br><span ><a class="button" href="<?=$getsentences?>" target="_blank">Parse it</a></span></div>
-     <?php
-     }
-     ?>
+             <div class='item'><?=$image?><a href="<?=$link?>" target="_blank"><?=$title?></a><br><span ><a class="button" href="<?=$getsentences?>" target="_blank">Parse it</a></span></div>
+   <?php } ?>
      </div>
    </body>
 </html>
