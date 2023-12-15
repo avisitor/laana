@@ -259,7 +259,7 @@ class Laana extends DB {
         $times = 10;
         while( ($len < $minlength) && ($times > 0) ) {
             $start = random_int( 0, $count - 1 );
-            $sql = "select hawaiianText from SENTENCES limit $start, 1";
+            $sql = "select hawaiianText from " . SENTENCES . " limit $start, 1";
             $rows = $this->getDBRows( $sql );
             $sentence = $rows[0]['hawaiiantext'];
             $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $sentence );
@@ -337,7 +337,7 @@ class Laana extends DB {
     }
     
     public function getSentencesBySourceID( $sourceid ) {
-        $sql = "select sentenceID, hawaiianText from SENTENCES where sourceID = :sourceid";
+        $sql = "select sentenceID, hawaiianText from " . SENTENCES . " where sourceID = :sourceid";
         $values = [
             'sourceid' => $sourceid,
         ];
@@ -346,7 +346,7 @@ class Laana extends DB {
     }
     
     public function getSentence( $sentenceid ) {
-        $sql = "select * from SENTENCES where sentenceid = :id";
+        $sql = "select * from " . SENTENCES . " where sentenceid = :id";
         $values = [
             'id' => $sentenceid,
         ];
@@ -409,8 +409,6 @@ class Laana extends DB {
     }
     
     public function getSentenceCount() {
-        $sql = "select count(sentenceID) count from SENTENCES";
-        $sql = "select count(*) count from SENTENCES";
         $sql = "select value count from " . STATS . " where name = 'sentences'";
         $row = $this->getOneDBRow( $sql );
         debuglog( "getSentenceCount: " . var_export( $row, true ) );
@@ -418,7 +416,7 @@ class Laana extends DB {
     }
 
     public function updateCounts() {
-        $sql = "update " . STATS . " set value=(select count(*) from SENTENCES) where name = 'sentences'";
+        $sql = "update " . STATS . " set value=(select count(*) from " . SENTENCES . ") where name = 'sentences'";
         $status = $this->executeSQL( $sql );
         if( $status == 1 ) {
             $sql = "update " . STATS . " set value=(select count(*) from " . SOURCES . ") where name = 'sources'";
@@ -516,7 +514,7 @@ class Laana extends DB {
     }
     
     public function addSomeSentences( $sourceID, $sentences ) {
-        $sql = "insert ignore into SENTENCES(sourceID, hawaiianText) values ";
+        $sql = "insert ignore into " . SENTENCES . "(sourceID, hawaiianText) values ";
         $values = [
             'sourceID' => $sourceID,
         ];
@@ -623,7 +621,7 @@ class Laana extends DB {
         return $result;
     }
     public function removeSentences( $sourceid ) {
-        $sql = "delete from SENTENCES where sourceID = :sourceid";
+        $sql = "delete from " . SENTENCES . " where sourceID = :sourceid";
         $values = [
             'sourceid' => $sourceid,
         ];
