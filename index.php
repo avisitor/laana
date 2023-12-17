@@ -261,7 +261,9 @@ foreach( $rows as $row ) {
     $count = 0;
     $params = $options;
     $params['count'] = true;
-    $count = number_format( $laana->getMatchingSentenceCount( $word, $pattern, -1, $params ) );
+    $count = $laana->getMatchingSentenceCount( $word, $pattern, -1, $params );
+    $laana->addSearchStat( $word, $pattern, $count );
+    $count = number_format( $count );
 ?>
 <div><?=$count?> matching sentences</div><br />
 

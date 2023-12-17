@@ -628,5 +628,30 @@ class Laana extends DB {
         $result = $this->executePrepared( $sql, $values );
         return $result;
     }
+    public function addSearchStat( $searchterm, $pattern, $results ) {
+        $sql = "insert into " . SEARCHSTATS . "(searchterm,pattern,results) values(:searchterm,:pattern,:results)";
+        $values = [
+            'searchterm' => $searchterm,
+            'pattern' => $pattern,
+            'results' => $results,
+        ];
+        $result = $this->executePrepared( $sql, $values );
+        return $result;
+    }
+    public function getSearchStats() {
+        $sql = "select * from " . SEARCHSTATS . " order by created";
+        $rows = $this->getDBRows( $sql, $values );
+        return $rows;
+    }
+    public function getSummarySearchStats() {
+        $sql = "select pattern,count(*) count from searchstats group by pattern order by pattern";
+        $rows = $this->getDBRows( $sql, $values );
+        return $rows;
+    }
+    public function getFirstSearchTime() {
+        $sql = "select min(created) first from searchstats";
+        $row = $this->getOneDBRow( $sql );
+        return ($row['first']) ? $row['first'] : '';
+    }
 }
 ?>
