@@ -10,7 +10,8 @@
       }
      .box {
         display: flex;
-        flex-flow: row wrap;
+         flex-flow: row wrap;
+         background-color: #ddf;
       }
       .item {
          max-width:13em;
