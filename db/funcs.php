@@ -251,7 +251,7 @@ function normalizeString( $term ) {
 
 class Laana extends DB {
     private $pageNumber = 0;
-    private $pageSize = 100;
+    public $pageSize = 1000;
     
     public function getRandomWord( $minlength = 5 ) {
         $count = $this->getSentenceCount();
@@ -292,13 +292,21 @@ class Laana extends DB {
             $targets = "authors,date,sourceName,s.sourceID,link,hawaiianText,sentenceid";
         }
         if( $pattern == 'regex' ) {
-            $sql = "select $targets from " . SENTENCES . " s, " . SOURCES . " o where $search REGEXP :term and s.sourceID = o.sourceID";
+            if( $countOnly ) {
+                $sql = "select $targets from " . SENTENCES . " s where $search REGEXP :term";
+            } else {
+                $sql = "select $targets from " . SENTENCES . " s, " . SOURCES . " o where $search REGEXP :term and s.sourceID = o.sourceID";
+            }
             $term = preg_replace( '/\\\/', '\\\\', $term );
             $values = [
                 'term' => $term,
             ];
         } else if( $pattern == 'exact' ) {
-            $sql = "select $targets from " . SENTENCES . " s, " . SOURCES . " o where $search REGEXP '(^|,|;|\\\s)" . $term . "[[:>:]]' and s.sourceID = o.sourceID";
+            if( $countOnly ) {
+                $sql = "select $targets from " . SENTENCES . " s where $search REGEXP '(^|,|;|\\\s)" . $term . "[[:>:]]'";
+            } else {
+                $sql = "select $targets from " . SENTENCES . " s, " . SOURCES . " o where $search REGEXP '(^|,|;|\\\s)" . $term . "[[:>:]]' and s.sourceID = o.sourceID";
+            }
         } else {
             if( $pattern == 'all' ) {
                 $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
@@ -308,19 +316,24 @@ class Laana extends DB {
                 }
                 $term = trim( $term );
             }
-            $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where match(o.hawaiianText) against (:term IN BOOLEAN MODE)";
+            if( $countOnly ) {
+                $sql = "select $targets from " . SENTENCES . " where match(o.hawaiianText) against (:term IN BOOLEAN MODE)";
+            } else {
+                $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where match(o.hawaiianText) against (:term IN BOOLEAN MODE)";
+            }
             $values = [
                 'term' => $term,
             ];
         }
         // NUll dates show up as first
-        if( preg_match( '/^date/', $options['orderby'] ) ) {
+        if( isset( $options['orderby'] ) && preg_match( '/^date/', $options['orderby'] ) ) {
             $sql .= ' and not isnull(date)';
         }
         $sql .= " $orderBy";
         if( $pageNumber >= 0 && !$countOnly ) {
             $sql .= " limit " . $pageNumber * $this->pageSize . "," . $this->pageSize;
         }
+        //echo "sql: $sql, values: " . var_export( $values, true ) . "\n";
         $rows = $this->getDBRows( $sql, $values );
         debuglog( "getSentences result: " . var_export( $rows, true ) );
         return $rows;
@@ -640,12 +653,12 @@ class Laana extends DB {
     }
     public function getSearchStats() {
         $sql = "select * from " . SEARCHSTATS . " order by created";
-        $rows = $this->getDBRows( $sql, $values );
+        $rows = $this->getDBRows( $sql );
         return $rows;
     }
     public function getSummarySearchStats() {
         $sql = "select pattern,count(*) count from searchstats group by pattern order by pattern";
-        $rows = $this->getDBRows( $sql, $values );
+        $rows = $this->getDBRows( $sql );
         return $rows;
     }
     public function getFirstSearchTime() {
