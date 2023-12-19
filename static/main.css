@@ -114,8 +114,14 @@ span.date {
 
 span.match {
     font-weight: bold;
-    color: #4af;
-    background-color: blue;
+    color: #6df;
+    /*
+    background-color: #3333ff;
+    padding: .05em;
+    padding-left: .2em;
+    padding-right: .2em;
+    border-radius: 4px;
+   */
 }
 div.engsentence{
     font-family:Open Sans,Arial;
