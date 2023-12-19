@@ -96,6 +96,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                 <option value="source desc">By source descending</option>
                 <option value="length">By length</option>
                 <option value="length desc">By length descending</option>
+                <option value="none">None</option>
 			</select>
             </div>
 		</div>
@@ -255,22 +256,35 @@ foreach( $rows as $row ) {
     if( $nodiacriticals ) {
         $options['nodiacriticals'] = true;
     }
-    if( $orderBy ) {
-        $options['orderby'] = $orderBy;
+    if( $order) {
+        $options['orderby'] = $order;
     }
-    $count = 0;
-    $params = $options;
-    $params['count'] = true;
-    $count = $laana->getMatchingSentenceCount( $word, $pattern, -1, $params );
-    $laana->addSearchStat( $word, $pattern, $count );
-    $count = number_format( $count );
 ?>
-<div><?=$count?> matching sentences</div><br />
+<div><span id="matchcount"></span></div><br />
 
     <script>
+     function recordSearch( search, searchpattern, count, order ) {
+         let params = {
+             search: search,
+             searchpattern: searchpattern,
+             count: count,
+             order: order,
+         };
+         $.post("ops/recordsearch",
+                params,
+                function( data, status ) {
+                    console.log( 'recordSearch: ' + data + " (" + status + ")" );
+                });
+     }
+     function reportCount( count ) {
+         let div = document.getElementById('matchcount');
+         div.innerHTML = count + ' matching sentences';
+         recordSearch( "<?=$word?>", "<?=$pattern?>", count, "<?=$order?>" );
+     }
      $(document).ready(function() {
-         var pageNumber = 0;
-         let url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}&order=<?=$order?><?=$nodiacriticalsparam?>';
+         let countLoaded = false;
+         let url;
+         url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}&order=<?=$order?><?=$nodiacriticalsparam?>';
          let $container = $('.sentences').infiniteScroll({
              path: url,
              history: false,
@@ -279,7 +293,50 @@ foreach( $rows as $row ) {
              //responseBody: 'json',
              append: 'div.hawaiiansentence',
              status: '.page-load-status',
+             onInit: function() {
+                 this.on( 'load', function() {
+                     console.log('Infinite Scroll load');
+                 });
+                 this.on( 'request', function() {
+                     console.log('Infinite Scroll request');
+                 });
+                 this.on( 'load', function( body, path, response ) {
+                     console.log('Infinite Scroll load %o',response);
+                 });
+                 this.on( 'last', function( body, path ) {
+                     console.log('Infinite Scroll last');
+                     if( !countLoaded ) {
+                         countLoaded = true;
+                         reportCount( 0 );
+                     }
+                 });
+                 this.on( 'error', function( error, path, response ) {
+                     console.log('Infinite Scroll error %o',error);
+                 });
+                 this.on( 'append', function( body, path, items, response ) {
+                     console.log('Infinite Scroll append body:%o path:%o items:%o response:%o', body, path, items, response)
+                     let count = items.length;
+                     console.log( count + " items returned" );
+                     if( !countLoaded ) {
+                         countLoaded = true;
+                         if( count < <?=$laana->pageSize?> ) { // Less than a page
+                             reportCount( count );
+                             return;
+                         }
+                         // More than a page of results, so have to query
+                         url = 'ops/resultcount.php?search=' +
+                               '<?=$word?>&searchpattern=<?=$pattern?>';
+                         fetch( url )
+                             .then(response => response.text())
+                             .then(count => {
+                                 reportCount( count );
+                             })
+                             .catch(error => console.error('Error fetching match count:', error));
+                     }
+                 });
+             },
          });
+         
      });
     </script>
 
