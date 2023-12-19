@@ -12,7 +12,7 @@ body {
 	$(document).ready(function () {
         $('#table').DataTable({
             paging: false,
-            order: [[ 2, "asc" ]],
+            order: [[ 3, "desc" ]],
             ordering: true,
         }
         );
