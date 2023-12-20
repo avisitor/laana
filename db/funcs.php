@@ -317,7 +317,7 @@ class Laana extends DB {
                 $term = trim( $term );
             }
             if( $countOnly ) {
-                $sql = "select $targets from " . SENTENCES . " where match(o.hawaiianText) against (:term IN BOOLEAN MODE)";
+                $sql = "select $targets from " . SENTENCES . " where match(hawaiianText) against (:term IN BOOLEAN MODE)";
             } else {
                 $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where match(o.hawaiianText) against (:term IN BOOLEAN MODE)";
             }
