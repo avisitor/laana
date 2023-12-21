@@ -659,12 +659,12 @@ class Laana extends DB {
         return $rows;
     }
     public function getSummarySearchStats() {
-        $sql = "select pattern,count(*) count from searchstats group by pattern order by pattern";
+        $sql = "select pattern,count(*) count from " . SEARCHSTATS . " group by pattern order by pattern";
         $rows = $this->getDBRows( $sql );
         return $rows;
     }
     public function getFirstSearchTime() {
-        $sql = "select min(created) first from searchstats";
+        $sql = "select min(created) first from " . SEARCHSTATS;
         $row = $this->getOneDBRow( $sql );
         return ($row['first']) ? $row['first'] : '';
     }
