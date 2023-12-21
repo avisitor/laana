@@ -29,10 +29,10 @@ CREATE TABLE `sources` (
 CREATE TABLE `searchstats` (
   `searchterm` varchar(255) NOT NULL,
   `created` datetime DEFAULT current_timestamp(),
-  `sort` varchar(15) DEFAULT NULL
+  `sort` varchar(15) DEFAULT NULL,
   `pattern` varchar(10) DEFAULT NULL,
   `results` int(11) DEFAULT NULL,
-  `elapsed` int(11) DEFAULT NULL,
+  `elapsed` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 CREATE TABLE `searchstats` (
