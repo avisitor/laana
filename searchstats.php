@@ -57,12 +57,14 @@ foreach( $stats as $row ) {
     </div>
     <div class="sentences">
         <table id="table">
-            <thead><tr><th>Search term</th><th>Type</th><th>Results</th><th>Time</th></tr></thead>
+            <thead><tr><th>Search term</th><th>Type</th><th>Order</th><th>Results</th><th>Elapsed</th><th>Time</th></tr></thead>
             <tbody>
 
 <?php
 foreach( $rows as $row ) {
-    echo "<tr><td>{$row['searchterm']}</td><td>{$row['pattern']}</td><td>{$row['results']}</td><td>" . changeTimeZone( $row['created'] ) . "</td></tr>\n";
+    $order = ($row['sort']) ? $row['sort'] : '';
+    $elapsed = ($row['elapsed']) ? $row['elapsed'] : '';
+    echo "<tr><td>{$row['searchterm']}</td><td>{$row['pattern']}</td><td>$order</td><td>{$row['results']}</td><td>$elapsed</td><td>" . changeTimeZone( $row['created'] ) . "</td></tr>\n";
 }
 ?>
             <tbody>

@@ -641,12 +641,14 @@ class Laana extends DB {
         $result = $this->executePrepared( $sql, $values );
         return $result;
     }
-    public function addSearchStat( $searchterm, $pattern, $results ) {
-        $sql = "insert into " . SEARCHSTATS . "(searchterm,pattern,results) values(:searchterm,:pattern,:results)";
+    public function addSearchStat( $searchterm, $pattern, $results, $order,$elapsed ) {
+        $sql = "insert into " . SEARCHSTATS . "(searchterm,pattern,results,sort,elapsed) values(:searchterm,:pattern,:results,:sort,:elapsed)";
         $values = [
             'searchterm' => $searchterm,
             'pattern' => $pattern,
             'results' => $results,
+            'sort' => $order,
+            'elapsed' => $elapsed,
         ];
         $result = $this->executePrepared( $sql, $values );
         return $result;

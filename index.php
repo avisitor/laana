@@ -263,12 +263,13 @@ foreach( $rows as $row ) {
 <div><span id="matchcount"></span></div><br />
 
     <script>
-     function recordSearch( search, searchpattern, count, order ) {
+     function recordSearch( search, searchpattern, count, order, elapsedTime ) {
          let params = {
              search: search,
              searchpattern: searchpattern,
              count: count,
              order: order,
+             elapsed: elapsedTime,
          };
          $.post("ops/recordsearch",
                 params,
@@ -279,10 +280,10 @@ foreach( $rows as $row ) {
      function reportCount( count ) {
          let div = document.getElementById('matchcount');
          div.innerHTML = count + ' matching sentences';
-         recordSearch( "<?=$word?>", "<?=$pattern?>", count, "<?=$order?>" );
      }
      $(document).ready(function() {
          let countLoaded = false;
+         let startTime = new Date();
          let url;
          url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}&order=<?=$order?><?=$nodiacriticalsparam?>';
          let $container = $('.sentences').infiniteScroll({
@@ -294,9 +295,6 @@ foreach( $rows as $row ) {
              append: 'div.hawaiiansentence',
              status: '.page-load-status',
              onInit: function() {
-                 this.on( 'load', function() {
-                     console.log('Infinite Scroll load');
-                 });
                  this.on( 'request', function() {
                      console.log('Infinite Scroll request');
                  });
@@ -307,6 +305,10 @@ foreach( $rows as $row ) {
                      console.log('Infinite Scroll last');
                      if( !countLoaded ) {
                          countLoaded = true;
+                         const now = new Date();
+                         console.log( "now: " + now + ", start: " + startTime );
+                         const elapsedTime = now - startTime;
+                         recordSearch( "<?=$word?>", "<?=$pattern?>", count, "<?=$order?>", elapsedTime );
                          reportCount( 0 );
                      }
                  });
@@ -319,6 +321,9 @@ foreach( $rows as $row ) {
                      console.log( count + " items returned" );
                      if( !countLoaded ) {
                          countLoaded = true;
+                         const elapsedTime = new Date() - startTime;
+                         startTime = new Date();
+                         recordSearch( "<?=$word?>", "<?=$pattern?>", count, "<?=$order?>", elapsedTime );
                          if( count < <?=$laana->pageSize?> ) { // Less than a page
                              reportCount( count );
                              return;

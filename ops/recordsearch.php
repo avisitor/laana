@@ -5,7 +5,8 @@ $search = $_POST['search'];
 $pattern = $_POST['searchpattern'];
 $count = $_POST['count'];
 $order = $_POST['order'];
-echo "Recording - search: $search, pattern: $pattern, count: $count, order: $order\n";
+$elapsed = $_POST['elapsed'];
+echo "Recording - search: $search, pattern: $pattern, count: $count, order: $order, elapsed: $elapsed\n";
 $laana = new Laana();
-$laana->addSearchStat( $search, $pattern, $count );
+$laana->addSearchStat( $search, $pattern, $count, $order, $elapsed );
 ?>
