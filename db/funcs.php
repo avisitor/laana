@@ -281,16 +281,18 @@ class Laana extends DB {
         $values = [];
 
         if( $nodiacriticals ) {
-            if( $pattern == 'regex' || $pattern == 'exact' ) {
+            //if( $pattern == 'regex' || $pattern == 'exact' ) {
                 $search = "simplified";
                 $term = $normalizedTerm;
-            }
+            //}
         }
         if( $countOnly ) {
             $targets = "count(*) count";
         } else {
             $targets = "authors,date,sourceName,s.sourceID,link,hawaiianText,sentenceid";
         }
+        $quoted = preg_match( '/^".*"$/', $term );
+        $booleanMode = "";
         if( $pattern == 'regex' ) {
             if( $countOnly ) {
                 $sql = "select $targets from " . SENTENCES . " s where $search REGEXP :term";
@@ -301,25 +303,24 @@ class Laana extends DB {
             $values = [
                 'term' => $term,
             ];
-        } else if( $pattern == 'exact' ) {
-            if( $countOnly ) {
-                $sql = "select $targets from " . SENTENCES . " s where $search REGEXP '(^|,|;|\\\s)" . $term . "[[:>:]]'";
-            } else {
-                $sql = "select $targets from " . SENTENCES . " s, " . SOURCES . " o where $search REGEXP '(^|,|;|\\\s)" . $term . "[[:>:]]' and s.sourceID = o.sourceID";
-            }
         } else {
-            if( $pattern == 'all' ) {
-                $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
-                $term = "";
-                foreach( $words as $word ) {
-                    $term .= "+$word ";
+            if( !$quoted ) {
+                if( $pattern == 'exact' ) {
+                    $term = '"' . $term . '"';
+                } else if( $pattern == 'all' ) {
+                    $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
+                    $term = "";
+                    foreach( $words as $word ) {
+                        $term .= "+$word ";
+                    }
+                    $term = trim( $term );
+                    $booleanMode = "IN BOOLEAN MODE";
                 }
-                $term = trim( $term );
             }
             if( $countOnly ) {
-                $sql = "select $targets from " . SENTENCES . " where match(hawaiianText) against (:term IN BOOLEAN MODE)";
+                $sql = "select $targets from " . SENTENCES . " o where match(o.$search) against (:term $booleanMode)";
             } else {
-                $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where match(o.hawaiianText) against (:term IN BOOLEAN MODE)";
+                $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where match(o.$search) against (:term $booleanMode)";
             }
             $values = [
                 'term' => $term,
@@ -328,6 +329,12 @@ class Laana extends DB {
         // NUll dates show up as first
         if( isset( $options['orderby'] ) && preg_match( '/^date/', $options['orderby'] ) ) {
             $sql .= ' and not isnull(date)';
+        }
+        if( isset( $options['from'] ) ) {
+            $sql .= " and date >= '" . $options['from'] . "-01-01'";
+        }
+        if( isset( $options['to'] ) ) {
+            $sql .= " and date <= '" . $options['to'] . "-12-31'";
         }
         $sql .= " $orderBy";
         if( $pageNumber >= 0 && !$countOnly ) {

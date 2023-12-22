@@ -3,6 +3,8 @@ include 'db/funcs.php';
 $word = isset($_GET['search']) ? $_GET['search'] : "";
 $normalizedWord = normalizeString( $word );
 $pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "any";
+$from = isset($_GET['from']) ? $_GET['from'] : "";
+$to = isset($_GET['to']) ? $_GET['to'] : "";
 if( $word ) {
     if( $pattern == 'regex' ) {
         $word = urlencode( $word );
@@ -57,8 +59,10 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
           <input type="hidden" id="search-pattern" name="searchpattern" value="<?=$pattern?>" />
           <input type="hidden" id="nodiacriticals" name="nodiacriticals" value="<?=$nodiacriticals?>" />
           <input type="hidden" id="order" name="order" value="<?=$order?>" />
+          <input type="hidden" id="from" name="from" value="<?=$from?>" />
+          <input type="hidden" id="to" name="to" value="<?=$to?>" />
           <div class="search-bar">
-              <input name="search" id="searchbar" type="text" size="40" style="width:40em;" placeholder="Type a word or pattern in Hawaiian" value="<?=urldecode( $word )?>" required />
+              <input name="search" id="searchbar" type="text" size="40" style="width:40em;" placeholder="Type a word or pattern in Hawaiian" value='<?=urldecode( $word )?>' required />
                 <button type="submit" class="search-button">
                     <i>Go!</i>
                 </button>
@@ -74,7 +78,10 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         <button class="character-insert-button" type="button" onclick="insertcharacter('‘')">‘</button>
         
         <div id="search-options" style="display:none;">
-            <div>
+            <table>
+                <tbody>
+                <tr>
+                    <td>
             <label for="searchtype">Search type:</label>
 			<select id="searchtype" class="dd-menu" onchange="patternSelected(this)">
                 <option value="any">Any</option>
@@ -82,10 +89,16 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                 <option value="exact">Exact</option>
                 <option value="regex">Regex</option>
 			</select>
-            &nbsp;
-          <label for="nodiacriticals">No diacriticals</label>
+                    </td>
+                    <td>
+          <label for="nodiacriticals" style="padding-left:1em;">No diacriticals</label>
           <input id="checkbox-nodiacriticals" type="checkbox" name="checkbox-nodiacriticals" <?=($nodiacriticals)?'checked':''?> onclick="setNoDiacriticals()"/>
-            </div><div>
+                    </td>
+                    <td style="padding-left:1em;"><label for="frombox" style="width:5em;">From year:</label>
+                        <input type="text" cols="4" name="frombox" id="frombox" style="width:3em;" onchange="fromChanged(this)" value="<?=$from?>" /></td>
+                </tr>
+                <tr>
+                    <td colspan="2">
             <label for="select-order">Sort by:</label>
 			<select id="select-order" class="dd-menu" value ="<?=$order?>" onchange="orderSelected(this)">
                 <option value="rand">Random</option>
@@ -98,7 +111,12 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                 <option value="length desc">By length descending</option>
                 <option value="none">None</option>
 			</select>
-            </div>
+                    </td>
+                    <td style="padding-left:1em;"><label for="tobox" style="width:5em;">To year:</label>
+                        <input type="text" cols="4" name="tobox" id="tobox" style="width:3em;" onchange="toChanged(this)" value="<?=$to?>" /></td>
+                </tr>
+                </tbody>
+            </table>
 		</div>
        </center>
 
@@ -282,10 +300,12 @@ foreach( $rows as $row ) {
          div.innerHTML = count + ' matching sentences';
      }
      $(document).ready(function() {
+         let term = '<?=$word?>';
+         //term = term.replace( '"', '\\"' );
          let countLoaded = false;
          let startTime = new Date();
          let url;
-         url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}&order=<?=$order?><?=$nodiacriticalsparam?>';
+         url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}&order=<?=$order?>&from=<?=$from?>&to=<?=$to?><?=$nodiacriticalsparam?>';
          let $container = $('.sentences').infiniteScroll({
              path: url,
              history: false,
@@ -308,7 +328,7 @@ foreach( $rows as $row ) {
                          const now = new Date();
                          console.log( "now: " + now + ", start: " + startTime );
                          const elapsedTime = now - startTime;
-                         recordSearch( "<?=$word?>", "<?=$pattern?>", count, "<?=$order?>", elapsedTime );
+                         recordSearch( term, "<?=$pattern?>", count, "<?=$order?>", elapsedTime );
                          reportCount( 0 );
                      }
                  });
@@ -323,7 +343,7 @@ foreach( $rows as $row ) {
                          countLoaded = true;
                          const elapsedTime = new Date() - startTime;
                          startTime = new Date();
-                         recordSearch( "<?=$word?>", "<?=$pattern?>", count, "<?=$order?>", elapsedTime );
+                         recordSearch( term, "<?=$pattern?>", count, "<?=$order?>", elapsedTime );
                          if( count < <?=$laana->pageSize?> ) { // Less than a page
                              reportCount( count );
                              return;

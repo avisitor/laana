@@ -11,6 +11,8 @@ function getParameters() {
         $params['page'] = isset($_REQUEST['page']) ? $_REQUEST['page'] : 0;
         $params['raw'] = isset($_REQUEST['raw']) ? $_REQUEST['raw'] : 0;
         $params['nodiacriticals'] = isset( $_REQUEST['nodiacriticals'] ) || ($pattern == 'any') || ($pattern == 'all');
+        $params['from'] = isset($_GET['from']) ? $_GET['from'] : "";
+        $params['to'] = isset($_GET['to']) ? $_GET['to'] : "";
     } else {
         $longopts = [
             "word:",
@@ -18,6 +20,8 @@ function getParameters() {
             'order:',
             'page:',
             'nodiacriticals:',
+            'from:',
+            'to:',
             'raw',
         ];
         $args = getopt( "", $longopts );
@@ -25,6 +29,8 @@ function getParameters() {
         $params['word'] = $args['word'] ?: '';
         $params['pattern'] = $args['pattern'] ?: '';
         $params['order'] = $args['order'] ?: '';
+        $params['from'] = $args['from'] ?: '';
+        $params['to'] = $args['to'] ?: '';
         $params['nodiacriticals'] = $args['nodiacriticals'] ?: 0;
         if( !($params['word'] && $params['pattern']) ) {
             echo "Usage: getPageHTML.php --word SEARCHTERM --pattern PATTERN [--order ORDER] [--nodiacriticals=1] [--raw=1]\n";
@@ -41,6 +47,8 @@ function getPage( $params ) {
     $page = $params['page'];
     $nodiacriticals = $params['nodiacriticals'];
     $raw = $params['raw'];
+    $from = $params['from'];
+    $to = $params['to'];
     
     // For some reason infiniteScroll skips the requests for the first two pages
     if( $page >= 2 ) {
@@ -84,13 +92,21 @@ function getPage( $params ) {
         $targetwords = preg_split( "/[\s]+/",  $target );
         $tw = '';
         $pat = '';
+        $stripped = '';
         if( $pattern == 'exact' || $pattern == 'regex' ) {
             $target = preg_replace( '/^‘/', '', $target );
         }
         if( $pattern == 'exact' ) {
             $tw = "\\b$target\\b";
         } else if( $pattern == 'any' || $pattern == 'all' ) {
-            $tw = '\\b' . implode( '\\b|\\b', $targetwords ) . '\\b';
+            $quoted = preg_match( '/^".*"$/', $target );
+            if( $quoted ) {
+                $stripped = preg_replace( '/^"/', '', $target );
+                $stripped = preg_replace( '/"$/', '', $stripped );
+                $tw = '\\b' . $stripped . '\\b';
+            } else {
+                $tw = '\\b' . implode( '\\b|\\b', $targetwords ) . '\\b';
+            }
         } else if( $pattern == 'order' ) {
             $tw = '\\b' . implode( '\\b.*\\b', $targetwords ) . '\\b';
         } else if( $pattern == 'regex' ) {
@@ -118,6 +134,12 @@ function getPage( $params ) {
         if( $orderBy ) {
             $options['orderby'] = $orderBy;
         }
+        if( $from ) {
+            $options['from'] = $from;
+        }
+        if( $to ) {
+            $options['to'] = $to;
+        }
         $rows = $laana->getSentences( $word, $pattern, $page, $options );
         if( $raw ) {
             echo json_encode( $rows );
@@ -130,18 +152,23 @@ function getPage( $params ) {
             $authors = $row['authors'];
             $sourceid = $row['sourceid'];
             $date = $row['date'];
+            $hawaiiantext = $row['hawaiiantext'];
+            // mysql fulltext search returns some matches where the words of
+            // the search phrase are not contiguous
+            if( $stripped && !preg_match( '/' . $stripped . '/', $hawaiiantext ) ) {
+                //continue;
+            }
             $link = isset($row['link']) ? $row['link'] : '';
             $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
             $idlink = "<a class='fancy' href='context?id=$sentenceid&raw' target='_blank'>Context</a>";
             $simplified = "<a class='fancy' href='context?id=$sentenceid' target='_blank'>Simplified</a>";
             $snapshot = "<a class='fancy' href='rawpage?id=$sourceid' target='_blank'>Snapshot</a>";
             if( !$pat ) {
-                $sentence = $row['hawaiiantext'];
+                $sentence = $hawaiiantext;
             } else {
-                $sentence = preg_replace($pat, $repl, $row['hawaiiantext'] );
+                $sentence = preg_replace($pat, $repl, $hawaiiantext );
             }
-            $translate = "https://translate.google.com/?sl=auto&tl=en&op=translate&text=" .
-                         $row['hawaiiantext'];
+            $translate = "https://translate.google.com/?sl=auto&tl=en&op=translate&text=$hawaiiantext";
             $output .= <<<EOF
                   
             <div class="hawaiiansentence">

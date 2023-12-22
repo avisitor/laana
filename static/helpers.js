@@ -49,6 +49,18 @@ function orderSelected(object) {
     console.log(value);
     setOrder( value );
 }
+function fromChanged(object) {
+    let value = object.value;  
+    let target = document.getElementById("from");
+    target.value = value;
+    console.log(value);
+}
+function toChanged(object) {
+    let value = object.value;  
+    let target = document.getElementById("to");
+    target.value = value;
+    console.log(value);
+}
 
 $(document).ready(function() {
     $('.slide').on('click', function(){
