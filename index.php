@@ -300,7 +300,7 @@ foreach( $rows as $row ) {
          div.innerHTML = count + ' matching sentences';
      }
      $(document).ready(function() {
-         let term = '<?=$word?>';
+         let term = '<?=urldecode( $word )?>';
          //term = term.replace( '"', '\\"' );
          let countLoaded = false;
          let startTime = new Date();
