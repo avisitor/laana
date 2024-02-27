@@ -317,14 +317,18 @@ class Laana extends DB {
                     $booleanMode = "IN BOOLEAN MODE";
                 }
             }
-            if( $countOnly ) {
-                $sql = "select $targets from " . SENTENCES . " o where match(o.$search) against (:term $booleanMode)";
-            } else {
-                $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where match(o.$search) against (:term $booleanMode)";
-            }
             $values = [
                 'term' => $term,
             ];
+            if( $countOnly ) {
+                $sql = "select $targets from " . SENTENCES . " o where match(o.$search) against (:term $booleanMode)";
+            } else if( $pattern == 'clause' ) {
+                $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where $term";
+            $values = [
+            ];
+            } else {
+                $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where match(o.$search) against (:term $booleanMode)";
+            }
         }
         // NUll dates show up as first
         if( isset( $options['orderby'] ) && preg_match( '/^date/', $options['orderby'] ) ) {
@@ -392,6 +396,16 @@ class Laana extends DB {
         $sql = "select count(*) c from " . SOURCES;
         $row = $this->getOneDBRow( $sql );
         return $row['c'];
+    }
+    
+    public function getSourceGroupCounts() {
+        $sql = "select groupname,count(*) c from " . SOURCES . " group by groupname";
+        $rows = $this->getDBRows( $sql );
+        $results = [];
+        foreach( $rows as $row ) {
+            $results[$row['groupname']] = $row['c'];
+        }
+        return $results;
     }
     
     public function getSource( $sourceid ) {
@@ -553,10 +567,19 @@ class Laana extends DB {
         //return;
 
         if( $this->executePrepared( $sql, $values ) ) {
-            return sizeof( $sentences );
+            $count = sizeof( $sentences );
+            return $count;
         } else {
             return null;
         }
+    }
+    public function updateSimplified( $sourceID ) {
+        // Maintain the simplified column without diacriticals
+        $sql = "update sentences set simplified = replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(hawaiianText,'ō','o'),'ī','i'),'ē','e'),'ū','u'),'ā','a'),'Ō','O'),'Ī','I'),'Ē','E'),'Ū','U'),'Ā','A'),'‘',''),'ʻ','') where sourceID = :sourceID";
+        $values = [
+            'sourceID' => $sourceID,
+        ];
+        return $this->executePrepared( $sql, $values );
     }
     public function addSentences( $sourceID, $sentences ) {
         $maxValues = 30;
@@ -570,6 +593,7 @@ class Laana extends DB {
             }
             $count += $status;
         }
+        $this->updateSimplified( $sourceID );
         return $count;
     }
     public function addContentRow( $sourceID ) {
