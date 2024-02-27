@@ -61,12 +61,15 @@ DELIMITER //
 CREATE TRIGGER insert_sentences AFTER INSERT ON sentences
 FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sentences';
 
+/*
+This doesn't work because a trigger can't operate on the same table it is triggered by
 DELIMITER //
 CREATE TRIGGER update_sentences AFTER INSERT ON sentences
 FOR EACH ROW
 update sentences set simplified = replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(hawaiianText,'ō','o'),'ī','i'),'ē','e'),'ū','u'),'ā','a'),'Ō','O'),'Ī','I'),'Ē','E'),'Ū','U'),'Ā','A'),'‘',''),'ʻ','') where sentenceid = NEW.sentenceid;
 //
 DELIMITER ;
+*/
 
 DELIMITER //
 CREATE TRIGGER delete_sentences AFTER DELETE ON sentences
