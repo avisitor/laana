@@ -553,6 +553,8 @@ h1.title {
     font-size: 1.5em;
 }
 
+/* Using a loader in bouncy-loader.css instead */
+/*
 div.page-load-status {
     position:fixed;
     top: 50%;
@@ -565,9 +567,7 @@ div.page-load-status {
     font-size:1.5em;
     margin:.1em auto;
     padding: .1em;
-    /*
     padding-bottom: .1em;
-*/
     text-align:justify;
     text-align:center;
     animation: changeBackgroundColor 7s infinite;
@@ -590,7 +590,7 @@ div.page-load-status {
 } 
 
 .loader-ellips {
-  font-size: .8em; /* change size here */
+  font-size: .8em;
   position: relative;
   width: 4em;
   height: 1em;
@@ -606,7 +606,7 @@ div.page-load-status {
   height: 1em;
   border-radius: 0.5em;
 
-  background: white; /* change color here */
+  background: white;
 
   position: absolute;
   animation-duration: 0.5s;
@@ -643,6 +643,7 @@ div.page-load-status {
   animation-name: reveal;
   animation-direction: reverse;
 }
+*/
 
 .box {
     display: block;  
