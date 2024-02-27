@@ -853,6 +853,12 @@ class KauakukalahaleHTML extends HtmlParse {
         return $name;
     }
 
+    public function initialize( $baseurl ) {
+        parent::initialize( $baseurl );
+        $this->dom = $this->getDOM( $this->url );
+        $this->extractDate( $this->dom );
+    }
+
     protected function cleanup( $text ) {
         debugPrint( "KauakukalahaleHtml::cleanup()" );
         //debugPrint( "KauakukalahaleHtml::cleanup()\n$text" );
