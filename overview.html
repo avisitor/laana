@@ -40,6 +40,7 @@ is inspired by the <a class="fancy"href="https://laana.org">Laana</a> website of
   <li><span class="searchtype">From year</span>: only sources from this or later years are searched</li>
   <li><span class="searchtype">To year</span>: only sources prior to or in this year are searched; e.g <span class="searchtype">From year</span> <span class="searchterm">1990</span> and <span class="searchtype">To year</span> <span class="searchterm">2030</span> would only use recent sources while <span class="searchtype">From year</span> <span class="searchterm">1830</span> and <span class="searchtype">To year</span> <span class="searchterm">1899</span> would only use 19th century sources</li>
 </ul>
+<p>A search term must be at least three characters long; <span class="searchterm">ka</span> does not return any matches.</p>
 <p>For each sentence found, the following links are provided:</p>
   <ul>
     <li><span class="searchtype">Source name</span>: takes you to the original source website</li>
@@ -51,14 +52,14 @@ is inspired by the <a class="fancy"href="https://laana.org">Laana</a> website of
 </div>
 <h3>Where do the sentences come from?</h3>
 <ul>
-  <li><a class="fancy"target="_blank" href="https://puke.ulukau.org/ulukau-books/?a=p&p=bookbrowser&e=-------en-20--1--txt-txPT-----------">Ulukau</a> (all Hawaiian-language documents)</li>
-  <li><a class="fancy"target="_blank" href="https://nupepa.org/gsdl2.5/cgi-bin/nupepa?e=p-0nupepa--00-0-0--010---4-----text---0-1l--1haw-Zz-1---20-about---0003-1-0000utfZz-8-00&a=d&cl=CL2">Nupepa</a> (all newspaper issues that have been transcribed)</li>
-  <li><a class="fancy"target="_blank" href="https://keaolama.org/">Ke Aolama</a> (all articles to <?=$groupdates['keaolama']?>)</li>
-  <li><a class="fancy"target="_blank" href="https://www.civilbeat.org/projects/ka-ulana-pilina/">Ka Ulana Pilina</a> (Civil Beat, all articles to  <?=$groupdates['kaulanapilina']?>)</li>
-  <li><a class="fancy"target="_blank" href="https://www.staradvertiser.com/category/editorial/kauakukalahale/">Kauakukalahale</a> (Honolulu Star Advertiser, all articles to  <?=$groupdates['kauakukalahale']?>)</li>
-  <li><a class="fancy"target="_blank" href="https://www2.hawaii.edu/~kroddy/moolelo/">Ka Paa Moolelo</a> (all documents)</li>
+  <li><a class="fancy"target="_blank" href="https://puke.ulukau.org/ulukau-books/?a=p&p=bookbrowser&e=-------en-20--1--txt-txPT-----------">Ulukau</a> (all Hawaiian-language documents - <?=$groupcounts['ulukau']?> documents)</li>
+  <li><a class="fancy"target="_blank" href="https://nupepa.org/gsdl2.5/cgi-bin/nupepa?e=p-0nupepa--00-0-0--010---4-----text---0-1l--1haw-Zz-1---20-about---0003-1-0000utfZz-8-00&a=d&cl=CL2">Nupepa</a> (all newspaper issues that have been transcribed - <?=$groupcounts['nupepa']?> issues)</li>
+  <li><a class="fancy"target="_blank" href="https://keaolama.org/">Ke Aolama</a> (all articles to <?=$groupdates['keaolama']?> - <?=$groupcounts['keaolama']?> dates)</li>
+  <li><a class="fancy"target="_blank" href="https://www.civilbeat.org/projects/ka-ulana-pilina/">Ka Ulana Pilina</a> (Civil Beat, all articles to  <?=$groupdates['kaulanapilina']?>) - <?=$groupcounts['kaulanapilina']?> articles</li>
+  <li><a class="fancy"target="_blank" href="https://www.staradvertiser.com/category/editorial/kauakukalahale/">Kauakukalahale</a> (Honolulu Star Advertiser, all articles to  <?=$groupdates['kauakukalahale']?> - <?=$groupcounts['kauakukalahale']?> articles)</li>
+  <li><a class="fancy"target="_blank" href="https://www2.hawaii.edu/~kroddy/moolelo/">Ka Paa Moolelo</a> (all documents - <?=$groupcounts['kapaamoolelo']?> documents)</li>
   <li><a class="fancy"target="_blank" href="https://baibala.org/cgi-bin/bible?e=d-1off-01994-bible--00-1-0--01994v2-0--4--Sec---1--1en-Zz-1-other---20000-frameset-search-browse----011-01994v1--210-0-2-escapewin&cl=&d=NULL.2.1.1&cid=&bible=&d2=1&toc=0&gg=text#a1-">Baibala (full bible, 2012 edition)</a> (New and Old Testament)</li>
-  <li><a class="fancy"target="_blank" href="https://ehooululahui.maui.hawaii.edu/">Ehooululahui</a> (a few full moʻolelo from UHMC)</li>
+  <li><a class="fancy"target="_blank" href="https://ehooululahui.maui.hawaii.edu/">Ehooululahui</a> (a few full moʻolelo from UHMC - <?=$groupcounts['ehooululahui']?> documents)</li>
   <li>Various other individual documents</li>
 </ul>
 <h4>Questions or concerns?</h4>
