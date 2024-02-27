@@ -1,0 +1,171 @@
+/* Loader graphic */
+.preloader {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.preloader span {
+	display: block;
+	height: 15px;
+	width: 15px;
+	background: #19e3d5;
+	margin: 0 7px;
+	border-radius: 10px;
+	animation: 1.2s upDown infinite;
+}
+
+.preloader span:first-child {
+	animation-delay: 0.15s;
+}
+
+.preloader span:nth-child(2) {
+	animation-delay: 0.3s;
+}
+
+.preloader span:nth-child(3) {
+	animation-delay: 0.45s;
+}
+
+.preloader span:nth-child(4) {
+	animation-delay: 0.6s;
+}
+
+.preloader span:last-child {
+	animation-delay: 0.75s;
+}
+
+@keyframes upDown {
+	0% {
+		height: 15px;
+		background: #19e3d5;
+	}
+
+	50% {
+		height: 60px;
+		background: #d33deb;
+	}
+
+	100% {
+		height: 15px;
+		background: #f00e43;
+	}
+}
+
+.loader {
+	display: flex;
+	gap: 15px;
+}
+
+.dots {
+	width: var(--shape-size);
+	height: var(--shape-size);
+	border-radius: 50%;
+	background-color: var(--color-primary);
+	animation: leap var(--animation-duration) infinite;
+}
+
+.dots:nth-child(2) {
+	background-color: var(--color-secondary);
+	animation-delay: 0.2s;
+}
+
+.dots:nth-child(3) {
+	background-color: var(--color-tertiary);
+	animation-delay: 0.4s;
+}
+
+@keyframes leap {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-50px) rotate(360deg);
+	}
+}
+
+.background-effect {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(
+		120deg,
+		var(--color-primary),
+		var(--color-secondary),
+		var(--color-tertiary)
+	);
+	opacity: 0.5;
+	z-index: -1;
+}
+
+.container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100vh;
+}
+
+.loading-text {
+	font-family: "JetBrains Mono", monospace;
+	color: var(--color-primary);
+	font-size: 2rem;
+	margin-bottom: 20px;
+	animation: textArrange 10s infinite;
+}
+
+.shape {
+	/* Styles de base pour vos dots */
+	animation: shapeChange 2s infinite;
+}
+
+@keyframes textArrange {
+	0% {
+		letter-spacing: -5px;
+		opacity: 0;
+	}
+	30% {
+		letter-spacing: 5px;
+		opacity: 0.5;
+	}
+	60% {
+		letter-spacing: 2px;
+		opacity: 0.8;
+	}
+	100% {
+		letter-spacing: normal;
+		opacity: 1;
+	}
+	will-change: opacity, letter-spacing;
+}
+
+@keyframes shapeChange {
+	0%,
+	100% {
+		border-radius: 50%;
+		transform: scale(1);
+		background-color: var(--color-primary);
+	}
+	25% {
+		border-radius: 0%;
+		transform: scale(1.5);
+		background-color: var(--color-secondary);
+	}
+	50% {
+		border-radius: 50%;
+		transform: scale(0.5);
+		background-color: var(--color-tertiary);
+	}
+	75% {
+		border-radius: 0%;
+		transform: scale(1.2);
+		background-color: var(--color-primary);
+	}
+}

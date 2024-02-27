@@ -24,6 +24,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
     <head>
         <?php include 'common-head.html'; ?>
         <title><?=$word?> - Noiʻiʻōlelo</title>
+        <link rel="stylesheet" type="text/css" href="./static/bouncy-loader.css">
         <script>
             var pattern ="<?=$pattern?>";
             var orderBy ="<?=$order?>";
@@ -125,6 +126,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 <?php
      $laana = new Laana();
      $groups = $laana->getLatestSourceDates();
+     $groupcounts = $laana->getSourceGroupCounts();
      $groupdates = [];
      foreach( $groups as $group ) {
          $groupdates[$group['groupname']] = $group['date'];
@@ -313,7 +315,8 @@ foreach( $rows as $row ) {
              debug: true,
              //responseBody: 'json',
              append: 'div.hawaiiansentence',
-             status: '.page-load-status',
+             //status: '.page-load-status',
+             status: '.preloader',
              onInit: function() {
                  this.on( 'request', function() {
                      console.log('Infinite Scroll request');
@@ -364,7 +367,7 @@ foreach( $rows as $row ) {
          
      });
     </script>
-
+<!-- -
     <div class="page-load-status">
         <div class="loader-ellips infinite-scroll-request">
             <span class="loader-ellips__dot"></span>
@@ -373,7 +376,15 @@ foreach( $rows as $row ) {
             <span class="loader-ellips__dot"></span>
         </div>
     </div>
-
+  -->
+	<div class="preloader">
+		<span></span>
+		<span></span>
+		<span></span>
+		<span></span>
+		<span></span>
+	</div>
+    
 <?php } ?>
  </div>
     </body>
