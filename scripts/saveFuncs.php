@@ -165,6 +165,11 @@ function updateDocument( $sourceID, $options ) {
                 echo "updateDocument adding authors " . $source['authors'] . "\n";
                 $laana->addSource( $source['sourcename'], $source );
             }
+            if( $parser->date && !$source['date'] ) {
+                $source['date'] = $parser->date;
+                echo "updateDocument adding date " . $source['date'] . "\n";
+                $laana->addSource( $source['sourcename'], $source );
+            }
             saveDocument( $parser, $sourceID, $options );
         } else {
             echo "updateDocument: No parser for $groupname\n";
