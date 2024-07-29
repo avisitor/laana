@@ -9,8 +9,9 @@ echo "sourceID: $sourceID  length=" . strlen($sourceID) . "\n";
 echo "sourceName: $sourceName\n";
 $laana = new Laana();
 if( !$sourceID || strlen($sourceID) < 1 ) {
-    $sourceID = $laana->addSource( $sourceName );
-    if( $sourceID ) {
+    $row = $laana->addSource( $sourceName );
+    if( isset( $row['sourceid'] ) ) {
+        $sourceid = $row['sourceid'];
         echo "Added sourceID $sourceID\n";
     } else {
         echo "Failed to add source\n";

@@ -19,26 +19,35 @@ if( $sourceID ) {
             $text = $row[$type] . "\n";
         }
     }
-    echo <<<EOF
+?>
+
 <!DOCTYPE html>
 <html lang="en" class="">
     <head>
-EOF;
-    include 'common-head.html';
-    echo <<<EOF
-        <title>$sourceID $type - Noiʻiʻōlelo</title>
+
+<?php include 'common-head.html'; ?>
+
+        <title><?=$sourceID?> <?=$type?> - Noiʻiʻōlelo</title>
         <style>
             body {
             padding: .2em;
             }
         </style>
+        <script>
+            $(document).ready(function() {
+                setTimeout( function() {console.log( "reveal" );reveal();}, 1 );
+                $('img').css( 'max-width', '100%' );
+            });
+        </script>
     </head>
-    <body><div class="rawtext">
-$text
-EOF;
+    <body>
+      <div class="rawtext">
+      <?=$text?>
+
+<?php
 }
-echo <<<EOF
-    </div></body>
-</html>
-EOF;
 ?>
+
+      </div>
+    </body>
+</html>

@@ -7,12 +7,12 @@ $longopts = [
 ];
 $args = getopt( "", $longopts );
 $debug = isset( $args['debug'] ) ? true : false;
-$parserkey = $args['parser'] ?: '';
+$parserkey = isset( $args['parser'] ) ? $args['parser'] : '';
 $options = [
     'debug' => $debug,
 ];
 
-$parser = $parsermap[$parserkey];
+$parser = ($parserkey) ? $parsermap[$parserkey] : null;
 if( !$parser ) {
     $values = join( ",", array_keys( $parsermap ) );
     echo "Specify a parser: $values\n";

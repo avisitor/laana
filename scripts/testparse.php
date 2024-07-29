@@ -1,5 +1,6 @@
 <?php
 include '../db/parsehtml.php';
+//include '../db/p.php';
 include 'parsers.php';
 
 function testParse( $key ) {
@@ -11,6 +12,7 @@ function testParse( $key ) {
         // It contains a huge number of pages, takes a long time to read them all
         $options = ['continue'=>false,];
     }
+    //$parser->initialize( $url );
     $sentences = $parser->extractSentences( $url, $options );
     var_export( $sentences );
 }

@@ -135,7 +135,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 ?>
     
 <div class="sentences" style="padding:.6em;">
-    Type into the Search box to narrow the sources shown. Click on the item under Name to go to the source location, to the item under HTML for the version stored in Noiiolelo and under Plain for a text-only version. Hover on the item under HTML or Plain to see the document inline. Dismiss the inline window with the close button at the top right or by clicking anywhere outside the inline window. You can scroll the inline window and also search in it with Ctrl-F/Cmd-F. 
+    Type into the Search box to narrow the sources shown. Click on the item under Name to go to the source location, to the item under HTML for the version stored in Noiiolelo and under Plain for a text-only version. Hover on the item under HTML or Plain to see the document inline. Dismiss the inline window clicking anywhere outside of it. You can scroll the inline window and also search in it with Ctrl-F/Cmd-F. 
 </div>
 
 <?php
@@ -195,38 +195,23 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
               if( s ) {
                   url += "&simplified";
               }
-              fetch( url )
-                  .then(response => response.text())
-                  .then(pageContents => {
-                      // Create and display the hover box
-                      let hoverBox = document.getElementById('hoverBox');
-                      let hoverBody = document.getElementById('hoverBody');
-                      let styles = "<style>a {background:unset !important; color: blue !important;}</style>";
-                      //hoverBody.innerHTML = "<div>" + styles + pageContents + "</div>";
-                      hoverBody.innerHTML = pageContents;
-                      hoverBox.style.display = 'block';
-                      hoverBox.scrollTop = 0;
-                      hoverBody.scrollTop = 0;
-                  })
-                  .catch(error => console.error('Error fetching content:', error));
+              hoverBox.src = url;
+              hoverBox.style.display = 'block';
           }
           function hideHoverBox() {
               // Hide the hover box on mouseout
               var hoverBox = document.getElementById('hoverBox');
               hoverBox.style.display = 'none';
-              let hoverBody = document.getElementById('hoverBody');
-              hoverBody.innerHTML = '';
           }
           document.getElementById('sentences').onclick = hideHoverBox;
           document.getElementsByTagName('body').item(0).onclick = hideHoverBox;
+          document.getElementsByTagName('html').item(0).onclick = hideHoverBox;
          </script>
 
-         <div id="hoverBox">
-             <div style="text-align:right;"><button onClick="hideHoverBox()">X</button></div>
-             <div id="hoverBody"></div>
-         </div>
-         <table id="table"><thead>
-             <tr><th>Group (ID)</th><th style="width:10em;">Name</th><th style="15em;">HTML</th><th>Plain</th><th>Authors</th><th style="text-align:right;">Sentences</th></tr>
+         <iframe id="hoverBox" class="draggable" width="70%" height="70%" style="left: 28%;top: 5%;">
+         </iframe>
+         <table id="table" class="sourcetable"><thead>
+             <tr><th class="source-group">Group (ID)</th><th class="source-name">Name</th><th class="source-date">Date</th><th class="source-html">HTML</th><th class="source-plain">Plain</th><th class="source-authors">Authors</th><th class="source-sentences text-end text-xs-right text-right">Sentences</th></tr>
          </thead><tbody>
 
 <?php
@@ -240,6 +225,7 @@ foreach( $rows as $row ) {
     $htmllink = "<a class='context fancy' sourceid='$sourceid' simplified='0' href='rawpage?id=$sourceid' target='_blank'>HTML</a>";
     $authors = $row['authors'];
     $link = $row['link'];
+    $date = $row['date'];
     $group = $row['groupname'] . " ($sourceid)";
     $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
     $count = $row['count'];
@@ -248,6 +234,7 @@ foreach( $rows as $row ) {
     <tr>
         <td class="hawaiiansentence"><?=$group?></td>
         <td class="hawaiiansentence"><?=$sourcelink?></td>
+        <td class="hawaiiansentence"><?=$date?></td>
         <td class="hawaiiansentence"><?=$htmllink?></td>
         <td class="hawaiiansentence"><?=$plainlink?></td>
         <td class='authors'><?=$authors?></td>
@@ -307,6 +294,7 @@ foreach( $rows as $row ) {
          let countLoaded = false;
          let startTime = new Date();
          let url;
+         let count = 0;
          url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}&order=<?=$order?>&from=<?=$from?>&to=<?=$to?><?=$nodiacriticalsparam?>';
          let $container = $('.sentences').infiniteScroll({
              path: url,
@@ -325,7 +313,7 @@ foreach( $rows as $row ) {
                      console.log('Infinite Scroll load %o',response);
                  });
                  this.on( 'last', function( body, path ) {
-                     console.log('Infinite Scroll last');
+                     console.log('Infinite Scroll last, ' + this.loadCount + ' pages loaded');
                      if( !countLoaded ) {
                          countLoaded = true;
                          const now = new Date();
@@ -334,14 +322,31 @@ foreach( $rows as $row ) {
                          recordSearch( term, "<?=$pattern?>", count, "<?=$order?>", elapsedTime );
                          reportCount( 0 );
                      }
+                     setTimeout( function() {
+                         $(".preloader").css( "display", "none" );
+                     }, 100 );
                  });
                  this.on( 'error', function( error, path, response ) {
                      console.log('Infinite Scroll error %o',error);
                  });
+                 this.on( 'history', function( title, path ) {
+                     console.log('Infinite Scroll history changed to ' + path);
+                 });
+                 this.on( 'scrollThreshold', function() {
+                     console.log('Infinite Scroll at bottom');
+                 });
                  this.on( 'append', function( body, path, items, response ) {
                      console.log('Infinite Scroll append body:%o path:%o items:%o response:%o', body, path, items, response)
-                     let count = items.length;
+                     count = items.length;
                      console.log( count + " items returned" );
+                     if( count < <?=$laana->pageSize?> ) { // Less than a page
+                         console.log( 'Turning off loadOnScroll' );
+                         this.option( {
+                             //loadOnScroll : false,
+                             scrollThreshold : false,
+                             prefill : false,
+                         } );
+                     }
                      if( !countLoaded ) {
                          countLoaded = true;
                          const elapsedTime = new Date() - startTime;

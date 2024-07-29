@@ -13,18 +13,19 @@ CREATE TABLE `sentences` (
 
 CREATE TABLE `sources` (
   `sourceID` int(11) NOT NULL AUTO_INCREMENT,
-  `sourceName` varchar(200) DEFAULT NULL,
+  `sourceName` varchar(200) NOT NULL,
   `authors` text DEFAULT NULL,
-  `link` text DEFAULT NULL,
+  `link` text UNIQUE NOT NULL,
   `start` int(11) DEFAULT NULL,
   `end` int(11) DEFAULT NULL,
-  groupname varchar(20)b,
-  title varchar(100),
+  groupname varchar(20) NOT NULL,
+  title varchar(100) NOT NULL,
   date DATE,
+  sentenceCount int(11) DEFAULT 0,
   created DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`sourceID`),
   UNIQUE KEY `sourceID` (`sourceID`),
-  UNIQUE KEY `sourceName` (`sourceName`)
+  UNIQUE KEY `link` (`link`)
 ) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8;
 
 CREATE TABLE `searchstats` (

@@ -15,7 +15,7 @@ $urlmap = [
     'ulukau' => "https://puke.ulukau.org/ulukau-books/?a=d&d=EBOOK-MAKANA&e=-------en-20--1--txt-txPT-----------",
     'keaolama' => "https://keaolama.org/2022/05/03/05-02-22/",
     'kauakukalahale' => 'https://www.staradvertiser.com/2023/10/21/editorial/kauakukalahale/column-e-hoaei-paha-i-ke-one-o-luhi/',
-    'nupepa' => "https://nupepa.org/gsdl2.5/cgi-bin/nupepa?e=p-0nupepa--00-0-0--010---4-----text---0-1l--1haw-Zz-1---20-about---0003-1-0000utfZz-8-00&a=d&cl=CL2/gsdl2.5/cgi-bin/nupepa?e=d-0nupepa--00-0-0--010---4-----text---0-1l--1haw-Zz-1---20-about---0003-1-0000utfZz-8-00&a=d&cl=CL2.83&d=HASH0175c275d8c66f0c1a045bdc&gg=text",
+    'nupepa' => "https://nupepa.org/?a=d&d=KLH18340214-01",
     'kapaamoolelo' => 'https://www2.hawaii.edu/~kroddy/moolelo/kalelealuaka/helu1.htm',
     'baibala' => 'https://baibala.org/cgi-bin/bible?e=d-1off-01994-bible--00-1-0--01994v2-0--4--Sec---1--1en-Zz-1-other---20000-frameset-search-browse----011-01994v1--210-0-2-escapewin&cl=&d=NULL.2.1.1&cid=&bible=&d2=1&toc=0&gg=text#a1-',
     'ehooululahui' => 'https://ehooululahui.maui.hawaii.edu/?page_id=67',

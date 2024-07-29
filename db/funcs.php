@@ -1,28 +1,55 @@
 <?php
 require_once( 'config.php' );
 
-function printObject( $obj ) {
-    echo( var_export( $obj, true ) . "\n" );
-}
-
-function debuglog( $msg ) {
+function formatLogMessage( $msg, $intro = "" ) {
     if( is_object( $msg ) || is_array( $msg ) ) {
         $msg = var_export( $msg, true );
     }
     $defaultTimezone = 'Pacific/Honolulu';
     $now = new DateTimeImmutable( "now", new DateTimeZone( $defaultTimezone ) );
     $now = $now->format( 'Y-m-d H:i:s' );
-    error_log( "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n", 3, "/tmp/php_errorlog" );
+    if( $intro ) {
+        $intro .= ": ";
+    }
+    return "$now " . $_SERVER['SCRIPT_NAME'] . " $intro : $msg";
+}
+
+function printObject( $obj, $intro = '' ) {
+    $msg = formatLogMessage( $obj, $intro );
+    echo "$msg \n";
+    return;
+    
+    if( $intro ) {
+        $intro .= ": ";
+    }
+    echo( $intro . var_export( $obj, true ) . "\n" );
+}
+
+function debuglog( $msg, $intro = "" ) {
+    $msg = formatLogMessage( $msg, $intro );
+    error_log( "$msg \n", 3, "/tmp/php_errorlog" );
+    return;
+    
+    if( is_object( $msg ) || is_array( $msg ) ) {
+        $msg = var_export( $msg, true );
+    }
+    $defaultTimezone = 'Pacific/Honolulu';
+    $now = new DateTimeImmutable( "now", new DateTimeZone( $defaultTimezone ) );
+    $now = $now->format( 'Y-m-d H:i:s' );
+    if( $intro ) {
+        $intro .= ": ";
+    }
+    error_log( $intro . "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n", 3, "/tmp/php_errorlog" );
     //error_log( "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n" );
 }
 
 function logRequest() {
-    debuglog( "REQUEST: " . var_export($_REQUEST, true) );
-    debuglog( "SESSION: " . var_export($_SESSION, true) );
+    debuglog(  $_REQUEST, "REQUEST" );
+    debuglog(  $_SESSION, "SESSION" );
     $remote = $_SERVER['REMOTE_ADDR'] . ' - ' . $_SERVER['HTTP_USER_AGENT'];
-    debuglog( "remote: $remote" );
+    debuglog( $remote, "remote" );
     //debuglog( "SERVER: " . var_export($_SERVER, true) );
-    debuglog( "COOKIE: " . var_export($_COOKIE, true) );
+    debuglog(  $_COOKIE, "COOKIE" );
 }
 
 class DB {
@@ -31,12 +58,13 @@ class DB {
         $this->connect();
         if( $this->conn == null ) {
             debuglog( "Unable to connect to DB" );
+            exit;
         }
     }
 
     public function connect() {
         global $dbconfig;
-	    error_log( "connect: " . var_export( $dbconfig, true ) );
+	    //error_log( "connect: " . var_export( $dbconfig, true ) );
         $servername = $dbconfig["servername"];
         if( isset($_SERVER['HTTP_HOST']) && $servername == $_SERVER['HTTP_HOST'] ) {
             $servername = "localhost";
@@ -63,12 +91,13 @@ class DB {
     }
 
     public function getDBRows( $sql, $values = [] ) {
-        debuglog( "getDBRows sql: " . $sql );
+        $funcName = "getDBRows";
+        debuglog( "$funcName sql: " . $sql );
         if( $this->conn == null ) {
             return [];
         }
         if( $values && sizeof( $values ) > 0 ) {
-            debuglog( "getDBRows values: " . var_export( $values, true ) );
+            debuglog( $values, $funcName );
         }
         try {
             $stmt = $this->conn->prepare( $sql );
@@ -89,11 +118,11 @@ class DB {
                 }
                 array_push( $results, $newrow );
             }
-            debuglog( 'getDBRows: ' . sizeof( $results ) . " rows returned" );
+            debuglog( "$funcName: " . sizeof( $results ) . " rows returned" );
             return $results;
         } catch(PDOException $e) {
-            echo "Execution failed: " . $e->getMessage();
-            debuglog( "Execution failed for $sql: " . $e->getMessage() );
+            echo "$funcName: Execution failed: " . $e->getMessage();
+            debuglog( "Execution failed for $sql: " . $e->getMessage(), $funcName );
             return [];
         }
     }
@@ -133,15 +162,16 @@ class DB {
     }
     
     public function executePrepared( $sql, $values ) {
+        $funcName = "executePrepared";
         if( $this->conn == null ) {
-            debuglog( "executePrepared: null connection");
+            debuglog( "$funcName: null connection");
             return [];
         }
-        //echo( $sql . " - " . ($values) ? var_export( $values, true ) : '' . "\n" );
-        debuglog( "executePrepared: $sql");
+        //echo( $funcName: $sql . " - " . ($values) ? var_export( $values, true ) : '' . "\n" );
+        debuglog( $sql, $funcName );
         if( $values && sizeof( $values ) > 0 ) {
             $v = $this->abbreviatedValues( $values );
-            debuglog( "executePrepared: " . var_export( $v, true) );
+            debuglog( $v, $funcName );
         }
         try {
             $stmt = $this->conn->prepare($sql, array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY));
@@ -150,14 +180,15 @@ class DB {
             return 1;
         } catch(PDOException $e) {
             //echo "Execution failed: " . $e->getMessage();
-            debuglog( "Execution failed for $sql with " . var_export( $values ) . ": " . $e->getMessage() );
+            debuglog( "Execution failed for $sql with " . var_export( $values ) . ": " . $e->getMessage(), $funcName );
             return 0;
         }
     }
 
     function updateOneDBRecord( $potential, $params, $table ) {
-        debuglog( 'potential - ' . var_export($potential, true) );
-        debuglog( 'params - ' . var_export($params, true) );
+        $funcName = "updateOneDBRecord";
+        debuglog( $potential, "$funcName potential" );
+        debuglog( $params, "$funcName params" );
         $answers = array();
         foreach( $potential as $key ) {
             if( isset($params[$key]) ) {
@@ -166,7 +197,7 @@ class DB {
             }
         }
         if( count( $answers ) < 1 ) {
-            debuglog( "updateOneDBRecord: No parameters to update" );
+            debuglog( "$funcName: No parameters to update" );
             return $answers;
         }
 
@@ -182,8 +213,8 @@ class DB {
         $keys = trim( $keys, " ," ) . ")";
         $values = trim( $values, " ," ) . ")";
         $create = "insert into $table $keys $values";
-        debuglog( "updateOneDBRecord sql: $create" );
-        debuglog( "updateOneDBRecord values: " . var_export( $answers, true ) );
+        debuglog( $create, "$funcName sql" );
+        debuglog( $answers, "$funcName values" );
         if( count( $updates ) > 0 ) {
             // Try inserting as a new record
             try {
@@ -192,7 +223,7 @@ class DB {
             } catch(PDOException $e) {
                 $code = $e->getCode();
                 if( $code != 23000 ) {
-                    debuglog( "updateOneDBRecord: " . $e->getMessage() . ", code - " . $code );
+                    debuglog( "$funcName: " . $e->getMessage() . ", code - " . $code );
                 } else {
                     // duplicate entry exception
                     // Try updating an existing record
@@ -201,18 +232,18 @@ class DB {
                        $answers['email'] = $email;
                      */
                     $sql = "update $table set " . implode( ",", $updates ) . " where email=:email";
-                    debuglog( "updateOneDBRecord SQL: $sql\n" );
+                    debuglog( "$funcName SQL: $sql\n" );
                     try {
                         $stmt = $this->conn->prepare( $sql );
                         $stmt->execute( $answers );
                     } catch(PDOException $e) {
-                        echo "Update failed: " . $e->getMessage() . "\n";
-                        debuglog( $e->getMessage(), "updateOneDBRecord" );
+                        echo "$funcName: Update failed: " . $e->getMessage() . "\n";
+                        debuglog( $e->getMessage(), $funcName );
                     }
                 }
             }
         } else {
-            debuglog( "updateOneDBRecord: No parameters to update" );
+            debuglog( "No parameters to update", $funcName );
             return $answers;
         }
 
@@ -272,7 +303,8 @@ class Laana extends DB {
     }
     
     public function getSentences( $term, $pattern, $pageNumber = -1, $options = [] ) {
-        debuglog("Laana::getSentences($term,$pattern,$pageNumber," . var_export( $options, true ) . ")");
+        $funcName = "Laana::getSentences";
+        debuglog( $options, "$funcName($term,$pattern,$pageNumber");
         $countOnly = isset($options['count']) ? $options['count'] : false;
         $nodiacriticals = isset($options['nodiacriticals']) ? $options['nodiacriticals'] : false;
         $orderBy = isset($options['orderby']) ? "order by " . $options['orderby'] : '';
@@ -346,12 +378,13 @@ class Laana extends DB {
         }
         //echo "sql: $sql, values: " . var_export( $values, true ) . "\n";
         $rows = $this->getDBRows( $sql, $values );
-        debuglog( "getSentences result: " . var_export( $rows, true ) );
+        debuglog( $rows, "$funcName getSentences result" );
         return $rows;
     }
     
     public function getMatchingSentenceCount( $term, $pattern, $pageNumber = -1, $options = [] ) {
-        debuglog("Laana::getMatchingSentenceCount($term,$pattern,$pageNumber," . var_export( $options, true ) . ")");
+        $funcName = "Laana::getMatchingSentenceCount";
+        debuglog( $options, "$funcName($term,$pattern,$pageNumber)" );
         $options['count'] = true;
         $rows = $this->getSentences( $term, $pattern, $pageNumber, $options );
         if( sizeof( $rows ) > 0 ) {
@@ -383,7 +416,7 @@ class Laana extends DB {
             $sql = "select o.*,count(sentenceID) count from " . SOURCES . " o," . SENTENCES . " s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
             $rows = $this->getDBRows( $sql );
         } else {
-            $sql = "select o.*,count(sentenceID) count from " . SOURCES . " o," . SENTENCES . " s where o.sourceID = s.sourceID and groupname = :groupname  group by o.sourceID order by sourceName";
+            $sql = "select o.*,count(sentenceID) count from " . SOURCES . " o left join " . SENTENCES . " s on o.sourceID = s.sourceID and groupname = :groupname  group by o.sourceID order by sourceName";
             $values = [
                 'groupname' => $groupname,
             ];
@@ -399,7 +432,7 @@ class Laana extends DB {
     }
     
     public function getSourceGroupCounts() {
-        $sql = "select groupname,count(*) c from " . SOURCES . " group by groupname";
+        $sql = "select groupname,count(*) c from " . SOURCES . " where sentenceCount > 0 group by groupname";
         $rows = $this->getDBRows( $sql );
         $results = [];
         foreach( $rows as $row ) {
@@ -426,6 +459,15 @@ class Laana extends DB {
         return $row;
     }
     
+    public function getSourceByLink( $link ) {
+        $sql = "select * from " . SOURCES . " o where link = :link";
+        $values = [
+            'link' => $link,
+        ];
+        $row = $this->getOneDBRow( $sql, $values );
+        return $row;
+    }
+    
     public function getLatestSourceDates() {
         $sql = "select groupname,max(date) date from " . SOURCES . " o group by groupname";
         $rows = $this->getDBRows( $sql );
@@ -433,19 +475,19 @@ class Laana extends DB {
     }
 
     function hasRaw( $sourceid ) {
-        $sql = "select * from " . SOURCES . " s," . CONTENTS . " c where s.sourceid=c.sourceid and s.sourceid = :sourceid and not html is null";
+        $sql = "select * from " . SOURCES . " s," . CONTENTS . " c where s.sourceid=c.sourceid and s.sourceid = :sourceid and not (isnull(html) or length(html) < 1 or isnull(text) or length(text) < 1)";
         $values = [
             'sourceid' => $sourceid,
         ];
         $row = $this->getOneDBRow( $sql, $values );
-        $id = isset($row['sourceid']) ? $row['sourceid'] : '';
-        return $id;
+        return (sizeof($row) > 0) ? true : false;
     }
     
     public function getSentenceCount() {
+        $funcName = "getSentenceCount";
         $sql = "select value count from " . STATS . " where name = 'sentences'";
         $row = $this->getOneDBRow( $sql );
-        debuglog( "getSentenceCount: " . var_export( $row, true ) );
+        debuglog( $row, $funcName );
         return $row['count'];
     }
 
@@ -495,15 +537,14 @@ class Laana extends DB {
             $values['date'] = $date;
         }
         if( $this->executePrepared( $sql, $values ) ) {
-            $row = $this->getSourceByName( $name );
+            $row = $this->getSourceByLink( $link );
             return $row['sourceid'];
         } else {
             return null;
         }
     }
 
-    public function updateSource( $params ) {
-        unset( $params['sourceid'] );
+    public function updateSourceByID( $params ) {
         unset( $params['start'] );
         unset( $params['end'] );
         unset( $params['created'] );
@@ -516,33 +557,49 @@ class Laana extends DB {
         }
         $sql = "update " . SOURCES . " set link = :link, " .
                "groupname = :groupname, " .
+               "sourcename = :sourcename, " .
                "authors = :authors, " .
                "title = :title, " .
                "date = :date " .
-               "where sourceName = :sourcename";
+               "where sourceID = :sourceid";
         if( $this->executePrepared( $sql, $params ) ) {
-            $row = $this->getSourceByName( $source['sourcename'] );
-            return $row['sourceid'];
+            $row = $this->getSourceByName( $params['sourcename'] );
+            return $row;
         } else {
             return null;
         }
     }
     
     public function addSource( $name, $params = [] ) {
-        $params['sourcename'] = $name;
-        if( !$params['date'] ) {
-            unset( $params['date'] );
+        if( !$name && isset( $params['sourcename'] ) ) {
+            $name = $params['sourcename'];
         }
-        $link = $params['link'] ?: '';
-        $row = $this->getSourceByName( $name );
-        if( $row['sourceid'] && $link ) {
-            return $this->updateSource( $params );
+        if( !$name ) {
+            return null;
+        }
+        if( !$params['date'] ) {
+            $params['date'] = '1970-01-01';
+        }
+        if( !isset( $params['sourceid'] ) ) {
+            $row = $this->getSourceByName( $name );
+            if( isset( row['sourceid'] ) ) {
+                $params['sourceid'] = $row['sourceid'];
+            }
+        }
+        if( isset( $params['sourceid'] ) && isset( $params['link'] ) ) {
+            return $this->updateSourceByID( $params );
+        } else if( !isset( $params['link'] ) || !isset( $params['groupname'] ) || !isset( $params['title'] ) ) {
+            return null;
         } else {
-            $authors = $params['authors'] ?: '';
-            $datekey = ($params['date']) ? ", date" : "";
-            $datevalue = ($params['date']) ? ", :date" : "";
-            $sql = "replace into " . SOURCES . "(sourceName, link, authors, groupname$datekey, title) " .
-                   "values(:name, :link, :authors, :groupname$datevalue, :title)";
+            // Create a new entry
+            // Provide empty values for non-required attributes
+            foreach( ['authors',] as $key ) {
+                if( !isset( $params[$key] ) ) {
+                    $params[$key] = '';
+                }
+            }
+            $sql = "replace into " . SOURCES . "(sourceName, link, authors, groupname, title, date) " .
+                   "values(:name, :link, :authors, :groupname, :title, :date)";
             return $this->patchSource( $sql, $params );
         }
     }
@@ -581,6 +638,18 @@ class Laana extends DB {
         ];
         return $this->executePrepared( $sql, $values );
     }
+    public function updateSentenceCount( $sourceID = null ) {
+        $sql = "UPDATE sources s INNER JOIN ( SELECT sourceid, COUNT(*) AS sentence_count FROM sentences GROUP BY sourceid ) sc ON s.sourceid = sc.sourceid SET s.sentencecount = sc.sentence_count";
+        if( $sourceID ) {
+            $sql .= " where s.sourceid = :sourceID";
+            $values = [
+                'sourceID' => $sourceID,
+            ];
+            return $this->executePrepared( $sql, $values );
+        } else {
+            return $this->executeSQL( $sql );
+        }
+    }
     public function addSentences( $sourceID, $sentences ) {
         $maxValues = 30;
         $count = 0;
@@ -594,6 +663,7 @@ class Laana extends DB {
             $count += $status;
         }
         $this->updateSimplified( $sourceID );
+        $this->updateSentenceCount( $sourceID );
         return $count;
     }
     public function addContentRow( $sourceID ) {
@@ -628,6 +698,7 @@ class Laana extends DB {
         ];
         $result = ($this->executePrepared( $sql, $values )) ? strlen( $rawtext ) : 0;
         debuglog( "Laana::addRawText($sourceID) $sql returned $result" );
+        //echo( "Laana::addRawText($sourceID) $sql returned $result\n" );
         return $result;
     }
     public function addText( $sourceID, $text ) {

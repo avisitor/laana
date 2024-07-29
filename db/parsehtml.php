@@ -14,7 +14,15 @@ function debugPrint( $text ) {
     }
 }
 
+function debugPrintObject( $obj, $intro ) {
+    global $debugFlag;
+    if( $debugFlag ) {
+        printObject( $obj, $intro );
+    }
+}
+
 class HtmlParse {
+    protected $logName = "HtmlParse";
     protected $Amarker = '&#256;';
     public $date = '';
     protected $url = '';
@@ -27,6 +35,7 @@ class HtmlParse {
     protected $mergeRows = true;
     protected $options = [];
     public $groupname = "";
+    protected $ignoreMarkers = [];
     protected $endMarkers = [
         "applesauce",
         "O KA HOOMAOPOPO ANA I NA KII",
@@ -534,8 +543,13 @@ class HtmlParse {
                 //debugPrint( "HtmlParse::processText comparing |$pattern| to |$sentence|" );
                 $result = strpos( $sentence, $pattern );
                 if( $result !== false ) {
-                    debugPrint( "HtmlParse::processText matched end marker |$pattern|" );
-                    return $results;
+                    foreach( $this->ignoreMarkers as $patt ) {
+                        $result = strpos( $sentence, $patt );
+                        if( $result === false ) {
+                            debugPrint( "HtmlParse::processText matched end marker |$pattern|" );
+                            return $results;
+                        }
+                    }
                 }
             }
             // Check for valid sentence
@@ -609,13 +623,16 @@ class HtmlParse {
     public function extractSentencesFromHTML( $text, $options=[] ) {
         debugPrint( "HtmlParse::extractSentencesFromHTML(" . strlen($text) . " chars)" );
         debuglog( "HtmlParse::extractSentencesFromHTML(" . strlen($text) . " chars)" );
+        if( !$text ) {
+            return [];
+        }
         libxml_use_internal_errors(true);
         $dom = $this->getDOMFromString( $text, $options );
         $this->extractDate( $dom );
         //$dom = $this->adjustDOM( $dom );
         libxml_use_internal_errors(false);
         $paragraphs = $this->extract( $dom );
-        debuglog( var_export( $paragraphs, true ) . " count=" . $paragraphs->count() );
+        debuglog( "HTMLParse::extractSentencesFromHTML: " . var_export( $paragraphs, true ) . " count=" . $paragraphs->count() );
         $sentences = $this->process( $paragraphs );
         return $sentences;
     }
@@ -623,14 +640,14 @@ class HtmlParse {
     // Extract an array of lines by looking at the text in all tags from an URL
     public function extractSentences( $url, $options=[] ) {
         debugPrint( "HtmlParse::extractSentences($url)" );
-        $this->url = $this->domainUrl = $url;
+        $this->initialize( $url );
         $contents = $this->getContents( $url, $options );
         $sentences = $this->extractSentencesFromHTML( $contents, $options );
         return $sentences;
     }
 
     // Stub function to extract the date from the DOM of a document
-    public function extractDate( $dom ) {
+    public function extractDate( $dom = null ) {
         debugPrint( "HtmlParse::extractDate()" );
         return $this->date;
     }
@@ -656,6 +673,7 @@ class CBHtml extends HtmlParse {
     }
     private $sourceName = 'Ka Ulana Pilina';
     public $groupname = "kaulanapilina";
+    protected $logName = "CBHtml";
 
     public function getSourceName( $title = '', $url = '' ) {
         debugPrint( "CBHtml::getSourceName($title,$url)" );
@@ -687,9 +705,12 @@ class CBHtml extends HtmlParse {
         return $paragraphs;
     }
 
-    public function extractDate( $dom ) {
+    public function extractDate( $dom = null ) {
         debugPrint( "CBHtml::extractDate()" );
         $this->date = '';
+        if( !$dom ) {
+            $dom = $this->dom;
+        }
         $xpath = new DOMXpath( $dom );
         $query = '//meta[contains(@property, "article:published_time")]';
         $paragraphs = $xpath->query( $query );
@@ -730,6 +751,8 @@ class CBHtml extends HtmlParse {
                     'url' => $url,
                     'image' => '',
                     'title' => $text,
+                    'groupname' => $this->groupname,
+                    'author' => $this->authors,
                     //'html' => $outerHTML,
                 ]
             ];  
@@ -743,27 +766,36 @@ class AoLamaHTML extends HtmlParse {
     private $basename = "Ke Aolama";
     public $groupname = "keaolama";
     private $urlbase = 'https://keaolama.org/';
+    protected $logName = "AoLamaHtml";
     public function __construct( $options = [] ) {
         $this->urlBase = $this->urlbase;
         $this->startMarker = "penei ka nūhou";
         $this->baseurl = "https://keaolama.org/?infinity=scrolling&page=";
     }
 
+    public function initialize( $baseurl ) {
+        parent::initialize( $baseurl );
+        $this->dom = $this->getDOM( $this->url );
+        $this->extractDate( $this->dom );
+        $this->title = $this->basename . ' ' . $this->date;
+    }
+    
     public function getSourceName( $title = '', $url = '' ) {
         if( $title ) {
             $this->title = $title;
         }
-        if( $this->title ) {
-            $parts = explode( '/', $this->title );
-            if( sizeof($parts) > 2 ) {
-                return $this->basename . ' ' . $parts[0] . $parts[1] . $parts[2];
-            }
-        }
+        debugPrint( "AolamaHTML::getSourceName title=" . $this->title );
+        $sourceName = "";
         $parts = explode( '/', parse_url( $this->url, PHP_URL_PATH ) );
         if( sizeof($parts) > 3 ) {
-            return $this->basename . ' ' . $parts[1] . $parts[2] . $parts[3];
+            $sourceName = "{$this->basename} {$parts[1]}-{$parts[2]}-{$parts[3]}";
+            debugPrint( "AolamaHTML::getSourceName sourceName=" . $sourceName );
         }
-        return $this->basename;
+        if( !$sourceName ) {
+            $sourceName = $this->basename;
+            $this->title = $sourceName;
+        }
+        return $sourceName;
     }
     
     public function extract( $dom ) {
@@ -772,8 +804,11 @@ class AoLamaHTML extends HtmlParse {
         return $paragraphs;
     }
     
-    public function extractDate( $dom ) {
+    public function extractDate( $dom = null ) {
         debugPrint( "AolamaHTML::extractDate url=" . $this->url );
+        if( !$dom ) {
+            $dom = $this->dom;
+        }
         $path = parse_url( $this->url, PHP_URL_PATH );
         $parts = explode( '/', $path );
         if( sizeof($parts) > 3 ) {
@@ -785,7 +820,7 @@ class AoLamaHTML extends HtmlParse {
     }
     
     public function getPageList() {
-        debugPrint( "AolamanHTML::getPageList()" );
+        debugPrint( "AolamaHTML::getPageList()" );
         $page = 0;
         $pages = [];
         while( true ) {
@@ -799,10 +834,11 @@ class AoLamaHTML extends HtmlParse {
                 $value = [];
                 $text = str_replace( $this->urlbase, '', $u );
                 $parts = explode( '/', $text );
-                //echo( var_export( $parts, true ) . "\n" );
+                //printPbject( $parts, "AolamaHTML::getPageList()" );
                 if( sizeof($parts) > 3 ) {
-                    $dateparts = explode( '-', $parts[3] );
-                    $text = '20' . $parts[2] . "-" . $dateparts[0] . "-" . $dateparts[1];
+                    //$dateparts = explode( '-', $parts[3] );
+                    //$text = '20' . $parts[2] . "-" . $dateparts[0] . "-" . $dateparts[1];
+                    $text = $parts[0] . "-" . $parts[1] . "-" . $parts[2];
                 }
                 $text = $this->basename . ": $text";
                 $pages[] = [
@@ -810,6 +846,8 @@ class AoLamaHTML extends HtmlParse {
                         'url' => $u,
                         'image' => '',
                         'title' => $text,
+                        'groupname' => $this->groupname,
+                        'author' => $this->authors,
                     ]
                 ];  
             }
@@ -824,6 +862,8 @@ class KauakukalahaleHTML extends HtmlParse {
     public $groupname = "kauakukalahale";
     private $domain = "https://www.staradvertiser.com/";
     private $sourceName = 'Kauakukalahale';
+    protected $logName = "KauakukalahaleHTML";
+    protected $sources = [];
     public function __construct( $options = [] ) {
         $this->endMarkers = [
             "This column",
@@ -832,6 +872,9 @@ class KauakukalahaleHTML extends HtmlParse {
             "nota: Unuhi ʻia na",
             "Ua kākoʻo ʻia kēia papahana",
             "ʻO kā Civil Beat kūkala nūhou ʻana i",
+        ];
+        $this->ignoreMarkers = [
+            "Correction:",
         ];
         $this->urlBase = trim( $this->domain, "/" );
         $this->baseurl = "https://www.staradvertiser.com/category/editorial/kauakukalahale/";
@@ -900,16 +943,26 @@ class KauakukalahaleHTML extends HtmlParse {
         return $text;
     }
     
-    public function extractDate( $dom ) {
+    public function extractDate( $dom = null ) {
         debugPrint( "KauakukalahaleHTML::extractDate()" );
-        $this->date = '';
-        $xpath = new DOMXpath( $dom );
-        $query = "//li[contains(@class, 'postdate')]";
-        $paragraphs = $xpath->query( $query );
-        if( $paragraphs->length > 0 ) {
-            $p = $paragraphs->item(0);
-            $date = trim( $p->nodeValue );
-            $this->date = date("Y-m-d", strtotime($date));
+        if( $this->url ) {
+            $date = str_replace( $this->domain, "", $this->url );
+            $this->date = substr( $date, 0, 10 );
+        } else {
+            if( !$dom ) {
+                $dom = $this->dom;
+            }
+            $this->date = '';
+            if( $dom ) {
+                $xpath = new DOMXpath( $dom );
+                $query = "//li[contains(@class, 'postdate')]";
+                $paragraphs = $xpath->query( $query );
+                if( $paragraphs->length > 0 ) {
+                    $p = $paragraphs->item(0);
+                    $date = trim( $p->nodeValue );
+                    $this->date = date("Y-m-d", strtotime($date));
+                }
+            }
         }
         debuglog( "KauakukalahaleHTML:extractDate: " . $this->date );
         debugPrint( "KauakukalahaleHTML:extractDate: " . $this->date );
@@ -957,7 +1010,8 @@ class KauakukalahaleHTML extends HtmlParse {
         debugPrint( "KauakukalahaleHtml::getPageList()" );
         $pagenr = 1;
         $pages = [];
-        while( ($morepages = $this->getSomePages( $pagenr )) && (sizeof($morepages) > 0) ) {
+        while( ($morepages = $this->getSomePages( $pagenr )) &&
+               (sizeof($morepages) > 0) ) {
             $pages = array_merge( $pages, $morepages );
             $pagenr++;
         }
@@ -977,6 +1031,7 @@ class KauakukalahaleHTML extends HtmlParse {
         $query = '//article[contains(@class, "story")]';
         $articles = $xpath->query( $query );
 
+        $pages = [];
         foreach( $articles as $article ) {
             //$outerHTML = $article->ownerDocument->saveHTML($article);
             //echo "outerHTML: $outerHTML\n";
@@ -986,31 +1041,39 @@ class KauakukalahaleHTML extends HtmlParse {
                 //$outerHTML = $p->ownerDocument->saveHTML($p);
                 //echo "outerHTML: $outerHTML\n";
                 $url = $p->getAttribute( 'href' );
-                $title = $p->getAttribute( 'title' );
-                $title = $this->basename . ": " . str_replace( "Column: ", "", $title );
-                $date = str_replace( $this->domain, "", $url );
-                $date = substr( $date, 0, 10 );
-                $sourcename = $this->basename . ": " . $date;
-                $childNodes = $p->getElementsByTagName( 'img' );
-                if( $childNodes->length > 0 ) {
-                    $img = $childNodes->item( 0 )->getAttribute( 'data-src' );
+                if( strpos( $url, "kauakukalahale" ) !== false ) {
+                    $title = $p->getAttribute( 'title' );
+                    $title = $this->basename . ": " . str_replace( "Column: ", "", $title );
+                    $date = str_replace( $this->domain, "", $url );
+                    $date = substr( $date, 0, 10 );
+                    $sourcename = $this->basename . ": " . $date;
+                    if( array_key_exists( $sourcename, $this->sources ) ) {
+                        //echo "skipping $sourcename\n";
+                        continue;
+                    }
+                    $this->sources[$sourcename] = 1;
+                    $childNodes = $p->getElementsByTagName( 'img' );
+                    if( $childNodes->length > 0 ) {
+                        $img = $childNodes->item( 0 )->getAttribute( 'data-src' );
+                    }
+                    $lis = $xpath->query( "*/li[contains(@class, 'custom_byline')]", $article );
+                    $author = '';
+                    if( $lis->length > 0 ) {
+                        $li = $lis->item( 0 );
+                        $author = trim( $li->nodeValue );
+                        $author = preg_replace( '/(^By na |^By |^Na )/i', '', $author );
+                    }
+                    $pages[] = [
+                        $sourcename => [
+                            'url' => $url,
+                            'title' => $title,
+                            'date' => $date,
+                            'image' => $img,
+                            'authors' => $author,
+                            'groupname' => $this->groupname,
+                        ]
+                    ];
                 }
-                $lis = $xpath->query( "*/li[contains(@class, 'custom_byline')]", $article );
-                $author = '';
-                if( $lis->length > 0 ) {
-                    $li = $lis->item( 0 );
-                    $author = trim( $li->nodeValue );
-                    $author = preg_replace( '/(By na |By |Na )/', '', $author );
-                }
-                $pages[] = [
-                    $sourcename => [
-                        'url' => $url,
-                        'title' => $title,
-                        'date' => $date,
-                        'image' => $img,
-                        'authors' => $author,
-                    ]
-                ];
             }
         }
         //echo "Pages found: " . sizeof($pages) . "\n";
@@ -1059,174 +1122,171 @@ class NupepaHTML extends HtmlParse {
     public $groupname = "nupepa";
     private $domain = "https://nupepa.org/";
     private $sourceName = 'Nupepa';
+    protected $logName = "NupepaHTML";
+    private $skipTitles = [
+        "Ka Wai Ola - Office of Hawaiian Affairs",
+    ];  // Almost no Hawaiian text
+    private $pagemap;
+    private $pagetitles;
     public function __construct( $options = [] ) {
         $this->urlBase = trim( $this->domain, "/" );
-        $this->baseurl = "https://nupepa.org/gsdl2.5/cgi-bin/nupepa?e=p-0nupepa--00-0-0--010---4-----text---0-1l--1haw-Zz-1---20-about---0003-1-0000utfZz-8-00&a=d&cl=CL2";
+        $this->baseurl = "https://nupepa.org/?a=cl&cl=CL2";
     }
     
     public function initialize( $baseurl ) {
         parent::initialize( $baseurl );
-        $this->dom = $this->getDOM( $this->url );
-        $xpath = new DOMXpath( $this->dom );
-        $query = '//head/title';
-        $titles = $xpath->query( $query );
-        $this->title = trim( $titles->item(0)->nodeValue );
+        $this->dom = $this->getDOM( $baseurl );
+        $this->extractTitle( $this->dom );
+        $this->extractDate( $this->dom );
+
+        $contents = $this->dom->saveHTML();
+        //echo "$contents\n";
+        //exit;
+        // Get the list of pages of this document
+        $pattern = '/\bpageTitles\s*=\s*\{(.*?)\};/s';
+        if (preg_match($pattern, $contents, $matches)) {
+            $pagetitles = "{" . $matches[1] . "}";
+            $pagetitles = preg_replace( "/\n/", "", $pagetitles );
+            $pagetitles = str_replace( '"', "&quot;", $pagetitles );
+            $pagetitles = str_replace( "'", '"', $pagetitles );
+            $this->pagetitles = json_decode( $pagetitles, true );
+        }
+        printObject( $this->pagetitles, "$this->logName pageTitles" );
     }
     
+    public function getDOM( $url, $options = [] ) {
+        debugPrint( "$this->logName::getDOM($url)" );
+        return parent::getDOM( $url, ['preprocess' => false,] );
+    }
+
+
     public function getSourceName( $title = '', $url = '' ) {
-        debugPrint( "NupepaHTML::getSourceName($title,$url)" );
-        $name = $this->sourceName;
-        if( $url ) {
-            $this->url = $url;
-            $date = str_replace( $this->domain, "", $url );
-            $this->date = substr( $date, 0, 10 );
-        }
+        debugPrint( "$this->logName::getSourceName($title,$url)" );
+        $this->sourceName = '';
         if( $title ) {
             $this->sourceName = $title;
+        } else if( $url ) {
+            $this->url = $url;
+            $this->dom = $this->getDOM( $this->url );
         }
-        debuglog( "NupepaHTML::getSourceName: url = " . $this->url . ", date = " . $this->date );
-        debugPrint( "NupepaHTML::getSourceName: url = " . $this->url . ", date = " . $this->date );
+        if( !$this->sourceName && $this->dom ) {
+            $title = $this->extractTitle( $this->dom );
+            $this->sourceName = $title;
+        }
+        debuglog( "$this->logName::getSourceName: url = " . $this->url . ", sourceName = " . $this->sourceName );
+        debugPrint( "$this->logName::getSourceName: url = " . $this->url . ", sourceName = " . $this->sourceName );
         return $this->sourceName;
     }
     
     public function getPageList() {
-        debugPrint( "NupepaHTML::getPageList()" );
-        $pagenr = 1;
-        $pages = [];
-        $maxPageNr = 103;
-        while( $pagenr <= $maxPageNr ) {
-            $morepages = $this->getSomePages( $pagenr );
-            if( $morepages && sizeof( $morepages ) > 0 ) {
-                $pages = array_merge( $pages, $morepages );
-            }
-            $pagenr++;
-        }
-        return $pages;
-    }
-    
-    public function getSomePages( $pagenr ) {
-        if( $pagenr == 1 ) {
-            $url = $this->baseurl;
-        } else {
-            $url = $this->baseurl . '.' . $pagenr;
-        }
-        debugPrint( "NupepaHTML::getSomePages($pagenr): $url" );
-        $dom = $this->getDOM( $url );
+        debugPrint( "$this->logName::getPageList()" );
+        $dom = $this->getDOM( $this->baseurl );
         $xpath = new DOMXpath($dom);
-        $query = '//node()[img/@alt="view text"]';
-        $paragraphs = $xpath->query( $query );
+        $query = '//a[@class="nav-link"]';
+        $months = $xpath->query( $query );
         $pages = [];
 
-        $months = [
-            'Malaki' => '03',
-            "Nowemapa" => '11',
-            "Mei" => '05',
-            "Iulai" => '07',
-            "Apelila" => '04',
-            "Pepeluali" => '02',
-            "Ianuali" => '01',
-            "Kekemapa" => '12',
-            "Okakopa" => '10',
-            "Kepakemapa" => '09',
-            "Aukake" => '08',
-            "Iune" => '06',
-        ];
-        
-        foreach( $paragraphs as $p ) {
-            //echo( "NupepaHTML::getPageList paragraph: " . $p->nodeValue . "\n" );
-            $url = trim( $this->baseurl, '/' ) . $p->getAttribute( 'href' );
-            $parentnode = $p->parentNode->parentNode; // tr
-            $tds = $xpath->query( "td", $parentnode );
-            //debugPrint( $tds->length . " tds, " . $tds->item(4)->nodeValue );
-            $title = $tds->item(3)->nodeValue;
-            // Skip the English language newspapers where possible
-            if( preg_match( '/Honolulu Times/', $title ) ) {
-                continue;
-            }
-            $date = $tds->item(4)->nodeValue;
-            $date = str_replace( 'ʻ', '', $date );
-            $parts = explode( " ", $date );
-            $date = "${parts[2]}-${months[$parts[1]]}-${parts[0]}";
-            $img = '';
+        foreach( $months as $month ) {
+            $monthUrl = $this->urlBase . $month->getAttribute( 'href' );
+            //$monthUrl = $month->getAttribute( 'href' );
+            debugPrint( "monthUrl = $monthUrl" );
             
-            $pages[] = [
-                $title => [
-                    'url' => $url,
-                    'title' => $title,
-                    'date' => $date,
-                    'image' => $img,
-                ]
-            ];
-            //debugPrint( var_export( $pages, true ) );
+            $dom = $this->getDOM( $monthUrl );
+            if( $dom ) {
+                $xpath = new DOMXpath($dom);
+                $query = "//li[@class='list-group-item']/a";
+                $issues = $xpath->query( $query );
+                foreach( $issues as $issue ) {
+                    $issueUrl = $issue->getAttribute( 'href' );
+                    $issueUrl = preg_replace( '/\&e=.*/', '', $issueUrl );
+                    $issueUrl = $this->urlBase . $issueUrl;
+                    debugPrint( $issueUrl );
+                    $issuedom = $this->getDOM( $issueUrl );
+                    $title = $this->extractTitle( $issuedom );
+                    $ok = true;
+                    foreach( $this->skipTitles as $pattern ) {
+                        if( strpos( $title, $pattern ) !== false ) {
+                            $ok = false;
+                            break;
+                        }
+                    }
+                    if( $ok ) {
+                        $date = $this->extractDate( $issuedom );
+                        $pages[] = [
+                            $title => [
+                                'url' => $issueUrl,
+                                'image' => '',
+                                'title' => $title,
+                                'date' => $date,
+                                'author' => $this->authors,
+                                'groupname' => $this->groupname,
+                            ]
+                        ];
+                    }
+                }
+            }
+            if( sizeof( $pages ) >= 100 ) {
+                //break;
+            }
         }
-
-        //echo "Pages found: " . sizeof($pages) . "\n";
+        debuglog( "Pages: " . var_export( $pages, true ) );
+        debugPrintObject( $pages, "$this->logName::getPageList()" );
         return $pages;
     }
-    
-    public function getRawText( $url, $options=[] ) {
-        $continue = (!isset($options['continue']) || $options['continue']) ? 1 : 0;
+
+    public function getRawText( $pageurl, $options=[] ) {
+        debugPrint( "$this->logName::getRawText( $pageurl," . var_export( $options, true ) . ")" );
+        $options = ['preprocess' => false,];
         $fulltext = "";
-        $parts = explode( "/", $url );
-        $baseurl = implode( "/", array_slice( $parts, 0, sizeof($parts) - 1 ) ) . "/";
-        $seen = [];
         $hasHead = false;
-        while( $url ) {
-            if( in_array( $url, $seen ) ) {
-                break;
-            }
-            $seen[] = $url;
-            debugPrint( "NupepaHTML::getRawText( $url,$continue)" );
-            $text = $this->getRaw( $url, $options );
-            $dom = $this->getDOMFromString( $text, $options );
-            $xpath = new DOMXpath($dom);
-            if( !$hasHead ) {
-                // Only want one <html> and one <head>
-                $query = '//head';
+        $count = 0;
+        foreach( $this->pagetitles as $key => $title ) {
+            // Skip cover page, back page, bibliography, etc
+            if( preg_match( "/Page \d+\s*.*(\<|\&lt)/", $title ) ) {
+                $url = "$pageurl.$key&st=1&dliv=none";
+                echo "$url\n";
+
+                $text = $this->getRaw( $url, $options );
+                $dom = $this->getDOMFromString( $text, $options );
+                $xpath = new DOMXpath($dom);
+                if( !$hasHead ) {
+                    // Only want one <html> and one <head>
+                    $query = '//head';
+                    $p = $xpath->query( $query );
+                    if( $p->length > 0 ) {
+                        $node = $p->item(0);
+                        $outerHTML = $node->ownerDocument->saveHTML($node);
+                        //echo "outerHTML: $outerHTML\n";
+                        $fulltext .= "<html>" . $outerHTML;
+                    } else {
+                        echo "No head\n";
+                    }
+                    $hasHead = true;
+                }
+                $query = '//body';
                 $p = $xpath->query( $query );
                 if( $p->length > 0 ) {
                     $node = $p->item(0);
-                    $outerHTML = $node->ownerDocument->saveHTML($node);
-                    //echo "outerHTML: $outerHTML\n";
-                    $fulltext .= "<html>" . $outerHTML;
+                    $text = $node->ownerDocument->saveHTML($node);
+                    //echo "Body: $text\n";
                 } else {
-                    echo "No head\n";
+                    $text = "";
                 }
-                $hasHead = true;
+                $fulltext .= $text;
+                $count++;
             }
-            $query = '//body';
-            $p = $xpath->query( $query );
-            if( $p->length > 0 ) {
-                $node = $p->item(0);
-                $text = $node->ownerDocument->saveHTML($node);
-                //echo "Body: $text\n";
-            } else {
-                $text = "";
-            }
-            $fulltext .= $text;
-
-            if( $continue ) {
-                // Check if there is a continuation link
-                $query = '//a[contains(text(), "ao a")]';
-                $p = $xpath->query( $query );
-                if( $p->length > 0 ) {
-                    $url = $baseurl . $p->item(0)->getAttribute( 'href' );
-                    debugPrint( "NupepaHTML::getRawText continuation: $url" );
-                } else {
-                    $url = '';
-                    debugPrint( "NupepaHTML::getRawText no continuation for $query" );
-                }
-            } else {
-                $url = '';
-                $fulltext .= '</html>';
-            }
+        }
+        if( $count ) {
+            $fulltext .= '</html>';
+        } else {
+            $fulltext = "";
         }
         return $fulltext;
     }
 
     public function extract( $dom ) {
-        debuglog( "NupepaHTML::extract({$dom->childElementCount} nodes)" );
-        debugPrint( "NupepaHTML::extract({$dom->childElementCount} nodes)" );
+        debuglog( "$this->logName::extract({$dom->childElementCount} nodes)" );
+        debugPrint( "$this->logName::extract({$dom->childElementCount} nodes)" );
         $xpath = new DOMXpath($dom);
         $paragraphs = $xpath->query( '//sec/div/p' );
         // Very inconsistent DOM for these documents
@@ -1245,43 +1305,41 @@ class NupepaHTML extends HtmlParse {
         return $paragraphs;
     }
 
-    public function extractDate( $dom ) {
-        debugPrint( "NupepaHTML::extractDate url=" . $this->url );
-        $date = '';
-        $query = '//h3';
-        $items = $xpath->query( $query );
-        if( $items->length > 0 ) {
-            $item = $items->item( 0 );
-            $outerHTML = $item->ownerDocument->saveHTML($item);
-            //echo "outerHTML: $outerHTML\n";
-            //$text = $item->nodeValue;
-            $text = preg_replace( '/.*<br>/', '', $outerHTML );
-            $text = preg_replace( '/<\/h3>/', '', $text );
-            $text = preg_replace( "/'/", "", $text );
-            $parts = explode( " ", $text );
-            $months = $parser->months;
-            $date = "${parts[2]}-${months[$parts[1]]}-${parts[0]}";
-            //echo "$date\n";
+    public function extractTitle( $dom ) {
+        debugPrint( "$this->logName::extractTitle url=" . $this->url );
+        if( !$dom ) {
+            $dom = $this->dom;
         }
+        $xpath = new DOMXpath($dom);
+        $query = '//head/title';
+        $titles = $xpath->query( $query );
+        $title = $titles->item(0)->nodeValue;
+        $title = htmlentities( $title );
+        $title = preg_replace( '/ \&mdash\;.*/', '', $title );
+        $this->title = $title;
+        return $this->title;
+    }
+
+    public function extractDate( $dom = null ) {
+        debugPrint( "$this->logName::extractDate url=" . $this->url );
+        if( !$dom ) {
+            $dom = $this->dom;
+        }
+        $title = $this->extractTitle( $dom );
+        $parts = explode( " ", $title );
+        $len = sizeof( $parts );
+        $date = "${parts[$len-3]} ${parts[$len-2]} ${parts[$len-1]}";
+        $date = date( 'Y-m-d', strtotime( $date ) );
         $this->date = $date;
-        debugPrint( "NupepaHTML::extractDate found [{$this->date}]" );
+        debugPrint( "$this->logName::extractDate found [{$this->date}]" );
         return $this->date;
     }
-    
-/*    
-    public function checkElement( $p ) {
-        // Can probably move this up into ParseHTML
-        // &nbsp;
-        $text = preg_replace( '/\xc2\xa0/', '', $p->nodeValue );
-        $text = preg_replace( '/\s+/', ' ', $text );
-        return $text;
-    }
-*/
 }
 
 class UlukauHTML extends HtmlParse {
     private $basename = "Ulukau";
     public $groupname = "ulukau";
+    protected $logName = "UlukauHtml";
     private $domain = "https://puke.ulukau.org";
     private $pageURL = "https://puke.ulukau.org/ulukau-books/?a=da&command=getSectionText&d=";
     private $pageURLSuffix = "&f=AJAX&e=-------en-20--1--txt-txPT-----------";
@@ -1321,9 +1379,12 @@ class UlukauHTML extends HtmlParse {
         return $paragraphs;
     }
     
-    public function extractDate( $dom ) {
+    public function extractDate( $dom = null ) {
         debugPrint( "UlukauHTML::extractDate url=" . $this->url );
         $this->date = '';
+        if( !$dom ) {
+            $dom = $this->dom;
+        }
         $xpath = new DOMXpath($dom);
         $query = '//div[@class="content"]';
         $items = $xpath->query( $query );
@@ -1384,12 +1445,13 @@ class UlukauHTML extends HtmlParse {
                     'language' => $language,
                     'author' => $author,
                     'subject' => $subject,
+                    'groupname' => $this->groupname,
                 ]
             ];
         }
         ksort( $pages );
         debuglog( "Pages: " . var_export( $pages, true ) );
-        debugPrint( "Pages: " . var_export( $pages, true ) );
+        debugPrintObject( $pages, "UlukauHTML::getPageList() pages" );
         return $pages;
     }
 
@@ -1408,7 +1470,7 @@ class UlukauHTML extends HtmlParse {
         $query = '//head/title';
         //$query = '//h2[contains(@class, "headline")]/a';
         $titles = $xpath->query( $query );
-        $this->title = $this->preprocessHTML( trim( $titles->item(0)->nodeValue ) );
+        $contents = $this->title = $this->preprocessHTML( trim( $titles->item(0)->nodeValue ) );
         $pattern = '/\bdocumentOID\s*=\s*(.*?);/s';
         if (preg_match($pattern, $contents, $matches)) {
             $this->oid = trim( $matches[1], "'" );
@@ -1445,7 +1507,7 @@ class UlukauHTML extends HtmlParse {
         //preg_match( '/\bCopyright(.*?)(\d+).*/', $contents, $matches );
         //$this->date = $matches[1];
 
-        debugPrint( "UlukauHTML::initialize() finished " /*. var_export( $this->pagemap, true )*/ );
+        debugPrint( "UlukauHTML::initialize() finished " /*. var_export( $this->pagemap*/, true );
     }
 
     private function liveIntro() {
@@ -1591,6 +1653,7 @@ class UlukauHTML extends HtmlParse {
 class KaPaaMooleloHTML extends HtmlParse {
     private $basename = "Ka Paa Moolelo";
     public $groupname = "kapaamoolelo";
+    protected $logName = "KaPaaMooleloHtml";
     protected $baseurls = [
         "https://www2.hawaii.edu/~kroddy/moolelo/papa_kaao.htm",
         "https://www2.hawaii.edu/~kroddy/moolelo/papa_moolelo.htm",
@@ -1630,6 +1693,8 @@ class KaPaaMooleloHTML extends HtmlParse {
                         'url' => $this->domain . "moolelo/" . $url,
                         'title' => $text,
                         'image' => '',
+                        'author' => $this->authors,
+                        'groupname' => $this->groupname,
                     ],
                 ];
             }
@@ -1749,6 +1814,7 @@ class KaPaaMooleloHTML extends HtmlParse {
 class BaibalaHTML extends HtmlParse {
     private $basename = "Baibala";
     public $groupname = "baibala";
+    protected $logName = "BaibalaHtml";
     private $documentname = "Baibala (full bible, 2012 edition)";
     private $domain = "https://baibala.org/";
     protected $startMarker = "Baibala (full bible)";
@@ -1777,6 +1843,8 @@ class BaibalaHTML extends HtmlParse {
                 'url' => $this->baseurl,
                 'title' => $text,
                 'image' => '',
+                'author' => $this->authors,
+                'groupname' => $this->groupname,
             ],
         ];
         return $pages;
@@ -1867,6 +1935,7 @@ class BaibalaHTML extends HtmlParse {
 class EhoouluLahuiHTML extends HtmlParse {
     private $basename = "Ehooulu Lahui";
     public $groupname = "ehooululahui";
+    protected $logName = "EhoouluLahuiHTML";
     private $urlbase = 'https://ehooululahui.maui.hawaii.edu/';
     public function __construct( $options = [] ) {
         $this->urlBase = $this->urlbase;
@@ -1906,7 +1975,7 @@ class EhoouluLahuiHTML extends HtmlParse {
         return $paragraphs;
     }
     
-    public function extractDate( $dom ) {
+    public function extractDate( $dom = null ) {
         debugPrint( "EhoouluLahuiHTML::extractDate url=" . $this->url );
         $path = parse_url( $this->url, PHP_URL_PATH );
         $parts = explode( '/', $path );
@@ -1929,6 +1998,8 @@ class EhoouluLahuiHTML extends HtmlParse {
                     'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=65',
                     'image' => '',
                     'title' => '‘Aukelenuia‘īkū',
+                    'author' => '',
+                    'groupname' => $this->groupname,
                 ],
             ],
             [
@@ -1937,6 +2008,8 @@ class EhoouluLahuiHTML extends HtmlParse {
                     'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=67',
                     'image' => '',
                     'title' => 'Lonoikamakahiki',
+                    'author' => '',
+                    'groupname' => $this->groupname,
                 ],
             ],
             [
@@ -1945,6 +2018,8 @@ class EhoouluLahuiHTML extends HtmlParse {
                     'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=69',
                     'image' => '',
                     'title' => 'Punia',
+                    'author' => '',
+                    'groupname' => $this->groupname,
                 ],
             ],
             [
@@ -1953,6 +2028,8 @@ class EhoouluLahuiHTML extends HtmlParse {
                     'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=71',
                     'image' => '',
                     'title' => '‘Umi',
+                    'author' => '',
+                    'groupname' => $this->groupname,
                 ],
             ],
             /*
@@ -1962,6 +2039,8 @@ class EhoouluLahuiHTML extends HtmlParse {
                     'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=1327',
                     'image' => '',
                     'title' => 'Kalapana',
+                    'author' => '',
+                    'groupname' => $this->groupname,
                 ],
             ],
             */
@@ -1993,6 +2072,8 @@ class EhoouluLahuiHTML extends HtmlParse {
                     'url' => $url,
                     'image' => '',
                     'title' => $title,
+                    'author' => $this->authors,
+                    'groupname' => $this->groupname,
                 ]
             ];
             $page++;
@@ -2058,6 +2139,7 @@ class EhoouluLahuiHTML extends HtmlParse {
 }
 
 class TextParse extends HtmlParse {
+    protected $logName = "TextParse";
     public function getSentences( $text ) {
         return $this->processText( $text );
     }

@@ -700,3 +700,31 @@ div.page-load-status {
     text-decoration: none;
     transition-duration: 0.1s;
 }
+
+.sourcetable {
+    font-size: 11pt;
+}
+
+.source-group {
+    width: 8em;
+}
+.source-name {
+    width:15em;
+}
+.source-date {
+    width:12em;
+}
+.source-html {
+    width:3em;
+}
+.source-plain {
+    width:3em;
+}
+.source-authors {
+    max-width:10em;
+}
+.source-sentences {
+    padding-right:.5em !important;
+    max-width:6em;
+}
+
