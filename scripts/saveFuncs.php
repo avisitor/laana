@@ -1,6 +1,5 @@
 <?php
 include_once '../db/parsehtml.php';
-//include_once '../db/p.php';
 include_once 'parsers.php';
 
 function getParser( $key ) {
@@ -75,13 +74,11 @@ function hasSentences( $sourceID ) {
 function addSentences( $parser, $sourceID, $link, $text ) {
     $funcName = "addSentences";
     if( $text ) {
-        //$sentences = $parser->extractSentencesFromString( $text );
         $sentences = $parser->extractSentencesFromHTML( $text );
     } else {
         $sentences = $parser->extractSentences( $link );
     }
     printBoth( sizeof($sentences) . " sentences", $funcName );
-    //echo( "addSemtences: " . var_export($sentences, true) . "\n" );
     
     $laana = new Laana();
     $laana->removeSentences( $sourceID );
@@ -148,7 +145,6 @@ function saveDocument( $parser, $sourceID, $options ) {
         $didWork = 1;
         if( $text ) {
             addSentences( $parser, $sourceID, $link, $text );
-            $didWork = 1;
         }
     } else {
         if( $present ) {
@@ -165,38 +161,46 @@ function saveDocument( $parser, $sourceID, $options ) {
 
 function updateDocument( $sourceID, $options ) {
     $funcName = "updateDocument";
+    $force = isset( $options['force'] ) ? $options['force'] : false;
     $laana = new Laana();
     $source = $laana->getSource( $sourceID );
     if( isset( $source['groupname'] ) ) {
         $groupname = $source['groupname'];
         $parser = getParser( $groupname );
         printBoth( "($sourceID,$groupname)", $funcName );
-        if( $parser ) {
+        if( $parser && $force ) {
+            // Only update the source record on force and if the values have changed in the field
             $parser->initialize( $source['link'] );
-            $source['sourcename'] = $parser->getSourceName( '', $source['link'] );
-            if( $parser->title ) {
-                $source['title'] = $parser->title;
-            }
-            if( $parser->date ) {
-                $source['date'] = $parser->date;
-            }
-            printBoth( "About to call updatesourceByID: " .
-                       var_export( $source, true ), $funcName );
-            //exit;
-            $laana->updateSourceByID( $source );
+            $params = [
+                'sourcename' => $parser->getSourceName( '', $source['link'] ),
+                'title' => $parser->title,
+                'date' => $parser->date,
+            ];
             if( $parser->authors && !$source['authors'] ) {
-                $source['authors'] = $parser->authors;
-                printBoth( "adding authors " . $source['authors'], $funcName );
-                $laana->addSource( $source['sourcename'], $source );
+                $params['authors'] = $parser->authors;
             }
             if( $parser->date && !$source['date'] ) {
-                $source['date'] = $parser->date;
-                printBoth( "adding date " . $source['date'], $funcName );
-                $laana->addSource( $source['sourcename'], $source );
+                $params['date'] = $parser->date;
+            }
+            $doUpdate = false;
+            foreach( array_keys( $params ) as $key ) {
+                if( $source[$key] !== $params[$key] ) {
+                    $doUpdate = true;
+                    break;
+                }
+            }
+            if( $doUpdate ) {
+                printBoth( "About to call updatesourceByID: " .
+                           var_export( $source, true ), $funcName );
+                $laana->updateSourceByID( $source );
             }
             saveDocument( $parser, $sourceID, $options );
         } else {
-            printBoth( "No parser for $groupname", $funcName );
+            if( !$parser ) {
+                printBoth( "No parser for $groupname", $funcName );
+            } else {
+                printBoth( "No change to source record", $funcName );
+            }
         }
     } else {
         printBoth( "No registered source for $sourceID", $funcName );
