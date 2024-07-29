@@ -12,6 +12,11 @@ $force = isset( $args['force'] ) ? true : false;
 $debug = isset( $args['debug'] ) ? true : false;
 $sourceid = isset( $args['sourceid'] ) ? $args['sourceid'] : 0;
 $parserkey = isset( $args['parser'] ) ? $args['parser'] : '';
+
+// For running in the debugger without command line arguments
+$parserkey = ($parserkey) ? $parserkey : "kauakukalahale";
+$sourceid = ($sourceid) ? $sourceid : 24308;
+
 $options = [
     'force' => $force,
     'debug' => $debug,
@@ -19,6 +24,7 @@ $options = [
 ];
 
 $parser = $parsermap[$parserkey];
+
 if( !$parser && !$sourceid ) {
     $values = join( ",", array_keys( $parsermap ) );
     echo "Specify a parser: $values or a sourceid\n";
