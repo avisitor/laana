@@ -448,7 +448,8 @@ class Laana extends DB {
     }
     
     public function getSource( $sourceid ) {
-        $sql = "select * from " . SOURCES . " o where sourceid = :sourceid";
+        //$sql = "select * from " . SOURCES . " o where sourceid = :sourceid";
+        $sql = "select sources.*,count(*) count from sources,sentences where sources.sourceid = sentences.sourceid and sources.sourceid = :sourceid";
         $values = [
             'sourceid' => $sourceid,
         ];
