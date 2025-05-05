@@ -104,16 +104,17 @@ class HtmlParse {
 
     // This fetches the entire text of a document and does character set cleanup
     public function getContents( $url, $options=[] ) {
-        debugPrint( "HtmlParse::getContents( $url )" );
+        $funcName = "HtmlParse::getContents";
+        debugPrintObject( $options, "$funcName( $url, )" );
         // Get entire document, which could span multiple pages
         $text = $this->getRawText( $url, $options );
         $nchars = strlen( $text );
-        debugPrint( "HtmlParse::getContents() got $nchars characters from getRawText" );
+        debugPrint( "$funcName got $nchars characters from getRawText" );
         // Take care of any character cleanup
         $text = $this->preprocessHTML( $text );
         $text = $this->cleanup( $text );
         //debugPrint( "HtmlParse::getContents() $text" );
-        debugPrint( "HtmlParse::getContents() finished" );
+        debugPrint( "$funcName finished" );
         return $text;
     }
     
@@ -671,10 +672,19 @@ class CBHtml extends HtmlParse {
         $this->urlBase = "https://www.civilbeat.org";
         $this->baseurl = "https://www.civilbeat.org/projects/ka-ulana-pilina/";
     }
+    private $basename = "Ka Ulana Pilina";
     private $sourceName = 'Ka Ulana Pilina';
     public $groupname = "kaulanapilina";
     protected $logName = "CBHtml";
 
+    public function initialize( $baseurl ) {
+        parent::initialize( $baseurl );
+        $this->dom = $this->getDOM( $this->url );
+        $this->extractDate( $this->dom );
+        $this->title = $this->basename . ' ' . $this->date;
+        debuglog( "CBHtml::initialize: url = " . $this->url . ", date = " . $this->date );
+    }
+    
     public function getSourceName( $title = '', $url = '' ) {
         debugPrint( "CBHtml::getSourceName($title,$url)" );
         $name = $this->sourceName;
@@ -733,31 +743,33 @@ class CBHtml extends HtmlParse {
         //$html = $dom->saveHTML();
         //echo( "CBHtml::getPageList dom HTMLS: " . "$html\n" );
         $xpath = new DOMXpath($dom);
-        $query = '//div[contains(@class, "archive")]/p/a';
-        $paragraphs = $xpath->query( $query );
         $pages = [];
+        foreach( ['//h2[contains(@class, "headline")]/a',
+                  '//div[contains(@class, "archive")]/p/a'] as $query ) {
+            $paragraphs = $xpath->query( $query );
 
-        foreach( $paragraphs as $p ) {
-            $pp = $p->parentNode->parentNode;
-            //$outerHTML = $pp->ownerDocument->saveHTML($pp);
-            $url = $p->getAttribute( 'href' );
-            debugPrint( "CBHtml::getPageList checking: $url" );
-            $pagedom = $this->getDom( $url );
-            $date = $this->extractDate( $pagedom );
-            $sourcename = $this->sourceName . ": " . $date;
-            $text = trim( $this->prepareRaw( $p->nodeValue ) );
-            $pages[] = [
-                $sourcename => [
-                    'url' => $url,
-                    'image' => '',
-                    'title' => $text,
-                    'groupname' => $this->groupname,
-                    'author' => $this->authors,
-                    //'html' => $outerHTML,
-                ]
-            ];  
+            foreach( $paragraphs as $p ) {
+                $pp = $p->parentNode->parentNode;
+                //$outerHTML = $pp->ownerDocument->saveHTML($pp);
+                $url = $p->getAttribute( 'href' );
+                debugPrint( "CBHtml::getPageList checking: $url" );
+                $pagedom = $this->getDom( $url );
+                $date = $this->extractDate( $pagedom );
+                $sourcename = $this->sourceName . ": " . $date;
+                $text = trim( $this->prepareRaw( $p->nodeValue ) );
+                $pages[] = [
+                    $sourcename => [
+                        'url' => $url,
+                        'image' => '',
+                        'title' => $text,
+                        'groupname' => $this->groupname,
+                        'author' => $this->authors,
+                        //'html' => $outerHTML,
+                    ]
+                ];  
+            }
         }
-
+        
         return $pages;
     }
 }
@@ -1135,6 +1147,7 @@ class NupepaHTML extends HtmlParse {
     
     public function initialize( $baseurl ) {
         parent::initialize( $baseurl );
+        debugPrint( "$this->logName::initialize($baseurl)" );
         $this->dom = $this->getDOM( $baseurl );
         $this->extractTitle( $this->dom );
         $this->extractDate( $this->dom );
@@ -1143,13 +1156,17 @@ class NupepaHTML extends HtmlParse {
         //echo "$contents\n";
         //exit;
         // Get the list of pages of this document
-        $pattern = '/\bpageTitles\s*=\s*\{(.*?)\};/s';
+        $pattern = '/\bpageTitles:\s*\{(.*?)\};/s';
+        $pattern = '/pageTitles.*?\{(.*?)\}/s';
         if (preg_match($pattern, $contents, $matches)) {
             $pagetitles = "{" . $matches[1] . "}";
             $pagetitles = preg_replace( "/\n/", "", $pagetitles );
-            $pagetitles = str_replace( '"', "&quot;", $pagetitles );
+            //$pagetitles = str_replace( '"', "&quot;", $pagetitles );
             $pagetitles = str_replace( "'", '"', $pagetitles );
+            debugPrint( "$this->logName::initialize json_decoding pattern " . $pagetitles );
             $this->pagetitles = json_decode( $pagetitles, true );
+        } else {
+            debugPrint( "$this->logName::initialize no pattern $pattern" );
         }
         printObject( $this->pagetitles, "$this->logName pageTitles" );
     }
@@ -1240,9 +1257,19 @@ class NupepaHTML extends HtmlParse {
         $fulltext = "";
         $hasHead = false;
         $count = 0;
+        debugPrintObject( $this->pagetitles, "$this->logName::getRawText pagetitles" );
+        // Some page lists distinguish between cover material and contents
+        $hasCover = false;
         foreach( $this->pagetitles as $key => $title ) {
-            // Skip cover page, back page, bibliography, etc
-            if( preg_match( "/Page \d+\s*.*(\<|\&lt)/", $title ) ) {
+            if( preg_match( "/Page /", $title ) ) {
+                $hasCover = true;
+                break;
+            }
+        }
+        foreach( $this->pagetitles as $key => $title ) {
+            debugPrint( "$this->logName::getRawText( $key " . " => " . $title );
+            if( !$hasCover || preg_match( "/Page \d+\s*.*(\<|\&lt)/", $title ) ) {
+            //if( preg_match( "/\&lt/", $title ) ) {
                 $url = "$pageurl.$key&st=1&dliv=none";
                 echo "$url\n";
 
