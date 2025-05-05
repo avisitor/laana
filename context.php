@@ -8,6 +8,15 @@
         body {
         padding: 1em;
         }
+     #logo-section-IE-only {
+         display: none;
+     }
+     #logo-section img {
+         width: 300px;
+     }
+     h1 {
+         font-size: 1.5em;
+     }
     </style>
     <body>
 
