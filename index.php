@@ -44,15 +44,12 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
          </div>
        </a>
 
-<?php
-     if( $word ) {
-?>
+<?php if( $word ) {  ?>
        <a class="slide" href="#">Help</a>
        <div id="fade-help" class="box"></div>
-<?php
-      }
-?>
-     
+<?php } ?>
+
+
 <?php if( !($doSources || $doResources) ) { ?>
        
        <center>
@@ -121,16 +118,17 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 		</div>
        </center>
 
-<?php } ?>
+<?php } // !($doSources || $doResources) ?>
 
 <?php
      $laana = new Laana();
      $groups = $laana->getLatestSourceDates();
-     $groupcounts = $laana->getSourceGroupCounts();
+     //$groupcounts = $laana->getSourceGroupCounts();
      $groupdates = [];
      foreach( $groups as $group ) {
          $groupdates[$group['groupname']] = $group['date'];
      }
+
      if( $doSources ) {
 ?>
     
@@ -138,16 +136,12 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
     Type into the Search box to narrow the sources shown. Click on the item under Name to go to the source location, to the item under HTML for the version stored in Noiiolelo and under Plain for a text-only version. Hover on the item under HTML or Plain to see the document inline. Dismiss the inline window clicking anywhere outside of it. You can scroll the inline window and also search in it with Ctrl-F/Cmd-F. 
 </div>
 
-<?php
-     }
-?>
+<?php } ?>
 
  <div class="sentences" id="sentences">
      
-     <?php
-     if( !$word ) {
-         if( $doSources ) {
-     ?>
+<?php if( !$word ) { ?>
+    <?php if( $doSources ) { ?>
 
          <script>
 	     $(document).ready(function () {
@@ -215,48 +209,49 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
          </thead><tbody>
 
 <?php
-$rows = $laana->getSources();
-//var_export( $rows );
-foreach( $rows as $row ) {
-    $source = $row['sourcename'];
-    $short = substr( $source, 0, 20 );
-    $sourceid = $row['sourceid'];
-    $plainlink = "<a class='context fancy' sourceid='$sourceid' simplified='1' href='rawpage?simplified&id=$sourceid' target='_blank'>Plain</a>";
-    $htmllink = "<a class='context fancy' sourceid='$sourceid' simplified='0' href='rawpage?id=$sourceid' target='_blank'>HTML</a>";
-    $authors = $row['authors'];
-    $link = $row['link'];
-    $date = $row['date'];
-    $group = $row['groupname'] . " ($sourceid)";
-    $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
-    $count = $row['count'];
+             $rows = $laana->getSources();
+             //var_export( $rows );
+             foreach( $rows as $row ) {
+                 $source = $row['sourcename'];
+                 $short = substr( $source, 0, 20 );
+                 $sourceid = $row['sourceid'];
+                 $plainlink = "<a class='context fancy' sourceid='$sourceid' simplified='1' href='rawpage?simplified&id=$sourceid' target='_blank'>Plain</a>";
+                 $htmllink = "<a class='context fancy' sourceid='$sourceid' simplified='0' href='rawpage?id=$sourceid' target='_blank'>HTML</a>";
+                 $authors = $row['authors'];
+                 $link = $row['link'];
+                 $date = $row['date'];
+                 $group = $row['groupname'] . " ($sourceid)";
+                 $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
+                 $count = $row['count'];
 ?>
 
-    <tr>
-        <td class="hawaiiansentence"><?=$group?></td>
-        <td class="hawaiiansentence"><?=$sourcelink?></td>
-        <td class="hawaiiansentence"><?=$date?></td>
-        <td class="hawaiiansentence"><?=$htmllink?></td>
-        <td class="hawaiiansentence"><?=$plainlink?></td>
-        <td class='authors'><?=$authors?></td>
-        <td class="hawaiiansentence" style="text-align:right;"><?=$count?></td>
-    </tr>
+        <tr>
+            <td class="hawaiiansentence"><?=$group?></td>
+            <td class="hawaiiansentence"><?=$sourcelink?></td>
+            <td class="hawaiiansentence"><?=$date?></td>
+            <td class="hawaiiansentence"><?=$htmllink?></td>
+            <td class="hawaiiansentence"><?=$plainlink?></td>
+            <td class='authors'><?=$authors?></td>
+            <td class="hawaiiansentence" style="text-align:right;"><?=$count?></td>
+        </tr>
+
+    <?php } // if doSources ?>
+
+      </tbody></table>
 
 <?php
-}
-?>
-
-         </tbody></table>
-
-<?php
-} else if( $doResources ) {
-    include 'resources.html';
-} else {
-    $laana = new Laana();
-    $sentenceCount = $sourceCount = 0;
-    $sentenceCount = number_format($laana->getSentenceCount());
-    $sourceCount = number_format($laana->getSourceCount());
-    include 'overview.html';
-}
+    } else if( $doResources ) {
+        include 'resources.html';
+    } else {
+        // No word, not sources, not resources
+        $laana = new Laana();
+        $sentenceCount = $sourceCount = 0;
+        $sentenceCount = number_format($laana->getSentenceCount());
+        $sourceCount = number_format($laana->getSourceCount());
+        $totalGroupSourceCounts = $laana->getTotalSourceGroupCounts();
+        $nupepaTotalCount = number_format($totalGroupSourceCounts['nupepa']);
+        include 'overview.html';
+    }
 } else {
     /* Word passed */
     $options = [];
@@ -267,7 +262,7 @@ foreach( $rows as $row ) {
         $options['orderby'] = $order;
     }
 ?>
-<div><span id="matchcount"></span></div><br />
+    <div><span id="matchcount"></span></div><br />
 
     <script>
      function recordSearch( search, searchpattern, count, order, elapsedTime ) {
@@ -286,7 +281,7 @@ foreach( $rows as $row ) {
      }
      function reportCount( count ) {
          let div = document.getElementById('matchcount');
-         div.innerHTML = count + ' matching sentences';
+         div.innerHTML = count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ' matching sentences';
      }
      $(document).ready(function() {
          let term = '<?=urldecode( $word )?>';
@@ -390,7 +385,7 @@ foreach( $rows as $row ) {
 		<span></span>
 	</div>
     
-<?php } ?>
- </div>
+<?php } // word ?>
+    </div>
     </body>
 </html>
