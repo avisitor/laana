@@ -8,21 +8,16 @@ function formatLogMessage( $msg, $intro = "" ) {
     $defaultTimezone = 'Pacific/Honolulu';
     $now = new DateTimeImmutable( "now", new DateTimeZone( $defaultTimezone ) );
     $now = $now->format( 'Y-m-d H:i:s' );
+    $out = "$now " . $_SERVER['SCRIPT_NAME'];
     if( $intro ) {
-        $intro .= ": ";
+        $out .= " $intro:";
     }
-    return "$now " . $_SERVER['SCRIPT_NAME'] . " $intro : $msg";
+    return "$out $msg";
 }
 
 function printObject( $obj, $intro = '' ) {
     $msg = formatLogMessage( $obj, $intro );
     echo "$msg \n";
-    return;
-    
-    if( $intro ) {
-        $intro .= ": ";
-    }
-    echo( $intro . var_export( $obj, true ) . "\n" );
 }
 
 function debuglog( $msg, $intro = "" ) {
@@ -412,11 +407,12 @@ class Laana extends DB {
     }
     
     public function getSources( $groupname = '' ) {
+        $criteria = "having count > 0 ";
         if( !$groupname ) {
             $sql = "select o.*,count(sentenceID) count from " . SOURCES . " o," . SENTENCES . " s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
             $rows = $this->getDBRows( $sql );
         } else {
-            $sql = "select o.*,count(sentenceID) count from " . SOURCES . " o left join " . SENTENCES . " s on o.sourceID = s.sourceID and groupname = :groupname  group by o.sourceID order by sourceName";
+            $sql = "select * from (select o.*,count(sentenceID) count from " . SOURCES . " o  left join " . SENTENCES . " s on o.sourceID = s.sourceID  group by o.sourceID order by date,sourceName) h where groupname = :groupname";
             $values = [
                 'groupname' => $groupname,
             ];
@@ -426,13 +422,23 @@ class Laana extends DB {
     }
     
     public function getSourceCount() {
-        $sql = "select count(*) c from " . SOURCES;
+        $sql = "select count(distinct sourceid) c from " . SENTENCES;
         $row = $this->getOneDBRow( $sql );
         return $row['c'];
     }
     
     public function getSourceGroupCounts() {
-        $sql = "select groupname,count(*) c from " . SOURCES . " where sentenceCount > 0 group by groupname";
+        $sql = "SELECT g.groupname, COUNT(DISTINCT s.sourceid) AS c FROM " . SOURCES . " g LEFT JOIN sentences s ON g.sourceid = s.sourceid GROUP BY g.groupname";
+        $rows = $this->getDBRows( $sql );
+        $results = [];
+        foreach( $rows as $row ) {
+            $results[$row['groupname']] = $row['c'];
+        }
+        return $results;
+    }
+    
+    public function getTotalSourceGroupCounts() {
+        $sql = "SELECT groupname, COUNT(DISTINCT sourceid) AS c FROM " . SOURCES . " GROUP BY groupname";
         $rows = $this->getDBRows( $sql );
         $results = [];
         foreach( $rows as $row ) {
@@ -525,7 +531,7 @@ class Laana extends DB {
         $date = $params['date'] ?: '';
         $title = $params['title'] ?: '';
         $authors = $params['authors'] ?: '';
-        $name = $params['sourcename'];
+        $name = $params['sourcename'] ?: '';
         $values = [
             'name' => $name,
             'link' => $link,
@@ -538,7 +544,7 @@ class Laana extends DB {
         }
         if( $this->executePrepared( $sql, $values ) ) {
             $row = $this->getSourceByLink( $link );
-            return $row['sourceid'];
+            return $row;
         } else {
             return null;
         }
@@ -582,7 +588,7 @@ class Laana extends DB {
         }
         if( !isset( $params['sourceid'] ) ) {
             $row = $this->getSourceByName( $name );
-            if( isset( row['sourceid'] ) ) {
+            if( isset( $row['sourceid'] ) ) {
                 $params['sourceid'] = $row['sourceid'];
             }
         }
@@ -663,7 +669,7 @@ class Laana extends DB {
             $count += $status;
         }
         $this->updateSimplified( $sourceID );
-        $this->updateSentenceCount( $sourceID );
+        //$this->updateSentenceCount( $sourceID );
         return $count;
     }
     public function addContentRow( $sourceID ) {
