@@ -168,7 +168,8 @@ function getPage( $params ) {
             } else {
                 $sentence = preg_replace($pat, $repl, $hawaiiantext );
             }
-            $translate = "https://translate.google.com/?sl=auto&tl=en&op=translate&text=$hawaiiantext";
+            $haw = urlencode( $hawaiiantext );
+            $translate = "https://translate.google.com/?sl=auto&tl=en&op=translate&text=$haw";
             $output .= <<<EOF
                   
             <div class="hawaiiansentence">
