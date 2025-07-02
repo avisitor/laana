@@ -406,16 +406,28 @@ class Laana extends DB {
         return $row;
     }
     
-    public function getSources( $groupname = '' ) {
+    public function getSources( $groupname = '', $properties = [] ) {
         $criteria = "having count > 0 ";
+        if( sizeof($properties) < 1 ) {
+            $properties = ["*"];
+        }
         if( !$groupname ) {
-            $sql = "select o.*,count(sentenceID) count from " . SOURCES . " o," . SENTENCES . " s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
+            for( $i = 0; $i < sizeof( $properties ); $i++ ) {
+                $properties[$i] = "o." . $properties[$i];
+            }
+        }
+        //var_export( $properties );
+        $selection = implode( ",", $properties );
+        if( !$groupname ) {
+            $sql = "select $selection,count(sentenceID) sentencecount from " . SOURCES . " o," . SENTENCES . " s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
+            //echo $sql;
             $rows = $this->getDBRows( $sql );
         } else {
-            $sql = "select * from (select o.*,count(sentenceID) count from " . SOURCES . " o  left join " . SENTENCES . " s on o.sourceID = s.sourceID  group by o.sourceID order by date,sourceName) h where groupname = :groupname";
+            $sql = "select $selection from (select o.*,count(sentenceID) sentencecount from " . SOURCES . " o  left join " . SENTENCES . " s on o.sourceID = s.sourceID  group by o.sourceID order by date,sourceName) h where groupname = :groupname";
             $values = [
                 'groupname' => $groupname,
             ];
+            //echo $sql;
             $rows = $this->getDBRows( $sql, $values );
         }
         return $rows;
@@ -449,7 +461,7 @@ class Laana extends DB {
     
     public function getSource( $sourceid ) {
         //$sql = "select * from " . SOURCES . " o where sourceid = :sourceid";
-        $sql = "select sources.*,count(*) count from sources,sentences where sources.sourceid = sentences.sourceid and sources.sourceid = :sourceid";
+        $sql = "select sources.*,count(*) sentencecount from sources,sentences where sources.sourceid = sentences.sourceid and sources.sourceid = :sourceid";
         $values = [
             'sourceid' => $sourceid,
         ];

@@ -222,7 +222,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                  $date = $row['date'];
                  $group = $row['groupname'] . " ($sourceid)";
                  $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
-                 $count = $row['count'];
+                 $count = $row['sentencecount'];
 ?>
 
         <tr>
