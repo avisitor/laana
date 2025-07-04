@@ -407,7 +407,8 @@ class Laana extends DB {
         //var_export( $properties );
         $selection = implode( ",", $properties );
         if( !$groupname ) {
-            $sql = "select $selection,count(sentenceID) sentencecount from " . SOURCES . " o," . SENTENCES . " s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
+            //$sql = "select $selection,count(sentenceID) sentencecount from " . SOURCES . " o," . SENTENCES . " s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
+            $sql = "select $selection,count(sentenceID) sentencecount from " . SOURCES . " o left join " . SENTENCES . " s on o.sourceID = s.sourceID group by o.sourceID order by sourceName";
             //echo $sql;
             $rows = $this->getDBRows( $sql );
         } else {
