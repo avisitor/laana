@@ -3,6 +3,7 @@ include 'db/funcs.php';
 
 $sourceID = $_GET['id'] ?: '';
 $type = isset($_GET['simplified']) ? 'text' : 'html';
+$text = '';
 
 if( $sourceID ) {
     $sql = "select $type from " . CONTENTS . " where sourceid = :sourceid";
@@ -11,14 +12,17 @@ if( $sourceID ) {
     ];
     $db = new DB();
     $row = $db->getOneDBRow( $sql, $values );
-    $text = '';
-    if( $row[$type] ) {
+    if( isset($row[$type]) ) {
         if( $type == 'text' ) {
             $text = str_replace( "\n", "<br />\n", $row[$type] );
         } else {
             $text = $row[$type] . "\n";
         }
     }
+}
+if( !$text ) {
+    $text = "<p>No content found</p>";
+}
 ?>
 
 <!DOCTYPE html>
@@ -52,11 +56,6 @@ if( $sourceID ) {
     <body>
       <div class="rawtext">
       <?=$text?>
-
-<?php
-}
-?>
-
       </div>
     </body>
 </html>
