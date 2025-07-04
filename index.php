@@ -196,6 +196,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
               // Hide the hover box on mouseout
               var hoverBox = document.getElementById('hoverBox');
               hoverBox.style.display = 'none';
+              hoverBox.src = '';
           }
           document.getElementById('sentences').onclick = hideHoverBox;
           document.getElementsByTagName('body').item(0).onclick = hideHoverBox;
