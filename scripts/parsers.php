@@ -1,10 +1,10 @@
 <?php
 $parsermap = [
     'kaulanapilina' => new CBHtml(),
-    'ulukau' => new UlukauHtml(),
+    'ulukau' => new UlukauHTML(),
     'keaolama' => new AoLamaHTML(),
     'kauakukalahale' => new KauakukalahaleHTML(),
-    'nupepa' => new NupepaHtml(),
+    'nupepa' => new NupepaHTML(),
     'kapaamoolelo' => new KaPaaMooleloHTML(),
     'baibala' => new BaibalaHTML(),
     'ehooululahui' => new EhoouluLahuiHTML(),
