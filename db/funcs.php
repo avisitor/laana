@@ -1,5 +1,5 @@
 <?php
-require_once( 'config.php' );
+require_once( __DIR__ . '/../config.php' );
 
 function formatLogMessage( $msg, $intro = "" ) {
     if( is_object( $msg ) || is_array( $msg ) ) {
@@ -24,18 +24,6 @@ function debuglog( $msg, $intro = "" ) {
     $msg = formatLogMessage( $msg, $intro );
     error_log( "$msg \n", 3, "/tmp/php_errorlog" );
     return;
-    
-    if( is_object( $msg ) || is_array( $msg ) ) {
-        $msg = var_export( $msg, true );
-    }
-    $defaultTimezone = 'Pacific/Honolulu';
-    $now = new DateTimeImmutable( "now", new DateTimeZone( $defaultTimezone ) );
-    $now = $now->format( 'Y-m-d H:i:s' );
-    if( $intro ) {
-        $intro .= ": ";
-    }
-    error_log( $intro . "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n", 3, "/tmp/php_errorlog" );
-    //error_log( "$now " . $_SERVER['SCRIPT_NAME'] . ': ' . $msg . "\n" );
 }
 
 function logRequest() {
