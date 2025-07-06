@@ -1,6 +1,6 @@
 <?php
-include_once '../db/parsehtml.php';
-include_once 'parsers.php';
+include_once __DIR__ . '/../db/parsehtml.php';
+include_once __DIR__ . '/../scripts/parsers.php';
 
 function getParser( $key ) {
     global $parsermap;
