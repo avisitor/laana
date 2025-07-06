@@ -190,7 +190,6 @@ class DB {
         foreach( $answers as $key=>$value ) {
             $keys .= $key . ",";
             $values .= ":" . $key . ",";
-            $sql .= "," . $key;
             array_push( $updates, $key . "=:" . $key );
         }
         $keys = trim( $keys, " ," ) . ")";
