@@ -30,7 +30,9 @@ $groupname = $meta['groupname'];
 $parser = isset($parsermap[$groupname]) ? $parsermap[$groupname] : new HtmlParse();
 printf("groupname: %s\n", $groupname);
 printf("parser class: %s\n", get_class($parser));
-$url = "https://noiiolelo.org/api.php/source/$sourceid/html";
+$sentences = $parser->extractSentencesFromDatabase($sourceid, ['preprocess' => true]);
+
+/*
 $text = file_get_contents($url);
 //echo "Fetched HTML content from: $url\n$text\n";
 $obj = json_decode($text, true);
@@ -43,7 +45,10 @@ if (empty($text)) {
     fwrite(STDERR, "No HTML content found for sourceid $sourceid\n");
     exit(4);
 }
-$sentences = $parser->extractSentencesFromHTML($text);
+$sentences = $parser->extractSentencesFrom($text, ['preprocess' => true]);
+*/
+
+
 foreach ($sentences as $i => $line) {
     printf("[%d] %s\n", $i+1, $line);
 }
