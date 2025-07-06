@@ -16,8 +16,25 @@
           "name": "Debug test_processText.php",
         "type": "php",
         "request": "launch",
-        "program": "${workspaceFolder}/db/test_processText.php",
-        "args": ["7674"],
+        "program": "${workspaceFolder}/scripts/test_processText.php",
+        "args": ["15337"],
+        "cwd": "${workspaceFolder}",
+        "port": 9003,
+        "runtimeExecutable": "/opt/local/bin/php82",
+            "runtimeArgs": [
+                "-dxdebug.start_with_request=yes"
+            ],
+            "env": {
+                "XDEBUG_MODE": "debug,develop",
+                "XDEBUG_CONFIG": "client_port=${port}"
+            }
+        },
+       {
+          "name": "Debug test.php",
+        "type": "php",
+        "request": "launch",
+        "program": "${workspaceFolder}/scripts/test.php",
+        "args": [],
         "cwd": "${workspaceFolder}",
         "port": 9003,
         "runtimeExecutable": "/opt/local/bin/php82",
