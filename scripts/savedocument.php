@@ -20,7 +20,7 @@ $maxsourceid = isset( $args['maxsource'] ) ? $args['maxsource'] : PHP_INT_MAX;
 $parserkey = isset( $args['parser'] ) ? $args['parser'] : '';
 
 // For running in the debugger without command line arguments
-$parserkey = ($parserkey) ? $parserkey : "kauakukalahale";
+$parserkey = ($parserkey) ? $parserkey : "";
 #$sourceid = ($sourceid) ? $sourceid : 24308;
 
 $options = [
@@ -32,6 +32,12 @@ $options = [
     'maxsourceid' => $maxsourceid,
 ];
 
+if( !$parserkey && $sourceid ) {
+    $url = "https://noiiolelo.org/api.php/source/$sourceid";
+    $text = file_get_contents( $url );
+    $source = (array)json_decode( $text );
+    $parserkey = $source['groupname'];
+}
 $parser = $parsermap[$parserkey];
 
 if( !$parser && !$sourceid ) {
