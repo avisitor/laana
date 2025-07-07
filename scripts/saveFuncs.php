@@ -141,6 +141,7 @@ function saveDocument( $parser, $sourceID, $options ) {
     $didWork = 0;
     if( !$present || $force ) {
         $parser->initialize( $link );
+        //printBoth( $parser, "parser after initialize $link" );
         $sourceName = $parser->getSourceName( '', $link );
         $text = saveRaw( $parser, $source );
         $didWork = 1;
@@ -179,6 +180,7 @@ function updateSource( $parser, $source, $options ) {
     $doUpdate = false;
     foreach( array_keys( $params ) as $key ) {
         if( $source[$key] !== $params[$key] && $params[$key] ) {
+            printBoth( "$key is to change from {$source[$key]} to {$params[$key]}", $funcName );
             $source[$key] = $params[$key];
             $doUpdate = true;
         }
@@ -206,6 +208,7 @@ function updateDocument( $sourceID, $options ) {
         if( $parser ) {
             printBoth( "($sourceID,$groupname)", $funcName );
             $parser->initialize( $source['link'] );
+            //printBoth( $parser, "parser after initialize" );
             $updatedSource = updateSource( $parser, $source, $options );
             if( $updatedSource ) {
                 printBoth( "Updated source record", $funcName );
@@ -305,6 +308,7 @@ function getAllDocuments( $options ) {
         $title = $source['title'];
         $authors = isset( $source['authors'] ) ? $source['authors'] : '';
         $parser->initialize( $link );
+        //printBoth( $parser, "parser after initialize $link" );
 
         if( !$sourceID ) {
             $params = [
@@ -344,6 +348,7 @@ function getAllDocuments( $options ) {
             echo( "Current source: " . var_export( $source, true ) );
             
             $docs += saveDocument( $parser, $sourceID, $options );
+            echo "Updated sourceID $sourceID\n";
         }
 
         $i++;
