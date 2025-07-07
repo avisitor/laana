@@ -1,5 +1,5 @@
 <?php
-require_once( __DIR__ . '/../config.php' );
+require_once( __DIR__ . '/config.php' );
 
 function formatLogMessage( $msg, $intro = "" ) {
     if( is_object( $msg ) || is_array( $msg ) ) {
@@ -449,7 +449,7 @@ class Laana extends DB {
     
     public function getSource( $sourceid ) {
         //$sql = "select * from " . SOURCES . " o where sourceid = :sourceid";
-        $sql = "select sources.*,count(*) sentencecount from sources,sentences where sources.sourceid = sentences.sourceid and sources.sourceid = :sourceid";
+        $sql = "select sources.*,count(*) sentencecount from " . SOURCES . " left join " . SENTENCES . " on " . SOURCES . ".sourceid = " . SENTENCES . ".sourceid where " . SOURCES . ".sourceid = :sourceid";
         $values = [
             'sourceid' => $sourceid,
         ];
