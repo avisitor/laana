@@ -8,9 +8,51 @@ function show( $var ) {
 $dir = dirname(__DIR__, 1);
 require_once $dir . '/db/funcs.php';
 include_once $dir . '/db/parsehtml.php';
+include_once $dir . '/scripts/parsers.php';
 
 setDebug( true );
 $laana = new Laana();
+
+
+function getSentences( $source ) {
+    global $parsermap;
+    echo "getSentences()\n";
+    $groupname = $source['groupname'];
+    $url = $source['link'];
+    $parser = isset($parsermap[$groupname]) ? $parsermap[$groupname] : new HtmlParse();
+    $parser->initialize( $url );
+    show( $parser );
+    printf("groupname: %s\n", $groupname);
+    printf("parser class: %s\n", get_class($parser));
+    printf("url: %s\n", $url);
+    //return;
+    $sentences = $parser->extractSentences( $url );
+    show( $sentences );
+}
+
+$sourceid = 14350;
+if( $argc > 1 ) {
+    $sourceid = $argv[1];
+}
+echo "sourceid: $sourceid\n";
+$url = "https://noiiolelo.org/api.php/source/$sourceid";
+$text = file_get_contents( $url );
+$source = (array)json_decode( $text );
+show( $source );
+getSentences( $source );
+return;
+
+
+
+
+$rows = $laana->getSourceGroupCounts();
+show( $rows );
+return;
+
+$groupname = 'nupepa';
+$sources = $laana->getSources( $groupname );
+show( $sources );
+return;
 
 function multipleSourceIDs() {
     $sql = "select link from sources group by link having count(*) > 1";
