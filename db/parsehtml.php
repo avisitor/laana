@@ -75,6 +75,8 @@ class HtmlParse {
         "All rights reserved",
         "The developer is preparing the property",
         "demolition process",
+        "Stay in touch with ",
+        "It's FREE!",
         // Add more as needed
     ];
     protected $skipMatches = [
@@ -663,7 +665,7 @@ class HtmlParse {
                 // Normalize all whitespace to a single space
                 $line = preg_replace('/\s+/u', ' ', $line);
                 // Remove whitespace around apostrophes representing glottal marks
-                $line = preg_replace('/\s+(\')\s+/u', '$1', $line);
+                $line = preg_replace('/\s+([\'‘])\s+/u', '$1', $line);
                 $line = substr($line, 0, self::MAX_SENTENCE_LENGTH);
                 // Remove all linefeeds and carriage returns
                 //$line = preg_replace('/[\n\r]+/', ' ', $line); 
@@ -989,6 +991,7 @@ class KauakukalahaleHTML extends HtmlParse {
     public function __construct( $options = [] ) {
         $this->urlBase = $this->urlbase;
         $this->baseurl = $this->urlbase;
+        $this->semanticSplit = true; // Use semantic splitting
     }
     public function initialize( $baseurl ) {
         parent::initialize( $baseurl );
