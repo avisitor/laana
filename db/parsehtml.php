@@ -19,7 +19,7 @@ function debugPrintObject( $obj, $intro ) {
     }
 }
 class HtmlParse {
-    protected $logName = "HtmlParse";
+    public $logName = "HtmlParse";
     protected $funcName = "";
     protected $Amarker = '&#256;';
     protected $placeholder = '[[DOT]]';
@@ -802,11 +802,11 @@ class CBHtml extends HtmlParse {
         ];
         $this->urlBase = "https://www.civilbeat.org";
         $this->baseurl = "https://www.civilbeat.org/projects/ka-ulana-pilina/";
+        $this->logName = "CBHtml";
     }
     private $basename = "Ka Ulana Pilina";
     private $sourceName = 'Ka Ulana Pilina';
     public $groupname = "kaulanapilina";
-    protected $logName = "CBHtml";
     public function initialize( $baseurl ) {
         parent::initialize( $baseurl );
         $this->dom = $this->getDOM( $this->url );
@@ -900,11 +900,11 @@ class AoLamaHTML extends HtmlParse {
     private $basename = "Ke Aolama";
     public $groupname = "keaolama";
     private $urlbase = 'https://keaolama.org/';
-    protected $logName = "AoLamaHtml";
     public function __construct( $options = [] ) {
         $this->urlBase = $this->urlbase;
         $this->startMarker = "penei ka nūhou";
         $this->baseurl = "https://keaolama.org/?infinity=scrolling&page=";
+        $this->logName = "AoLamaHTML";
     }
     public function initialize( $baseurl ) {
         parent::initialize( $baseurl );
@@ -987,11 +987,11 @@ class KauakukalahaleHTML extends HtmlParse {
     private $basename = "Kauakukalahale";
     public $groupname = "kauakukalahale";
     private $urlbase = 'https://www.kauakukalahale.com/';
-    protected $logName = "KauakukalahaleHTML";
     public function __construct( $options = [] ) {
         $this->urlBase = $this->urlbase;
         $this->baseurl = $this->urlbase;
         $this->semanticSplit = true; // Use semantic splitting
+        $this->logName = "KauakukalahaleHTML";
     }
     public function initialize( $baseurl ) {
         parent::initialize( $baseurl );
@@ -1058,7 +1058,6 @@ class NupepaHTML extends HtmlParse {
     public $groupname = "nupepa";
     private $domain = "https://nupepa.org/";
     private $sourceName = 'Nupepa';
-    protected $logName = "NupepaHTML";
     private $skipTitles = [
         "Ka Wai Ola - Office of Hawaiian Affairs",
     ];  // Almost no Hawaiian text
@@ -1068,6 +1067,7 @@ class NupepaHTML extends HtmlParse {
         $this->urlBase = trim( $this->domain, "/" );
         $this->baseurl = "https://nupepa.org/?a=cl&cl=CL2";
         $this->semanticSplit = true; // Use semantic splitting
+        $this->logName = "NupepaHTML";
     }
     public function initialize( $baseurl ) {
         parent::initialize( $baseurl );
@@ -1351,7 +1351,9 @@ class NupepaHTML extends HtmlParse {
 }
 
 class UlukauHTML extends HtmlParse {
-    protected $logName = "UlukauHTML";
+    public function __construct( $options = [] ) {
+        $this->logName = "UlukauHTML";
+    }
     public function getSourceName( $title = '', $url = '' ) {
         debugPrint( "UlukauHTML::getSourceName($title,$url)" );
         $name = "Ulukau";
@@ -1425,7 +1427,9 @@ class UlukauHTML extends HtmlParse {
 }
 
 class KaPaaMooleloHTML extends HtmlParse {
-    protected $logName = "KaPaaMooleloHTML";
+    public function __construct( $options = [] ) {
+        $this->logName = "KaPaaMooleloHTML";
+    }
     public function getSourceName( $title = '', $url = '' ) {
         debugPrint( "KaPaaMooleloHTML::getSourceName($title,$url)" );
         $name = "Ka Paa Moolelo";
@@ -1507,7 +1511,9 @@ class KaPaaMooleloHTML extends HtmlParse {
 }
 
 class BaibalaHTML extends HtmlParse {
-    protected $logName = "BaibalaHTML";
+    public function __construct( $options = [] ) {
+        $this->logName = "BaibalaHTML";
+    }
     public function getSourceName( $title = '', $url = '' ) {
         debugPrint( "BaibalaHTML::getSourceName($title,$url)" );
         $name = "Baibala";
@@ -1591,9 +1597,9 @@ class BaibalaHTML extends HtmlParse {
 class EhoouluLahuiHTML extends HtmlParse {
     private $basename = "Ehooulu Lahui";
     public $groupname = "ehooululahui";
-    protected $logName = "EhoouluLahuiHTML";
     private $urlbase = 'https://ehooululahui.maui.hawaii.edu/';
     public function __construct( $options = [] ) {
+        $this->logName = "EhoouluLahuiHTML";
         $this->urlBase = $this->urlbase;
         $this->startMarker = "penei ka nūhou";
         $this->baseurl = "https://ehooululahui.maui.hawaii.edu/?page_id=354";
@@ -1798,7 +1804,9 @@ class EhoouluLahuiHTML extends HtmlParse {
     }
 }
 class TextParse extends HtmlParse {
-    protected $logName = "TextParse";
+    public function __construct( $options = [] ) {
+        $this->logName = "TextParse";
+    }
     public function getSentences( $text ) {
         return $this->splitSentences( $text );
     }
