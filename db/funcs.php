@@ -375,6 +375,15 @@ class Laana extends DB {
         return 0;
     }
     
+    public function getSentenceCountBySourceID( $sourceid ) {
+        $sql = "select count(hawaiianText) cnt from " . SENTENCES . " where sourceID = :sourceid";
+        $values = [
+            'sourceid' => $sourceid,
+        ];
+        $row = $this->getOneDBRow( $sql, $values );
+        return $row['cnt'];
+    }
+    
     public function getSentencesBySourceID( $sourceid ) {
         $sql = "select sentenceID, hawaiianText from " . SENTENCES . " where sourceID = :sourceid";
         $values = [
@@ -481,13 +490,21 @@ class Laana extends DB {
         return $rows;
     }
 
-    function hasRaw( $sourceid ) {
-        $sql = "select * from " . SOURCES . " s," . CONTENTS . " c where s.sourceid=c.sourceid and s.sourceid = :sourceid and not (isnull(html) or length(html) < 1 or isnull(text) or length(text) < 1)";
+    function hasSomething( $sourceid, $what ) {
+        $sql = "select count(*) cnt from " . SOURCES . " s," . CONTENTS . " c where s.sourceid=c.sourceid and s.sourceid = :sourceid and not (isnull($what) or length($what) < 1)";
         $values = [
             'sourceid' => $sourceid,
         ];
         $row = $this->getOneDBRow( $sql, $values );
-        return (sizeof($row) > 0) ? true : false;
+        return ($row['cnt'] > 0);
+    }
+    
+    function hasRaw( $sourceid ) {
+        return $this->hasSomething( $sourceid, "html" );
+    }
+    
+    function hasText( $sourceid ) {
+        return $this->hasSomething( $sourceid, "text" );
     }
     
     public function getSentenceCount() {
