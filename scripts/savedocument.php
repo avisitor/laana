@@ -6,47 +6,46 @@ $longopts = [
     "debug",
     "local",
     'sourceid:',
-    'minsource:',
-    'maxsource:',
+    'minsourceid:',
+    'maxsourceid:',
     'parser:',
+    'resplit',
 ];
 $args = getopt( "", $longopts );
-$force = isset( $args['force'] ) ? true : false;
-$debug = isset( $args['debug'] ) ? true : false;
-$local = isset( $args['local'] ) ? true : false;
-$sourceid = isset( $args['sourceid'] ) ? $args['sourceid'] : 0;
-$minsourceid = isset( $args['minsource'] ) ? $args['minsource'] : 0;
-$maxsourceid = isset( $args['maxsource'] ) ? $args['maxsource'] : PHP_INT_MAX;
-$parserkey = isset( $args['parser'] ) ? $args['parser'] : '';
-
-// For running in the debugger without command line arguments
-$parserkey = ($parserkey) ? $parserkey : "";
+$parserkey = $args['parser'] ?? '';
 #$sourceid = ($sourceid) ? $sourceid : 24308;
 
 $options = [
-    'force' => $force,
-    'debug' => $debug,
-    'local' => $local,
-    'sourceid' => $sourceid,
-    'minsourceid' => $minsourceid,
-    'maxsourceid' => $maxsourceid,
+    'force' => isset( $args['force'] ) ? true : false,
+    'debug' => isset( $args['debug'] ) ? true : false,
+    'local' => isset( $args['local'] ) ? true : false,
+    'resplit' => isset( $args['resplit'] ) ? true : false,
+    'sourceid' => $args['sourceid'] ?? 0,
+    'minsourceid' => $args['minsourceid'] ?? 0,
+    'maxsourceid' => $args['maxsourceid'] ?? PHP_INT_MAX,
 ];
 
-if( !$parserkey && $sourceid ) {
-    $url = "https://noiiolelo.org/api.php/source/$sourceid";
+// If a parser is not specified, look it up if a sourceid was provided
+if( !$parserkey && $options['sourceid'] ) {
+    $url = "https://noiiolelo.org/api.php/source/{$options['sourceid']}";
     $text = file_get_contents( $url );
-    $source = (array)json_decode( $text );
-    $parserkey = $source['groupname'];
+    if( $text ) {
+        $source = (array)json_decode( $text );
+        $parserkey = $source['groupname'];
+    }
 }
-$parser = $parsermap[$parserkey];
 
-if( !$parser && !$sourceid ) {
+if( !$parserkey && !$options['minsourceid'] ) {
     $values = join( ",", array_keys( $parsermap ) );
     echo "Specify a parser: $values or a sourceid\n";
-    echo "savedocument [--debug] [--force] --parser=parsername ($values)\n" .
-         "savedocument [--debug] [--force] --sourceid=sourceid\n";
+    echo "savedocument [--debug] [--force] [--local] [--resplit] [--minsourceid=minsourceid] [--maxsourceid=maxsourceid] --parser=parsername ($values)\n" .
+         "savedocument [--debug] [--force] [--local] [--resplit] --sourceid=sourceid\n" .
+         "savedocument [--debug] [--force] [--local] [--resplit] --minsourceid=minsourceid --maxsourceid=maxsourceid [--parser=parsername] ($values)\n";
+    echo "Received options: " . json_encode( $options ) . "\n";
 } else {
-    $options['parserkey'] = $parserkey;
+    if( $parserkey ) {
+        $options['parserkey'] = $parserkey;
+    }
     getAllDocuments( $options );
     //getFailedDocuments( $parser );
 }

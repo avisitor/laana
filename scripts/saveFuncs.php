@@ -43,38 +43,9 @@ function saveRaw( $parser, $source ) {
     return $text;
 }
 
-function checkRaw( $url ) {
-    global $parserkey;
-    $funcName = "checkRaw";
-    $laana = new Laana();
-    $source = $laana->getSourceByLink( $url );
-    // printObject( $source, $funcname );
-    $sourceID = isset( $source['sourceid'] ) ? $source['sourceid'] : '';
-    if( $sourceID === '' ) {
-        printBoth( "No source registered for $url", $funcName );
-        return false;
-    } else {
-        $present = $laana->hasRaw( $sourceID );
-        $sourceName = $source['sourceName'];
-        if( $present >= 0 ) {
-            printBoth( "$sourceName already has HTML", $funcName );
-            return true;
-        } else {
-            printBoth( "$sourceName does not have HTML yet", $funcName );
-            return false;
-        }
-    }
-}
-
-function hasSentences( $sourceID ) {
-    $laana = new Laana();
-    $sentences = $laana->getSentencesBySourceID( $sourceID );
-    return ($sentences && sizeof( $sentences ) > 0 );
-}
-
 function addSentences( $parser, $sourceID, $link, $text ) {
     $funcName = "addSentences";
-    printBoth( "($parser->groupname,$link," . strlen($text) . " characters)", $funcName );
+    printBoth( "({$parser->logName},$link," . strlen($text) . " characters)", $funcName );
     if( $text ) {
         //echo "$text\n";
         $sentences = $parser->extractSentencesFromHTML( $text );
@@ -110,11 +81,13 @@ function getFailedDocuments( $parser ) {
     }
 }
 
-function saveDocument( $parser, $sourceID, $options ) {
-    $funcName = "saveDocument";
-    printBoth( "(" . $parser->groupname . ",$sourceID)", $funcName );
-    $force = isset( $options['force'] ) ? $options['force'] : false;
-    $debug = isset( $options['debug'] ) ? $options['debug'] : false;
+function saveContents( $parser, $sourceID, $options ) {
+    $funcName = "saveContents";
+    printBoth( "({$parser->logName},$sourceID)", $funcName );
+    //printBoth( $parser, "$funcName parser" );
+    $force = $options['force'];
+    $resplit = $options['resplit'];
+    $debug = $options['debug'];
     setDebug( $debug );
 
     if( $sourceID <= 0 ) {
@@ -128,44 +101,43 @@ function saveDocument( $parser, $sourceID, $options ) {
     
     $link = $source['link'];
     $sourceName = $source['sourcename'];
-    $hasSentences = hasSentences( $sourceID );
+    $sentenceCount = $laana->getSentenceCountBySourceID( $sourceID );
     $text = "";
     $present = $laana->hasRaw( $sourceID );
-    $msg = ($hasSentences) ? "Sentences present for $sourceID" : "No sentences for $sourceID";
-    $msg .= ", hasRaw: ";
-    $msg .= ($present) ? "yes" : "no";
-    $msg .=  ", force: ";
-    $msg .=  ($force) ? "yes" : "no";
+    $hasText = $laana->hasText( $sourceID );
+    $msg = ($sentenceCount) ? "$sentenceCount Sentences present for $sourceID" : "No sentences for $sourceID";
+    $msg .= ", hasRaw: " . (($present) ? "yes" : "no");
+    $msg .= ", hasText: " . (($hasText) ? "yes" : "no");
+    $msg .=  ", resplit: " .  (($resplit) ? "yes" : "no");
+    $msg .=  ", force: " .  (($force) ? "yes" : "no");
     printBoth( $msg, $funcName );
 
     $didWork = 0;
+    $text = "";
     if( !$present || $force ) {
         $parser->initialize( $link );
         //printBoth( $parser, "parser after initialize $link" );
-        $sourceName = $parser->getSourceName( '', $link );
         $text = saveRaw( $parser, $source );
-        $didWork = 1;
-        if( $text ) {
-            addSentences( $parser, $sourceID, $link, $text );
-        }
     } else {
         if( $present ) {
             printBoth( "$sourceName already has raw text", $funcName );
-            if( !$hasSentences ) {
+            if( !$sentenceCount || $resplit ) {
                 $text = $laana->getRawText( $sourceID );
-                addSentences( $parser, $sourceID, $link, $text );
-                $didWork = 1;
             }
         }
     }
-    return $didWork;
+    if( $text ) {
+        $didWork = 1;
+        addSentences( $parser, $sourceID, $link, $text );
+    }
+   return $didWork;
 }
 
 function updateSource( $parser, $source, $options ) {
     $funcName = "updateSource";
     $force = isset( $options['force'] ) ? $options['force'] : false;
     $params = [
-        'sourcename' => $parser->getSourceName( '', $source['link'] ),
+        //'sourcename' => $parser->getSourceName( '', $source['link'] ),
         'title' => $parser->title,
         'date' => $parser->date,
     ];
@@ -229,54 +201,70 @@ function getAllDocuments( $options ) {
     global $maxrows;
     $funcName = "getAllDocuments";
 
-    $parserkey = isset( $options['parserkey'] ) ? $options['parserkey'] : false;
-    if( !$parserkey ) {
-        printBoth( "Missing required parserkey", $funcName );
-        return 0;
-    }
-    $parser = getParser( $parserkey );
-    if( !$parserkey ) {
-        printBoth( "Invalid parserkey", $funcName );
-        return 0;
-    }
     printBoth( $options, "$funcName options" );
-    $force = isset( $options['force'] ) ? $options['force'] : false;
-    $debug = isset( $options['debug'] ) ? $options['debug'] : false;
-    $local = isset( $options['local'] ) ? $options['local'] : false;
-    $singleSourceID = isset( $options['sourceid'] ) ? $options['sourceid'] : 0;
+    $force = $options['force'] ?? false;
+    $debug = $options['debug'] ?? false;
+    $local = $options['local'] ?? false;
+    $parserkey = $options['parserkey'] ?? '';
+    $singleSourceID = $options['sourceid'] ?? 0;
     setDebug( $debug );
     $laana = new Laana();
 
+    // First get metadata for the document(s)
+    
+    $pages = [];
+    $items = [];
     if( $singleSourceID ) {
-        $pages = [];
+        // One document already known
         $items = [$laana->getSource( $singleSourceID )];
-    } else if( $local ) {
+    } else if( $parserkey && $local ) {
+        // Only process already known documents for a particular parser
         $items = $laana->getSources( $parserkey );
-    }
-    if( $singleSourceID || $local ) {
-        $pages = [];
-        for( $i = 0; $i < sizeof( $items ); $i++ ) {
-            if( $items[$i]['sourceid'] >= $options['minsourceid'] &&
-                $items[$i]['sourceid'] <= $options['maxsourceid'] ) {
-            
-                $items[$i]['url'] = $items[$i]['link'];
-                $items[$i]['author'] = $items[$i]['authors'];
-                //echo( var_export( $items[$i], true ) . "\n" );
-                $sourcename = $items[$i]['sourcename'];
-                //echo "$sourcename\n";
-                $page = [$sourcename => $items[$i]];
-                array_push( $pages, $page );
-            }
-        }
-    } else {
+    } else if( $parserkey ) {
+        // Get all documents in the wild for the parser
         $pages = $parser->getPageList();
+    } else if( $local || ($options['minsourceid'] > 0 && $options['maxsourceid'] < PHP_INT_MAX) ) {
+        // Only process already known documents for all parsers
+        $items = $laana->getSources();
     }
 
+    // If getting all documents in the wild for a parser, that is already
+    // done at this point
+    if( sizeof( $pages ) < 1 ) {
+        foreach( $items as $item ) {
+            $parser = getParser( $item['groupname'] );
+            if( !$parser ) {
+                printBoth( $item['sourceid'], "$funcName no source for");
+            } else if( $item['sourceid'] >= $options['minsourceid'] &&
+                       $item['sourceid'] <= $options['maxsourceid'] ) {
+                $item['url'] = $item['link'];
+                $item['author'] = $item['authors'];
+                //echo( var_export( $items[$i], true ) . "\n" );
+                $sourcename = $item['sourcename'];
+                //echo "$sourcename\n";
+                $page = [$sourcename => $item];
+                array_push( $pages, $page );
+                printBoth( $page, "$funcName adding page to process" );
+            }
+        }
+    }
+
+    // Sort by sourceid
+    usort($pages, function($a, $b) {
+        $keys = array_keys( $a );
+        $sourcea = $a[$keys[0]];
+        $keys = array_keys( $b );
+        $sourceb = $b[$keys[0]];
+        
+        return $sourcea['sourceid'] <=> $sourceb['sourceid'];
+    });
     echo sizeof($pages) . " pages found\n";
     if( $debug ) {
         printObject( $pages, $funcName );
     }
 
+    // Now get the content for each document and parse and store it
+    
     $docs = 0;
     $updates = 0;
     $i = 0;
@@ -296,21 +284,30 @@ function getAllDocuments( $options ) {
                 $source['sourceid'] = $src['sourceid'];
             }
         }
-        $sourceID = isset( $source['sourceid'] ) ? $source['sourceid'] : '';
+        $sourceID = $source['sourceid'] ?? '';
 
         if( $sourceID && 
             ($sourceID < $options['minsourceid'] ||
-            $sourceID > $options['maxsourceid']) ) {
+             $sourceID > $options['maxsourceid']) ) {
+            printBoth( "Skipping sourceid $sourceID", $funcName );
             continue;
         }
         
-        echo "page: " . var_export( $source, true ) . "\n";
+        printBoth( $source,  "$funcName page" );
         $title = $source['title'];
-        $authors = isset( $source['authors'] ) ? $source['authors'] : '';
-        $parser->initialize( $link );
+        $authors = $source['authors'] ?? '';
+        $parser = getParser( $source['groupname'] );
+        if( !$parser ) {
+            printBoth( $source['groupname'], "$funcName no parser for $sourceID groupname" );
+            return;
+        }
+        if( !$local ) {
+            $parser->initialize( $link );
+        }
         //printBoth( $parser, "parser after initialize $link" );
 
         if( !$sourceID ) {
+            // New source
             $params = [
                 'link' => $link,
                 'groupname' => $parser->groupname,
@@ -329,26 +326,23 @@ function getAllDocuments( $options ) {
                 printBoth( "Failed to add source", $funcName );
             }
         } else {
+            // Known source
             if( $sourceID >= $options['minsourceid'] &&
                 $sourceID <= $options['maxsourceid'] ) {
-                $updatedSource = updateSource( $parser, $source, $options );
-                if( $updatedSource ) {
-                    $updates++;
-                    printBoth( "Updated source record", $funcName );
-                } else {
-                    printBoth( "No change to source record", $funcName );
-                }
+                if( !$local ) {
+                    $updatedSource = updateSource( $parser, $source, $options );
+                    if( $updatedSource ) {
+                        $updates++;
+                        printBoth( "Updated source record", $funcName );
+                    } else {
+                        printBoth( "No change to source record", $funcName );
+                    }
+                    printBoth( $updatedSource, "Current source" );
+                }                
+                
+                $docs += saveContents( $parser, $sourceID, $options );
+                printBoth( $sourceID, "Updated contents for sourceID" );
             }
-        }
-
-        if( $sourceID >= $options['minsourceid'] &&
-            $sourceID <= $options['maxsourceid'] ) {
-
-            $source = $laana->getSourceByLink( $link );
-            echo( "Current source: " . var_export( $source, true ) );
-            
-            $docs += saveDocument( $parser, $sourceID, $options );
-            echo "Updated sourceID $sourceID\n";
         }
 
         $i++;
