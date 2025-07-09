@@ -22,7 +22,7 @@ function saveRaw( $parser, $source ) {
     $sourceName = $source['sourcename'];
     $sourceID = $source['sourceid'];
     $url = $source['link'];
-    printBoth( "Title: $title; SourceName: $sourceName; Link: $url", $funcName );
+    printBoth( "SourceID: $sourceID, Title: $title; SourceName: $sourceName; Link: $url", $funcName );
     //printObject( $parser, $funcName );
     if( !$url ) {
         printObject( "No url", $funcName );
@@ -141,6 +141,10 @@ function updateSource( $parser, $source, $options ) {
         'title' => $parser->title,
         'date' => $parser->date,
     ];
+    $params = [
+        'title' => $parser->title,
+        'date' => $parser->date,
+    ];
     if( $parser->authors && !$source['authors'] ) {
         $params['authors'] = $parser->authors;
     }
@@ -158,6 +162,8 @@ function updateSource( $parser, $source, $options ) {
         }
     }
     unset( $source['sentencecount'] );
+    unset( $source['url'] );
+    unset( $source['author'] );
 
     if( $doUpdate || $force ) {
         // Only update the source record on force and if the values have changed in the field
