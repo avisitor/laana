@@ -60,11 +60,12 @@ class DB {
         try {
             try {
                 $this->conn =
-                    new PDO("mysql:host=$servername;dbname=$myDB;charset=utf8", $username, $password);
+                    new PDO("mysql:host=$servername;dbname=$myDB;charset=utf8mb4", $username, $password);
             } catch(PDOException $e) {
                 $this->conn =
-                    new PDO("mysql:unix_socket=$socket;dbname=$myDB;charset=utf8", $username, $password);
+                    new PDO("mysql:unix_socket=$socket;dbname=$myDB;charset=utf8mb4", $username, $password);
             }
+            $this->conn->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
             // set the PDO error mode to exception
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch(PDOException $e) {
@@ -569,25 +570,37 @@ class Laana extends DB {
     }
 
     public function updateSourceByID( $params ) {
-        unset( $params['start'] );
-        unset( $params['end'] );
-        unset( $params['created'] );
-        unset( $params['count'] );
-        if( !isset( $params['date'] ) ) {
-            $params['date'] = '';
+        $values = $params;
+        $attrs = [
+            "link", "groupname", "sourcename", "author", "title", "date", "sourceid"
+        ];
+        debuglog( $values, "Laana::updateSourceByID params before cleaning" );
+        foreach( $values as $key => $value ) {
+            if( !in_array( $key, $attrs ) ) {
+                unset( $values[$key] );
+            }
         }
-        if( !isset( $params['authors'] ) ) {
-            $params['authors'] = '';
+        foreach( $attrs as $key ) {
+            if( !isset( $values[$key] ) ) {
+                $values[$key] = '';
+            }
         }
+        if( !$values['date'] ) {
+            $values['date'] = '1970';
+        }
+        if( strlen( $values['date'] ) == 4 ) {
+            $values['date'] .= '-01-01';
+        }
+        debuglog( $values, "Laana::updateSourceByID params after cleaning" );
         $sql = "update " . SOURCES . " set link = :link, " .
                "groupname = :groupname, " .
                "sourcename = :sourcename, " .
-               "authors = :authors, " .
+               "authors = :author, " .
                "title = :title, " .
                "date = :date " .
                "where sourceID = :sourceid";
-        if( $this->executePrepared( $sql, $params ) ) {
-            $row = $this->getSourceByName( $params['sourcename'] );
+        if( $this->executePrepared( $sql, $values ) ) {
+            $row = $this->getSourceByName( $values['sourcename'] );
             return $row;
         } else {
             return null;
@@ -696,16 +709,27 @@ class Laana extends DB {
             'sourceID' => $sourceID,
         ];
         $result = $this->executePrepared( $sql, $values );
-        debuglog( "Laana::addContentRows($sourceID) returned $result" );
+        debuglog( "Laana::addContentRow($sourceID) returned $result" );
         return $result;
     }
     public function addFullText( $sourceID, $sentences ) {
         $this->addContentRow( $sourceID );
         $sql = "update " . CONTENTS . " set text=:text where sourceid=:sourceID";
+        // Have to do the line by line mapping to avoid character set issues
+        $text = implode("\n", array_map(
+            fn($s) => preg_replace('/[\x00-\x1F\x7F]/u', '', mb_convert_encoding(trim($s), 'UTF-8', 'auto')),
+            $sentences
+        ));
+
+        file_put_contents("/tmp/debug_output-$sourceID.txt", $text);
         $values = [
             'sourceID' => $sourceID,
-            'text' => implode( "\n", $sentences),
+            'text' => $text,
         ];
+        
+        $stmt = $this->conn->query("SHOW VARIABLES LIKE 'character_set_client'");
+        debuglog("SHOW VARIABLES: " . $stmt->fetchColumn(1) );
+        
         $result = ($this->executePrepared( $sql, $values )) ? sizeof( $sentences ) : 0;
         debuglog( "Laana::addFullText($sourceID) $sql returned $result" );
         return $result;
