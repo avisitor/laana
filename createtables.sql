@@ -9,7 +9,7 @@ CREATE TABLE `sentences` (
   KEY `sourceID` (`sourceID`),
   PRIMARY KEY (sourceID, hawaiianText(100)),
   UNIQUE KEY `sentenceID` (`sentenceID`)
-) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE `sources` (
   `sourceID` int(11) NOT NULL AUTO_INCREMENT,
@@ -26,7 +26,7 @@ CREATE TABLE `sources` (
   PRIMARY KEY (`sourceID`),
   UNIQUE KEY `sourceID` (`sourceID`),
   UNIQUE KEY `link` (`link`)
-) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_c;
 
 CREATE TABLE `searchstats` (
   `searchterm` varchar(255) NOT NULL,
@@ -35,19 +35,13 @@ CREATE TABLE `searchstats` (
   `pattern` varchar(10) DEFAULT NULL,
   `results` int(11) DEFAULT NULL,
   `elapsed` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-
-CREATE TABLE `searchstats` (
-  `searchterm` varchar(255) NOT NULL,
-  `count` int(11) NOT NULL,
-  UNIQUE KEY `searchterm` (`searchterm`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_c;
 
 CREATE TABLE `stats` (
   `name` varchar(255) NOT NULL,
   `value` int(11) NOT NULL,
   UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_c;
 
 CREATE TABLE `contents` (
   `sourceID` int(11) NOT NULL,
@@ -56,7 +50,7 @@ CREATE TABLE `contents` (
   created DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`sourceID`),
   UNIQUE KEY `sourceID` (`sourceID`)
-) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_c;
 
 DELIMITER //
 CREATE TRIGGER insert_sentences AFTER INSERT ON sentences
