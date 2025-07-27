@@ -33,7 +33,7 @@ function saveRaw( $parser, $source ) {
     $laana = new Laana();
     //$parser->initialize( $url );
     $text = $parser->getContents( $url, [] );
-    printBoth( "Read " . strlen($text) . " characters", $funcName );
+    printBoth( "Read " . strlen($text) . " characters from $url", $funcName );
     //echo "$text\n";
     
     $laana->removeContents( $sourceID );
@@ -61,6 +61,7 @@ function addSentences( $parser, $sourceID, $link, $text ) {
 
     $count = $laana->addFullText( $sourceID, $sentences);
     printBoth( "$count sentences added to full text table", $funcName );
+    printBoth( "Returning from addSentences", $funcName );
 }
 
 // A few documents we failed to extract sentences from
@@ -106,6 +107,7 @@ function saveContents( $parser, $sourceID, $options ) {
     $present = $laana->hasRaw( $sourceID );
     $hasText = $laana->hasText( $sourceID );
     $msg = ($sentenceCount) ? "$sentenceCount Sentences present for $sourceID" : "No sentences for $sourceID";
+    $msg .= ", link: $link";
     $msg .= ", hasRaw: " . (($present) ? "yes" : "no");
     $msg .= ", hasText: " . (($hasText) ? "yes" : "no");
     $msg .=  ", resplit: " .  (($resplit) ? "yes" : "no");
@@ -137,33 +139,26 @@ function updateSource( $parser, $source, $options ) {
     $funcName = "updateSource";
     $force = isset( $options['force'] ) ? $options['force'] : false;
     $params = [
-        //'sourcename' => $parser->getSourceName( '', $source['link'] ),
         'title' => $parser->title,
         'date' => $parser->date,
     ];
-    $params = [
-        'title' => $parser->title,
-        'date' => $parser->date,
-    ];
-    if( $parser->authors && !$source['authors'] ) {
-        $params['authors'] = $parser->authors;
+    if( $parser->authors && !$source['author'] ) {
+        $params['author'] = $parser->authors;
     }
-    if( $parser->date && ($parser->date != $source['date']) ) {
+    $date = $source['date'] ?? '';
+    if( $parser->date && ($parser->date != $date ) ) {
         $params['date'] = $parser->date;
     }
     printBoth( "Parameters found by parser: " . var_export( $params, true ),
                $funcName );
     $doUpdate = false;
     foreach( array_keys( $params ) as $key ) {
-        if( $source[$key] !== $params[$key] && $params[$key] ) {
+        if( !isset($source[$key]) || ($source[$key] !== $params[$key] && $params[$key]) ) {
             printBoth( "$key is to change from {$source[$key]} to {$params[$key]}", $funcName );
             $source[$key] = $params[$key];
             $doUpdate = true;
         }
     }
-    unset( $source['sentencecount'] );
-    unset( $source['url'] );
-    unset( $source['author'] );
 
     if( $doUpdate || $force ) {
         // Only update the source record on force and if the values have changed in the field
@@ -205,6 +200,7 @@ $maxrows = 10000;
 //$maxrows = 10;
 function getAllDocuments( $options ) {
     global $maxrows;
+    global $parsermap;
     $funcName = "getAllDocuments";
 
     printBoth( $options, "$funcName options" );
@@ -215,6 +211,9 @@ function getAllDocuments( $options ) {
     $singleSourceID = $options['sourceid'] ?? 0;
     setDebug( $debug );
     $laana = new Laana();
+    if( $parserkey ) {
+        $parser = $parsermap[$parserkey];
+    }
 
     // First get metadata for the document(s)
     
@@ -229,6 +228,7 @@ function getAllDocuments( $options ) {
     } else if( $parserkey ) {
         // Get all documents in the wild for the parser
         $pages = $parser->getPageList();
+        //echo( var_export( $pages, true ) . "\n" );
     } else if( $local || ($options['minsourceid'] > 0 && $options['maxsourceid'] < PHP_INT_MAX) ) {
         // Only process already known documents for all parsers
         $items = $laana->getSources();
@@ -244,11 +244,14 @@ function getAllDocuments( $options ) {
             } else if( $item['sourceid'] >= $options['minsourceid'] &&
                        $item['sourceid'] <= $options['maxsourceid'] ) {
                 $item['url'] = $item['link'];
-                $item['author'] = $item['authors'];
+                if( !isset($item['author']) || !$item['author'] ) {
+                    $item['author'] = $item['authors'];
+                }
                 //echo( var_export( $items[$i], true ) . "\n" );
                 $sourcename = $item['sourcename'];
                 //echo "$sourcename\n";
-                $page = [$sourcename => $item];
+                //$page = [$sourcename => $item];
+                $page = $item;
                 array_push( $pages, $page );
                 printBoth( $page, "$funcName adding page to process" );
             }
@@ -256,14 +259,17 @@ function getAllDocuments( $options ) {
     }
 
     // Sort by sourceid
-    usort($pages, function($a, $b) {
+    if( sizeof( $pages ) > 0 && isset($pages[0]['sourceid'] ) ) {
+        usort($pages, function($sourcea, $sourceb) {
+            /*
         $keys = array_keys( $a );
         $sourcea = $a[$keys[0]];
         $keys = array_keys( $b );
         $sourceb = $b[$keys[0]];
-        
+        */
         return $sourcea['sourceid'] <=> $sourceb['sourceid'];
     });
+    }
     echo sizeof($pages) . " pages found\n";
     if( $debug ) {
         printObject( $pages, $funcName );
@@ -274,11 +280,13 @@ function getAllDocuments( $options ) {
     $docs = 0;
     $updates = 0;
     $i = 0;
-    foreach( $pages as $page ) {
-        $keys = array_keys( $page );
+    foreach( $pages as $source ) {
+        //$keys = array_keys( $page );
         //echo "page keys: " . var_export( $keys, true ) . "\n";
-        $sourceName = $keys[0];
-        $source = $page[$sourceName];
+        //$sourceName = $keys[0];
+        //$source = $page[$sourceName];
+        printObject( $source, "source" );
+        $sourceName = $source['sourcename'];
         $link = $source['url'];
         if( !$link ) {
             printBoth( "Skipping item with no URL: $sourceName", $funcName );
@@ -301,7 +309,7 @@ function getAllDocuments( $options ) {
         
         printBoth( $source,  "$funcName page" );
         $title = $source['title'];
-        $authors = $source['authors'] ?? '';
+        $author = $source['author'] ?? '';
         $parser = getParser( $source['groupname'] );
         if( !$parser ) {
             printBoth( $source['groupname'], "$funcName no parser for $sourceID groupname" );
@@ -319,7 +327,7 @@ function getAllDocuments( $options ) {
                 'groupname' => $parser->groupname,
                 'date' => $parser->date,
                 'title' => $title,
-                'authors' => $authors,
+                'authors' => $author,
                 'sourcename' => $sourceName,
             ];
             printBoth( "Adding source $sourceName: " . var_export( $params, true ), $funcName );
@@ -327,6 +335,7 @@ function getAllDocuments( $options ) {
             $sourceID = isset( $row['sourceid'] ) ? $row['sourceid'] : '';
             if( $sourceID ) {
                 printBoth( "Added sourceID $sourceID", $funcName );
+                $docs += saveContents( $parser, $sourceID, $options );
                 $updates++;
             } else {
                 printBoth( "Failed to add source", $funcName );
@@ -348,6 +357,8 @@ function getAllDocuments( $options ) {
                 
                 $docs += saveContents( $parser, $sourceID, $options );
                 printBoth( $sourceID, "Updated contents for sourceID" );
+            } else {
+                printBoth( $sourceID, "Out of range" );
             }
         }
 
