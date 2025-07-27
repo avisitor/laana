@@ -5,6 +5,7 @@ $normalizedWord = normalizeString( $word );
 $pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "any";
 $from = isset($_GET['from']) ? $_GET['from'] : "";
 $to = isset($_GET['to']) ? $_GET['to'] : "";
+$groupname = isset($_GET['group']) ? $_GET['group'] : "";
 if( $word ) {
     if( $pattern == 'regex' ) {
         $word = urlencode( $word );
@@ -210,7 +211,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
          </thead><tbody>
 
 <?php
-             $rows = $laana->getSources();
+             $rows = $laana->getSources( $groupname );
              //var_export( $rows );
              foreach( $rows as $row ) {
                  $source = $row['sourcename'];
