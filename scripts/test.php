@@ -11,8 +11,53 @@ include_once $dir . '/db/parsehtml.php';
 include_once $dir . '/scripts/parsers.php';
 
 setDebug( true );
+//setDebug( false );
 $laana = new Laana();
 
+$parser = new NupepaHTML();
+$url = "https://nupepa.org/?a=d&d=KNK18630606-01.1.3&e=-------en-20--1--txt-txIN%7CtxNU%7CtxTR%7CtxTI---------0";
+$url = "https://nupepa.org/?a=d&d=KNK18630606-01.1.1&e=-------en-20--1--txt-txIN%7CtxNU%7CtxTR%7CtxTI---------0";
+$parser->initialize( $url );
+$text = $parser->getRawText( $url );
+echo "$text\n";
+return;
+
+$parser = new UlukauLocal();
+$url = (isset( $argv[1] ) ) ? $argv[1] : '';
+if( $url ) {
+    echo "$url\n";
+    //url = $dir . "/ulukau/EBOOK-AIAIHEA.html";
+    $sentences = $parser->extractSentences( $url );
+    show( $sentences );
+}
+return;
+
+foreach( $pageList as $sourcename => $values ) {
+    echo "$sourcename\n";
+    $sentences = $parser->extractSentences( $values['url'] );
+    show( $sentences );
+}
+return;
+
+$pageList = $parser->getPageList();
+show( $pageList );
+return;
+
+$parser = new TextParse();
+$filename = "/webapps/worldspot.com/worldspot/render-proxy/output/EBOOK-HOAKAKAOLELO.txt";
+$sentences = $parser->extractSentences( $filename );
+show( $sentences );
+return;
+
+$url = 'https://puke.ulukau.org/ulukau-books/?a=d&d=EBOOK-APLC04&e=-------en-20--1--txt-txPT-----------';
+$parser = new UlukauHTML();
+//$parser->initialize( $url );
+$contents = $parser->getRawText( $url );
+echo "$contents\n";
+$options = [];
+//$sentences = $parser->extractSentencesFromHTML( $contents, $options );
+//show( $sentences );
+return;
 
 function getSentences( $source ) {
     global $parsermap;
