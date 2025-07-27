@@ -1,5 +1,5 @@
 <?php
-include 'saveFuncs.php';
+include_once __DIR__ . '/../scripts/saveFuncs.php';
 
 $longopts = [
     "force",
@@ -30,8 +30,12 @@ if( !$parserkey && $options['sourceid'] ) {
     $url = "https://noiiolelo.org/api.php/source/{$options['sourceid']}";
     $text = file_get_contents( $url );
     if( $text ) {
-        $source = (array)json_decode( $text );
-        $parserkey = $source['groupname'];
+        $source = (array)json_decode( $text, true );
+        if( $source['groupname'] == null ) {
+            echo "Sourceid {$options['sourceid']} not found\n";
+        } else {
+            $parserkey = $source['groupname'];
+        }
     }
 }
 
