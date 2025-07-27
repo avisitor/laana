@@ -1,7 +1,9 @@
 <?php
 $parsermap = [
     'kaulanapilina' => new CBHtml(),
-    'ulukau' => new UlukauHTML(),
+    //'ulukau' => new UlukauHTML(),
+    'ulukau' => new UlukauLocal(),
+    'ulukaulocal' => new UlukauLocal(),
     'keaolama' => new AoLamaHTML(),
     'kauakukalahale' => new KauakukalahaleHTML(),
     'nupepa' => new NupepaHTML(),
@@ -13,6 +15,7 @@ $urlmap = [
     'kaulanapilina' => 'https://www.civilbeat.org/2022/05/%CA%BBo-na-mea-a-ka-limu-e-ho%CA%BBike-aku-ai-e-pili-ana-i-ko-kakou-%CA%BBaina-ma-hawai%CA%BBi/',
     //'ulukau' => "https://puke.ulukau.org/ulukau-books/?a=d&d=EBOOK-HK2&e=-------en-20--1--txt-txPT-----------",
     'ulukau' => "https://puke.ulukau.org/ulukau-books/?a=d&d=EBOOK-MAKANA&e=-------en-20--1--txt-txPT-----------",
+    'ulukaulocal' => "/webapps/worldspot.com/worldspot/render-proxy/output/EBOOK-APLC01.txt",
     'keaolama' => "https://keaolama.org/2022/05/03/05-02-22/",
     'kauakukalahale' => 'https://www.staradvertiser.com/2023/10/21/editorial/kauakukalahale/column-e-hoaei-paha-i-ke-one-o-luhi/',
     'nupepa' => "https://nupepa.org/?a=d&d=KLH18340214-01",
