@@ -727,8 +727,8 @@ class Laana extends DB {
             'text' => $text,
         ];
         
-        $stmt = $this->conn->query("SHOW VARIABLES LIKE 'character_set_client'");
-        debuglog("SHOW VARIABLES: " . $stmt->fetchColumn(1) );
+        //$stmt = $this->conn->query("SHOW VARIABLES LIKE 'character_set_client'");
+        //debuglog("SHOW VARIABLES: " . $stmt->fetchColumn(1) );
         
         $result = ($this->executePrepared( $sql, $values )) ? sizeof( $sentences ) : 0;
         debuglog( "Laana::addFullText($sourceID) $sql returned $result" );
