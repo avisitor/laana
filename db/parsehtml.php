@@ -940,9 +940,11 @@ class UlukauLocal extends HTMLParse {
         $this->semanticSplit = true; // Use semantic splitting
         $this->options = $options;
         $this->endMarkers[] = "No part of";
-        $fqdn = trim(shell_exec('hostname -f'));
-        if( strpos( $fqdn, 'noiiolelo' ) === false ) {
-            $fqdn .= "/noiiolelo";
+        $dir = dirname(__DIR__, 1);
+        if( strpos( $dir, "worldspot.com" ) !== false ) {
+            $fqdn = "noiiolelo.org";
+        } else {
+            $fqdn = trim(shell_exec('hostname -f')) . "/noiiolelo";
         }
         $this->urlBase = "https://" . $fqdn . "/ulukau";
         $this->groupname = "ulukau";
