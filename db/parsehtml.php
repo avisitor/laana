@@ -941,6 +941,9 @@ class UlukauLocal extends HTMLParse {
         $this->options = $options;
         $this->endMarkers[] = "No part of";
         $fqdn = trim(shell_exec('hostname -f'));
+        if( strpos( $fqdn, 'noiiolelo' ) === false ) {
+            $fqdn .= "/noiiolelo";
+        }
         $this->urlBase = "https://" . $fqdn . "/ulukau";
         $this->groupname = "ulukau";
     }
