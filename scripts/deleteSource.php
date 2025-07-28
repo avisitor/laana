@@ -1,5 +1,5 @@
 <?php
-include 'saveFuncs.php';
+include_once __DIR__ . '/../scripts/saveFuncs.php';
 
 $groupname = (isset( $argv[1] ) ) ? $argv[1] : '';
 if( $groupname ) {
@@ -15,7 +15,8 @@ if( $groupname ) {
         echo "Result for $table: $result\n";
     }
 } else {
-    $values = join( ",", array_keys( $parsermap ) );
+    $saveManager = new SaveManager();
+    $values = $saveManager->getParserKeys();
     echo "Specify a groupname ($values)\n";
 }
 ?>

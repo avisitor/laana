@@ -13,7 +13,6 @@ $longopts = [
 ];
 $args = getopt( "", $longopts );
 $parserkey = $args['parser'] ?? '';
-#$sourceid = ($sourceid) ? $sourceid : 24308;
 
 $options = [
     'force' => isset( $args['force'] ) ? true : false,
@@ -38,19 +37,20 @@ if( !$parserkey && $options['sourceid'] ) {
         }
     }
 }
+if( $parserkey ) {
+    $options['parserkey'] = $parserkey;
+}
 
+$saveManager = new SaveManager( $options );
 if( !$parserkey && !$options['minsourceid'] ) {
-    $values = join( ",", array_keys( $parsermap ) );
+    $values = $saveManager->getParserKeys();
     echo "Specify a parser: $values or a sourceid\n";
     echo "savedocument [--debug] [--force] [--local] [--resplit] [--minsourceid=minsourceid] [--maxsourceid=maxsourceid] --parser=parsername ($values)\n" .
          "savedocument [--debug] [--force] [--local] [--resplit] --sourceid=sourceid\n" .
          "savedocument [--debug] [--force] [--local] [--resplit] --minsourceid=minsourceid --maxsourceid=maxsourceid [--parser=parsername] ($values)\n";
     echo "Received options: " . json_encode( $options ) . "\n";
 } else {
-    if( $parserkey ) {
-        $options['parserkey'] = $parserkey;
-    }
-    getAllDocuments( $options );
+    $saveManager->getAllDocuments();
     //getFailedDocuments( $parser );
 }
 ?>

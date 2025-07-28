@@ -1,5 +1,5 @@
 <?php
-include 'saveFuncs.php';
+include_once __DIR__ . '/../scripts/saveFuncs.php';
 
 $longopts = [
     "debug",
@@ -12,14 +12,14 @@ $options = [
     'debug' => $debug,
 ];
 
-$parser = ($parserkey) ? $parsermap[$parserkey] : null;
+$saveManager = new SaveManager( $options );
+$parser = $saveManager->getParser($parserkey);
 if( !$parser ) {
-    $values = join( ",", array_keys( $parsermap ) );
+    $values = $saveManager->getParserKeys();
     echo "Specify a parser: $values\n";
-    echo "testList [--debug] [--force] --parser=parsername ($values)\n";
+    echo "testList [--debug] --parser=parsername\n";
 } else {
     setDebug( $debug );
-    $parser = getParser( $parserkey );
     $pages = $parser->getPageList();
     echo( var_export( $pages, true ) . "\n" );
 }
