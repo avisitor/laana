@@ -84,7 +84,7 @@ class HtmlParse {
         "Acknowledgments",
         "More Information",
         "text-align:",
-        "margin-bottom:"
+        "margin-bottom:",
         "Vote Hawaii's Best",
     ];
     // Skip a sentence consisting entirely of one of these
