@@ -877,7 +877,7 @@ class HtmlParse {
     public function extractDate( $dom = null ) {
         $this->funcName = "extractDate";
         $this->debugPrint( $this->date );
-        $this->date = '1970-01-01";
+        $this->date = '1970-01-01';
         return $this->date;
     }
     
