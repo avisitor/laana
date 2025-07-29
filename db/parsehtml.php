@@ -180,6 +180,8 @@ class HtmlParse {
     }
     public function initialize( $baseurl ) {
         $this->url = $this->baseurl = $baseurl;
+        $this->dom = $this->getDomForDiscovery( $this->url );
+        $this->extractMetadata( $this->dom );
     }
     public function getDateFromURL( $url ) {
         preg_match('/\/(\d{4})\/(\d{2})\/(\d{2})\//', $url, $matches);
@@ -823,12 +825,16 @@ class UlukauLocal extends HTMLParse {
         }
         $this->urlBase = "https://" . $fqdn . "/ulukau";
         $this->groupname = "ulukau";
-        $this->extractPatterns = ['//div[contains(@class, "ulukaupagetextview")]//span', '//body'];
+        $this->extractPatterns = [
+            '//div[contains(@class, "ulukaupagetextview")]//span',
+            '//body'
+        ];
     }
     public function getDocumentList() {
         $this->funcName = "getDocumentList";
         $this->print("");
-        $pageList = json_decode( $this->getRaw( "$this->baseDir/$this->pageListFile", false ), true );
+        $pageList = json_decode( $this->getRaw(
+            "$this->baseDir/$this->pageListFile", false ), true );
         for( $i = 0; $i < count($pageList); $i++ ) {
             $pageList[$i]['link'] =
                 $pageList[$i]['url'] =
@@ -894,13 +900,6 @@ class CBHtml extends HtmlParse {
             '//div[contains(@class,"cb-share-content")]//p',
              '//body'
         ];
-    }
-    public function initialize( $baseurl ) {
-        parent::initialize( $baseurl );
-        $this->dom = $this->getDomForDiscovery( $this->url );
-        $this->extractMetadata( $this->dom );
-        $this->metadata['title'] = $this->basename . ' ' . $this->metadata['date'];
-        $this->log( "url = " . $this->url . ", date = " . $this->metadata['date'] );
     }
     protected function getDomForDiscovery($url) {
         $html = $this->getRaw($url, false);
@@ -991,21 +990,15 @@ class AoLamaHTML extends HtmlParse {
         $this->groupname = "keaolama";
         $this->extractPatterns = ['//div[contains(@class, "entry-content")]//p'];
     }
-    public function initialize( $baseurl ) {
-        parent::initialize( $baseurl );
-        $this->dom = $this->getDomForDiscovery( $this->url );
-        $this->extractMetadata( $this->dom );
-        $this->metadata['title'] = $this->basename . ' ' . $this->metadata['date'];
-    }
     public function extractMetadata( $dom = null ) {
         $this->funcName = "extractMetadata";
         if( !$dom ) {
             $dom = $this->dom;
         }
         $this->metadata['date'] = $this->getDateFromUrl( $this->url );
-        $this->debugPrint( "found [{$this->metadata['date']}]" );
-        $sourceName = (sizeof($parts) > 3) ? "{$this->basename} {$parts[1]}-{$parts[2]}-{$parts[3]}" : $this->basename;
-        $this->metadata['sourcename'] = $sourceName;
+        $this->metadata['title'] =
+            $this->basename . ' ' . $this->metadata['date'];
+        $this->metadata['sourcename'] = $this->metadata['title'];
     }
     public function getDocumentList() {
         $this->funcName = "getDocumentList";
@@ -1019,17 +1012,12 @@ class AoLamaHTML extends HtmlParse {
             }
             $urls = array_keys( (array)$response->postflair );
             foreach( $urls as $u ) {
-                $text = str_replace( $this->urlBase, '', $u );
-                $parts = explode( '/', $text );
-                if( sizeof($parts) > 3 ) {
-                    $text = $parts[0] . "-" . $parts[1] . "-" . $parts[2];
-                }
                 $date = $this->getDateFromUrl( $u );
                 $pages[] = [
-                    'sourcename' => $this->basename . ": $text",
+                    'sourcename' => $this->basename . ": $date",
                     'url' => $u,
                     'image' => '',
-                    'title' => $this->basename . ": $text",
+                    'title' => $this->basename . ": $date",
                     'date' => $date,
                     'groupname' => $this->groupname,
                     'author' => $this->authors,
@@ -1069,11 +1057,6 @@ class KauakukalahaleHTML extends HtmlParse {
         $this->extractPatterns = [
             '//div[contains(@class, "hsa-paywall")]//p',
         ];
-    }
-    public function initialize( $baseurl ) {
-        parent::initialize( $baseurl );
-        $this->dom = $this->getDomForDiscovery( $this->url );
-        $this->extractMetadata( $this->dom );
     }
 
     public function updateVisibility( $text ) {
@@ -1374,12 +1357,6 @@ class UlukauHTML extends NupepaHTML {
         $this->extractPatterns = ['//div[@id="ulukaupagetextview"]//p', '//p'];
     }
 
-    public function initialize( $baseurl ) {
-        parent::initialize( $baseurl );
-        $parts = parse_url($baseurl);
-        $this->hostname = ($parts['scheme'] ?? '') . '://' . ($parts['host'] ?? '');
-    }
-    
     public function getDocumentList() {
         $this->funcName = "getDocumentList";
         $dom = $this->getDomForDiscovery( $this->baseurl );
