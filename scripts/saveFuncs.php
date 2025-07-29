@@ -193,15 +193,15 @@ class SaveManager {
         $this->funcName = "updateSource";
         $force = isset($this->options['force']) ? $this->options['force'] : false;
         $params = [
-            'title' => $parser->title,
-            'date' => $parser->date,
+            'title' => $parser->metadata['title'],
+            'date' => $parser->metadata['date'],
         ];
         if ($parser->authors && !$source['author']) {
-            $params['author'] = $parser->authors;
+            $params['author'] = $parser->metadata['authors'];
         }
         $date = $source['date'] ?? '';
-        if ($parser->date && ($parser->date != $date)) {
-            $params['date'] = $parser->date;
+        if ($parser->metadata['date'] && ($parser->metadata['date'] != $date)) {
+            $params['date'] = $parser->metadata['date'];
         }
         $this->log($params, "Parameters found by parser");
         
@@ -260,19 +260,19 @@ class SaveManager {
             $parser = $this->getParser($parserkey);
         }
 
-        $pages = []; // Sources in the wild
+        $docs = []; // Sources in the wild
         $items = []; // Sources in the DB
         if ($singleSourceID) {
             $items = [$this->laana->getSource($singleSourceID)];
         } else if ($parserkey && $local) {
             $items = $this->laana->getSources($parserkey);
         } else if ($parser) {
-            $pages = $parser->getPageList();
+            $docs = $parser->getDocumentList();
         } else if ($local || ($this->options['minsourceid'] > 0 && $this->options['maxsourceid'] < PHP_INT_MAX)) {
             $items = $this->laana->getSources();
         }
 
-        if (sizeof($pages) < 1) {
+        if (sizeof($docs) < 1) {
             // Operating off of info in the DB
             foreach ($items as $item) {
                 $parser = $this->getParser($item['groupname']);
@@ -283,24 +283,24 @@ class SaveManager {
                     if (!isset($item['author']) || !$item['author']) {
                         $item['author'] = $item['authors'];
                     }
-                    array_push($pages, $item);
+                    array_push($docs, $item);
                     $this->log($item, "adding page to process");
                 }
             }
         }
 
-        if (sizeof($pages) > 0 && isset($pages[0]['sourceid'])) {
-            usort($pages, function ($a, $b) {
+        if (sizeof($docs) > 0 && isset($docs[0]['sourceid'])) {
+            usort($docs, function ($a, $b) {
                 return $a['sourceid'] <=> $b['sourceid'];
             });
         }
-        echo sizeof($pages) . " pages found\n...\n";
-        $this->debugPrint($pages);
+        echo sizeof($docs) . " pages found\n...\n";
+        $this->debugPrint($docs);
 
-        $docs = 0;
         $updates = 0;
+        $docCount = 0;
         $i = 0;
-        foreach ($pages as $source) {
+        foreach ($docs as $source) {
             $sourceName = $source['sourcename'];
             $link = $source['url'] ?? '';
             if (!$link) {
@@ -338,7 +338,7 @@ class SaveManager {
                 $params = [
                     'link' => $link,
                     'groupname' => $parser->groupname,
-                    'date' => $parser->date,
+                    'date' => $parser->metadata['date'],
                     'title' => $title,
                     'authors' => $author,
                     'sourcename' => $sourceName,
@@ -348,7 +348,7 @@ class SaveManager {
                 $sourceID = isset($row['sourceid']) ? $row['sourceid'] : '';
                 if ($sourceID) {
                     $this->log("Added sourceID $sourceID");
-                    $docs += $this->saveContents($parser, $sourceID);
+                    $docCount += $this->saveContents($parser, $sourceID);
                     $updates++;
                 } else {
                     $this->log("Failed to add source");
@@ -365,7 +365,7 @@ class SaveManager {
                             $this->log("No change to source record");
                         }
                     }
-                    $docs += $this->saveContents($parser, $sourceID);
+                    $docCount += $this->saveContents($parser, $sourceID);
                     $this->log($sourceID, "Updated contents for sourceID");
                 } else {
                     $this->log($sourceID, "Out of range");
@@ -378,7 +378,7 @@ class SaveManager {
                 break;
             }
         }
-        echo "$this->funcName: updated $updates source definitions and $docs documents
+        echo "$this->funcName: updated $updates source definitions and $docCount documents
 ";
     }
 }
