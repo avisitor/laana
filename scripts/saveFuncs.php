@@ -196,8 +196,8 @@ class SaveManager {
             'title' => $parser->metadata['title'],
             'date' => $parser->metadata['date'],
         ];
-        if ($parser->authors && !$source['author']) {
-            $params['author'] = $parser->metadata['authors'];
+        if ($parser->metadata['author'] && !$source['author']) {
+            $params['author'] = $parser->metadata['author'];
         }
         $date = $source['date'] ?? '';
         if ($parser->metadata['date'] && ($parser->metadata['date'] != $date)) {
@@ -280,9 +280,6 @@ class SaveManager {
                     $this->log("no source found for {$item['sourceid']}");
                 } else if ($item['sourceid'] >= $this->options['minsourceid'] && $item['sourceid'] <= $this->options['maxsourceid']) {
                     $item['url'] = $item['link'];
-                    if (!isset($item['author']) || !$item['author']) {
-                        $item['author'] = $item['authors'];
-                    }
                     array_push($docs, $item);
                     $this->log($item, "adding page to process");
                 }
