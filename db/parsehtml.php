@@ -181,7 +181,13 @@ class HtmlParse {
     public function initialize( $baseurl ) {
         $this->url = $this->baseurl = $baseurl;
     }
-    
+    public function getDateFromURL( $url ) {
+        preg_match('/\/(\d{4})\/(\d{2})\/(\d{2})\//', $url, $matches);
+        $date =
+            isset($matches[1], $matches[2], $matches[3]) ?
+            "{$matches[1]}-{$matches[2]}-{$matches[3]}" : '';
+        return $date;
+    }
     public function getRaw($url, $trackMetadata = true) {
         $this->funcName = "getRaw";
         $url = trim( $url );
@@ -993,13 +999,10 @@ class AoLamaHTML extends HtmlParse {
     }
     public function extractMetadata( $dom = null ) {
         $this->funcName = "extractMetadata";
-        if( !$dom ) $dom = $this->dom;
-        $path = parse_url( $this->url, PHP_URL_PATH );
-        $parts = explode( '/', $path );
-        if( sizeof($parts) > 3 ) {
-            $dateparts = explode( '-', $parts[4] );
-            $this->metadata['date'] = $parts[1] . "-" . $dateparts[0] . "-" . $dateparts[1];
+        if( !$dom ) {
+            $dom = $this->dom;
         }
+        $this->metadata['date'] = $this->getDateFromUrl( $this->url );
         $this->debugPrint( "found [{$this->metadata['date']}]" );
         $sourceName = (sizeof($parts) > 3) ? "{$this->basename} {$parts[1]}-{$parts[2]}-{$parts[3]}" : $this->basename;
         $this->metadata['sourcename'] = $sourceName;
@@ -1011,17 +1014,23 @@ class AoLamaHTML extends HtmlParse {
         while( true ) {
             $contents = $this->getRaw( $this->baseurl . $page, false );
             $response = json_decode( $contents );
-            if( $response->type != 'success' ) break;
+            if( $response->type != 'success' ) {
+                break;
+            }
             $urls = array_keys( (array)$response->postflair );
             foreach( $urls as $u ) {
                 $text = str_replace( $this->urlBase, '', $u );
                 $parts = explode( '/', $text );
-                if( sizeof($parts) > 3 ) $text = $parts[0] . "-" . $parts[1] . "-" . $parts[2];
+                if( sizeof($parts) > 3 ) {
+                    $text = $parts[0] . "-" . $parts[1] . "-" . $parts[2];
+                }
+                $date = $this->getDateFromUrl( $u );
                 $pages[] = [
                     'sourcename' => $this->basename . ": $text",
                     'url' => $u,
                     'image' => '',
-                    'title' => $text,
+                    'title' => $this->basename . ": $text",
+                    'date' => $date,
                     'groupname' => $this->groupname,
                     'author' => $this->authors,
                 ];
@@ -1110,10 +1119,7 @@ class KauakukalahaleHTML extends HtmlParse {
             $xpath = new DOMXpath( $dom );
         }
         if( $this->url ) {
-            preg_match('/\/(\d{4})\/(\d{2})\/(\d{2})\//', $this->url, $matches);
-            $this->metadata['date'] =
-                isset($matches[1], $matches[2], $matches[3]) ?
-                "{$matches[1]}-{$matches[2]}-{$matches[3]}" : '';
+            $this->metadata['date'] = $this->getDateFromUrl( $this->url );
         }
         if( $xpath ) {
             // Title: from <h1 class="story-title">
@@ -1174,9 +1180,7 @@ class KauakukalahaleHTML extends HtmlParse {
             }
 
             // Date
-            preg_match('/\/(\d{4})\/(\d{2})\/(\d{2})\//', $url, $matches);
-            $date = isset($matches[1], $matches[2], $matches[3]) ?
-                    "{$matches[1]}-{$matches[2]}-{$matches[3]}" : '';
+            $date = $this->getDateFromUrl( $url );
 
             $sourcename = $this->basename . ": " . $date;
             if( array_key_exists( $sourcename, $this->sources ) ) {
@@ -1205,7 +1209,7 @@ class KauakukalahaleHTML extends HtmlParse {
                 'title' => $title,
                 'date' => $date,
                 'image' => $img,
-                'authors' => $author,
+                'author' => $author,
                 'groupname' => $this->groupname,
             ];
 
@@ -1265,8 +1269,12 @@ class NupepaHTML extends HtmlParse {
                             $imgSrc = $imgNode->count() ? 'https://nupepa.org' . $imgNode->attr('src') : null;
                             $dateText = preg_replace('/^\(\w+, (.*?)\)$/', '$1', $dateText);
                             $results[] = [
-                                'sourcename' => "{$titleText} {$dateText}", 'url' => $fullUrl, 'image' => $imgSrc,
-                                'title' => "{$titleText} {$dateText}", 'date' => $dateText, 'author' => null,
+                                'sourcename' => "{$titleText} {$dateText}",
+                                'url' => $fullUrl,
+                                'image' => $imgSrc,
+                                'title' => "{$titleText} {$dateText}",
+                                'date' => $dateText,
+                                'author' => '',
                                 'groupname' => 'nupepa',
                             ];
                         }
@@ -1395,8 +1403,13 @@ class UlukauHTML extends NupepaHTML {
             preg_match('/d=([^&]+)/', $rel_url, $keyMatch);
             $sourcename = "Ulukau: " . ($keyMatch[1] ?? uniqid());
             $pages[] = [
-                'sourcename' => $sourcename, 'url' => $full_url, 'image' => $full_image,
-                'title' => $title, 'groupname' => $this->groupname, 'author' => $author, 'language' => $language,
+                'sourcename' => $sourcename,
+                'url' => $full_url,
+                'image' => $full_image,
+                'title' => $title,
+                'groupname' => $this->groupname,
+                'author' => $author,
+                'language' => $language,
             ];
         }
         return $pages;
@@ -1437,10 +1450,16 @@ class KaPaaMooleloHTML extends HtmlParse {
         foreach( $paragraphs as $p ) {
             $url = $p->getAttribute( 'href' );
             if( $this->validLink( $url ) ) {
-                $text = $this->basename . ": " . preg_replace( "/\s+/", " ", preg_replace( "/\n|\r/", " ", $p->firstChild->nodeValue ) );
+                $sourcename =
+                    $this->basename . ": " .
+                    preg_replace( "/\s+/", " ", preg_replace( "/\n|\r/", " ", $p->firstChild->nodeValue ) );
                 $pages[] = [
-                    'sourcename' => $text, 'url' => $this->domain . "moolelo/" . $url, 'title' => $text,
-                    'image' => '', 'author' => $this->authors, 'groupname' => $this->groupname,
+                    'sourcename' => $sourcename,
+                    'url' => $this->domain . "moolelo/" . $url,
+                    'title' => $sourcename,
+                    'image' => '',
+                    'author' => $this->authors,
+                    'groupname' => $this->groupname,
                 ];
             }
         }
@@ -1511,7 +1530,7 @@ class BaibalaHTML extends HtmlParse {
         $this->print( "" );
         // It's a single document
         $pages[] = [
-            'sourcename' => $text,
+            'sourcename' => $this->documentname,
             'url' => $this->baseurl,
             'title' => $this->documentname,
             'image' => '',
@@ -1640,57 +1659,6 @@ class EhoouluLahuiHTML extends HtmlParse {
         }
         return $pages;
                 
-            
-        return [
-            [
-                'sourcename' => '‘Aukelenuia‘īkū',
-                'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=65',
-                'image' => '',
-                'title' => '‘Aukelenuia‘īkū',
-                'author' => '',
-                'groupname' => $this->groupname,
-            ],
-            [
-                'sourcename' => 'Lonoikamakahiki',
-                'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=67',
-                'image' => '',
-                'title' => 'Lonoikamakahiki',
-                'author' => '',
-                'groupname' => $this->groupname,
-            ],
-            [
-                'sourcename' => 'Punia',
-                'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=69',
-                'image' => '',
-                'title' => 'Punia',
-                'author' => '',
-                'groupname' => $this->groupname,
-            ],
-            [
-                'sourcename' => '‘Umi',
-                'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=71',
-                'image' => '',
-                'title' => '‘Umi',
-                'author' => '',
-                'groupname' => $this->groupname,
-            ],
-            [
-                'sourcename' => 'Kaao no Aiai',
-                'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=265',
-                'image' => '',
-                'title' => 'Kaao no Aiai',
-                'author' => '',
-                'groupname' => $this->groupname,
-            ],
-            [
-                'sourcename' => '',
-                'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=71',
-                'image' => '',
-                'title' => '',
-                'author' => '',
-                'groupname' => $this->groupname,
-            ],
-        ];
         
         $desired = [
 	        '‘Aukelenuia‘īkū',
