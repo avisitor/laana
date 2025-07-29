@@ -63,15 +63,14 @@
 <?php
 $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 $sourceName = $parser->getSourceName();
-$pages = $parser->getPageList();
+$docs = $parser->getDocumentList();
 ?>
      <h1><?=$sourceName?></h1>
      <div class='box'>
          <?php
-         foreach( $pages as $page ) {
-             $keys = array_keys( $page );
-             $title = $keys[0];
-             $item = $page[$title];
+         foreach( $docs as $doc ) {
+             $title = $doc['title];
+             $sourcename = $doc['sourcename'];
              $link = $item['url'];
              $image = $item['image'];
              if( $image ) {
