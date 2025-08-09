@@ -1,5 +1,8 @@
 <?php
 include_once __DIR__ . '/../db/funcs.php';
+include_once __DIR__ . '/ContentFetcher.php';
+include_once __DIR__ . '/DomParser.php';
+include_once __DIR__ . '/TextProcessor.php';
 
 require __DIR__ . '/../../vendor/autoload.php';
 
@@ -22,6 +25,9 @@ class HtmlParse {
     public $baseurl = '';
     protected $html = '';
     protected $dom;
+    protected $contentFetcher;
+    protected $domParser;
+    protected $textProcessor;
     public $title = "";
     public $authors = "";
     public $discarded = [];
@@ -113,21 +119,14 @@ class HtmlParse {
         "Aukake" => '08',
         "Iune" => '06',
     ];
-    // Add a static abbreviation list for sentence splitting
-    protected static $abbreviations = [
-        'Mr.', 'Mrs.', 'Ms.', 'Dr.', 'DR.', 'Prof.', 'Sr.', 'Jr.',
-        'St.', 'Mt.', 'Ave.', 'H.K.Aloha', 'Lt.', 'Col.', 'Gen.',
-        'Capt.', 'Sgt.', 'Rev.', 'Hon.', 'Pres.', 'Gov.', 'Sen.',
-        'Rep.', 'Adm.', 'Maj.', 'Ph.D.', 'M.D.', 'D.D.S.', 'B.A.',
-        'M.A.', 'D.C.', 'U.S.', 'A.M.', 'P.M.', 'Inc.', 'Ltd.',
-        'Co.', 'No.', 'Dept.', 'Univ.', 'etc.', 'Vol.', 'Wm.',
-        'Robt.', 'Geo.', 'GEO.', 'JNO.',
-    ];
     // Add a configurable max sentence length
     const MAX_SENTENCE_LENGTH = 1000;
     const RESPLIT_SENTENCE_LENGTH = 400;
     public function __construct( $options = [] ) {
         $this->options = $options;
+        $this->contentFetcher = new ContentFetcher();
+        $this->domParser = new DomParser();
+        $this->textProcessor = new TextProcessor();
         $this->resetMetadata();
     }
     public function resetMetadata() {
@@ -192,19 +191,9 @@ class HtmlParse {
     }
     public function getRaw($url, $trackMetadata = true) {
         $this->funcName = "getRaw";
-        $url = trim( $url );
         $this->print($url);
-        $html = "";
-        // Use Guzzle or use file_get_contents?
-        if( 0 ) {
-            $client = new Client();;
-            $response = $client->get($url);
-            if ($response->getStatusCode() === 200) {
-                $html = (string)$response->getBody();
-            }
-        } else {
-            $html = ($url) ? file_get_contents($url) : "";
-        }
+        $html = $this->contentFetcher->fetch($url);
+
         if ($trackMetadata) {
             $this->html = $html;
             $this->metadata['original_char_count'] += strlen($this->html);
@@ -287,34 +276,9 @@ class HtmlParse {
     }
 
     public function getDOMFromString( $text ) {
-        $funcName = $this->funcName = "getDOMFromString";
-        $nchars = strlen( $text );
-        $this->print( "$nchars characters" );
-        $dom = new DOMDocument();
-        $dom->encoding = 'utf-8';
-        libxml_use_internal_errors(true);
-        if( $text ) {
-            $text = mb_convert_encoding($text, 'HTML-ENTITIES', 'UTF-8');
-            $prefix = "";
-            $pos = strpos($text, "<!DOCTYPE ");
-            if ($pos === false) {
-                $prefix = '<!DOCTYPE html>';
-                $pos = strpos($text, "<html");
-                if ($pos === false) {
-                    $prefix .= '<html>';
-                }
-                $text = $prefix . $text;
-                $pos = strpos($text, "</html");
-                if ($pos === false) {
-                    $text .= "</html>";
-                }
-                //$text = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $text . '</body></html>';
-            }
-            libxml_clear_errors();
-            $dom->loadHTML($text);
-            libxml_clear_errors();
-        }
-        return $dom;
+        $this->funcName = "getDOMFromString";
+        $this->print( strlen($text) . " characters" );
+        return $this->domParser->parse($text);
     }
     
     protected function getDomForDiscovery($url) {
@@ -379,9 +343,7 @@ class HtmlParse {
     
     public function cleanSentence( $sentence ) {
         $this->funcName = "cleanSentence";
-        $sentence = str_replace($this->placeholder, '.', $sentence);
-        $sentence = preg_replace('/(\s+)(\?|\!)/', '$2', $sentence);
-        return $sentence;
+        return $this->textProcessor->cleanSentence($sentence);
     }
     
     public function removeElements( $text ) {
@@ -454,47 +416,11 @@ class HtmlParse {
     
     public function convertEncoding( $text ) {
         $this->funcName = "convertEncoding";
-        if (!is_string($text)) {
-            $text = (string)$text;
-        }
         $this->print( strlen($text) . " characters" );
         if( !$text ) {
             return $text;
         }
-        $pairs = [
-            '&Auml;&#129;' => "ā", "&Auml;&#128;" => "Ā", '&Ecirc;&raquo;' => '‘',
-            '&Aring;&#141;' => 'ū', '&Auml;&ordf;' => 'Ī', '&Auml;&#147;' => 'ē',
-            '&raquo;' => '', '&laquo;' => '', '&mdash;' => '-', '&nbsp;' => ' ',
-            "&Ecirc;" => '‘', "&Aring;" => 'ū', '&Atilde;&#133;&Acirc;&#140;' => 'Ō',
-            '&Atilde;&#133;&Acirc;' => 'ū', '&Atilde;&#132;&Acirc;' => 'ā',
-            '&Atilde;&#138;&Acirc;&raquo;' => '‘', "&Acirc;" => '', "&acirc;" => '',
-            '&lsquo;' => "'", '&rsquo;' => "'", '&rdquo;' => '"', '&ldquo;' => '"',
-            "&auml;" => "ā", "&Auml;" => "Ā", "&Euml;" => "Ē", "&euml;" => "ē",
-            "&Iuml;" => "Ī", "&iuml;" => "ī", "&ouml;" => "ō", "&Ouml;" => "Ō",
-            "&Uuml" => "Ū", "&uuml;" => "ū", "&aelig;" => '‘', "&#128;&brvbar;" => '-',
-            "&#128;&#147;" => '-', "&#128;&#148;" => '-', "&#128;&#152;" => '‘',
-            "&#128;&#156;" => '"', "&#128;&#157;" => '-', '&#157;&#x9D;' => '-',
-            "&#128;" => "", "&#129;" => "", "&#140;" => "Ō", "&#146;" => "'",
-            "&#256;" => "Ā", "&#257;" => "ā", "&#274;" => "Ē", "&#275;" => "ē",
-            "&#298;" => "Ī", "&#299;" => "ī", "&#332;" => "Ō", "&#333;" => "ō",
-            "&#362;" => "Ū", "&#363;" => "ū", "&#699;" => '‘',
-        ];
-        $text = strtr($text, $pairs);
-        $replace = [
-            '/\x80\x99/u' => ' ', '/\x80\x9C/u' => ' ', '/\x80\x9D/u' => ' ',
-            '/&nbsp;/' => ' ', '/"/' => '',
-            '/' . preg_quote($this->Amarker, '/') . '/' => 'Ā',
-            '/[\x{0080}\x{00A6}\x{009C}\x{0099}]/u' => '.',
-        ];
-        $raw = $text;
-        $text = preg_replace(array_keys($replace), array_values($replace), $text);
-        if ($text === null || $text === '') {
-            echo('preg_replace failed: ' . preg_last_error() . ": $raw\n");
-            return '';
-        }
-        $text = trim($text);
-        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        return $text;
+        return $this->textProcessor->convertEncoding($text);
     }
     
     public function preprocessHTML( $text ) {
@@ -522,26 +448,7 @@ class HtmlParse {
     protected function protectAbbreviations( $text ) {
         $this->funcName = "protectAbbreviations";
         $this->print( strlen($text) . " characters" );
-        $placeholder = $this->placeholder;
-        $abbrPattern = implode('|', array_map(function($abbr) {
-            return preg_quote($abbr, '/');
-        }, self::$abbreviations));
-        $text = preg_replace_callback('/\b(' . $abbrPattern . ')/', function($matches) use ($placeholder) {
-            return str_replace('.', $placeholder, $matches[1]);
-        }, $text);
-        $text = preg_replace_callback('/\b([A-Z](?:\.[A-Z]){1,}\.)/', function($matches) use ($placeholder) {
-            return str_replace('.', $placeholder, $matches[1]);
-        }, $text);
-        $text = preg_replace_callback('/\b([A-Z])\.(?=\s)/', function($matches) use ($placeholder) {
-            return $matches[1] . $placeholder;
-        }, $text);
-        $text = preg_replace_callback('/\b([A-Z][a-z]{1,2})\./', function($matches) use ($placeholder) {
-            return $matches[1] . $placeholder;
-        }, $text);
-        $text = preg_replace_callback('/(\d[\d\s\-]*\.)\s*(?=\d)/', function($matches) use ($placeholder) {
-            return rtrim($matches[1], '.') . $placeholder;
-        }, $text);
-        return $text;
+        return $this->textProcessor->protectAbbreviations($text);
     }
     
     public function splitSentences( $paragraphs ) {
@@ -571,7 +478,8 @@ class HtmlParse {
         $lines = $this->mergeLines($lines);
         $this->debugPrint( count($lines) . " lines after mergeLines" );
 
-        foreach ($lines as &$sentence) {
+        foreach ($lines as &
+$sentence) {
             $sentence = $this->cleanSentence( $sentence );
         }
         unset($sentence);
@@ -590,13 +498,7 @@ class HtmlParse {
     public function splitLines( $text )  {
         $this->funcName = "splitLines";
         $this->print( strlen($text) . " characters in line" );
-        $pattern = '/(?<=[.?!])\s+(?=(?![‘ʻ\x{2018}\x{02BB}])[A-ZāĀĒēĪīōŌŪū])/u';
-        $lines = preg_split($pattern, $text, -1, PREG_SPLIT_NO_EMPTY);
-        if( count($lines) < 2 ) {
-            $this->debugPrint( "found " . strlen($text) . " characters in line after splitting by period, trying comma split" );
-            $lines = preg_split('/\,+/', $text, -1, PREG_SPLIT_NO_EMPTY);
-        }
-        return $lines;
+        return $this->textProcessor->splitLines($text);
     }
 
     protected function mergeLines( $lines ) {
@@ -608,8 +510,8 @@ class HtmlParse {
         while ($i < $n) {
             $buffer = trim($lines[$i]);
             $j = $i + 1;
-            if ( preg_match('/^[A-Z][a-z]*\\.?(-[a-z, ]+)?$/u', $buffer) || preg_match('/^[A-Z]\\.$/u', $buffer) || preg_match('/^[A-Z]\\.-$/u', $buffer) ) {
-                while ( $j < $n && ( preg_match('/^[A-Z]\\.$/u', trim($lines[$j])) || preg_match('/^[A-Z]\\.-$/u', trim($lines[$j])) || preg_match('/^[A-Z][a-z]*\\.?(-[a-z, ]+)?$/u', trim($lines[$j])) || (mb_strlen(trim($lines[$j])) <= 30 && preg_match('/^[A-Z]/u', trim($lines[$j]))) ) ) {
+            if ( preg_match('/^[A-Z][a-z]*\.?(-[a-z, ]+)?$/u', $buffer) || preg_match('/^[A-Z]\.$/u', $buffer) || preg_match('/^[A-Z]\.-$/u', $buffer) ) {
+                while ( $j < $n && ( preg_match('/^[A-Z]\.$/u', trim($lines[$j])) || preg_match('/^[A-Z]\.-$/u', trim($lines[$j])) || preg_match('/^[A-Z][a-z]*\.?(-[a-z, ]+)?$/u', trim($lines[$j])) || (mb_strlen(trim($lines[$j])) <= 30 && preg_match('/^[A-Z]/u', trim($lines[$j]))) ) ) {
                     $buffer .= ' ' . trim($lines[$j]);
                     $j++;
                 }
@@ -668,8 +570,11 @@ class HtmlParse {
             }
             foreach ($lines as $line) {
                 if ($this->checkSentence($line)) {
-                    $line = preg_replace('/\s+/u', ' ', $line);
-                    $line = preg_replace('/\s+([\'‘])\s+/u', '$1', $line);
+                    $line = preg_replace('/
++/u', ' ', $line);
+                    $line = preg_replace('/
++([\'
+‘])\n+/u', '$1', $line);
                     $line = substr($line, 0, self::MAX_SENTENCE_LENGTH);
                     if( $this->containsEndMarker( $line ) ) {
                         break;
@@ -693,10 +598,11 @@ class HtmlParse {
         $saved = '';
         for ($idx = 0; $idx < $count; $idx++) {
             $text = $contents[$idx];
-            $text = preg_replace('/\s+/u', ' ', $text);
+            $text = preg_replace('/
++/u', ' ', $text);
             if (trim($text) === '') continue;
-            $text = preg_replace('/[\n\r]+/', ' ', $text); 
-            $text = preg_replace('/\s+([?!])/', '$1', $text);
+            $text = preg_replace('/[\n\r]+/u', ' ', $text); 
+            $text = preg_replace('/\n+([?!])/u', '$1', $text);
             $lines[] = $text;
         }
         $lines = $this->connectLines($lines);
@@ -789,14 +695,8 @@ class HtmlParse {
 // --- BEGIN PARSER CLASSES ---
 
 class TextParse extends HTMLParse {
-    public function __construct( $options = [] ) {
+    public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
-        if( count($options) < 1 ) {
-            $options = [
-                'preprocess' => false,
-            ];
-        }
-        $this->options = $options;
     }
     public function extractSentencesFromHTML( $text ) {
         $this->funcName = "extractSentencesFromHTML";
@@ -812,11 +712,10 @@ class TextParse extends HTMLParse {
 class UlukauLocal extends HTMLParse {
     protected $baseDir = __DIR__ . '/../ulukau';
     protected $pageListFile = "ulukau-books.json";
-    public function __construct( $options = [] ) {
+    public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
         $this->semanticSplit = true;
-        $this->options = $options;
-        $this->endMarkers[] = "No part of";
+         $this->endMarkers[] = "No part of";
         $dir = dirname(__DIR__, 1);
         if( strpos( $dir, "worldspot.com" ) !== false ) {
             $fqdn = "noiiolelo.org";
@@ -850,8 +749,10 @@ class UlukauLocal extends HTMLParse {
         }
 
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $text = preg_replace('/\s{2,}/u', ' ', $text);
-        $lines = preg_split('/\R/u', $text);
+        $text = preg_replace('/
+{2,}/u', " ", $text);
+        $lines = preg_split('/
+/u', $text);
 
         $filtered = array_filter($lines, function ($line) {
             $line = trim($line);
@@ -869,7 +770,7 @@ class UlukauLocal extends HTMLParse {
     public function cleanSentence( $sentence ) {
         $this->funcName = "cleanSentence";
         $sentence = parent::cleanSentence( $sentence );
-        $pattern = '/\.{5,}[\s\x{00A0}\d]*/u';
+        $pattern = '/\. {5,}[\s\x{00A0}\d]*/u';
         if (preg_match($pattern, $sentence, $matches)) {
             $sentence = preg_replace($pattern, '', $sentence);
         }
@@ -886,7 +787,7 @@ class CBHtml extends HtmlParse {
     private $skipTitles = [
         "Translating Some",
     ];
-    public function __construct( $options = [] ) {
+    public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
         $this->toSkip = [
             "Kā ka luna hoʻoponopono nota", "Click here", "nota: Unuhi ʻia na",
@@ -981,7 +882,7 @@ class CBHtml extends HtmlParse {
 
 class AoLamaHTML extends HtmlParse {
     private $basename = "Ke Aolama";
-    public function __construct( $options = [] ) {
+    public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
         $this->urlBase = 'https://keaolama.org/';
         $this->startMarker = "penei ka nūhou";
@@ -998,7 +899,8 @@ class AoLamaHTML extends HtmlParse {
         $this->metadata['date'] = $this->getDateFromUrl( $this->url );
         $this->metadata['title'] =
             $this->basename . ' ' . $this->metadata['date'];
-        $this->metadata['sourcename'] = $this->metadata['title'];
+        $this->metadata['sourcename'] =
+            $this->basename . ': ' . $this->metadata['date'];
     }
     public function getDocumentList() {
         $this->funcName = "getDocumentList";
@@ -1118,9 +1020,9 @@ class KauakukalahaleHTML extends HtmlParse {
                 preg_replace( '/(By na |By |Na )/', '', $author );
         }
         $this->metadata['sourcename'] =
-            $this->basename . " " . $this->metadata['date'];
+            $this->basename . ": " . $this->metadata['date'];
         $this->metadata['title'] = ($this->metadata['title']) ??
-                                   $this->metadata['sourcename'];
+            $this->basename . " " . $this->metadata['date'];
     }
 
     public function getContents( $url, $options=[] ) {
@@ -1207,18 +1109,32 @@ class NupepaHTML extends HtmlParse {
     private $skipTitles = [ "Ka Wai Ola - Office of Hawaiian Affairs" ];
     protected $pagetitles = [];
     protected $documentOID = '';
-    public function __construct( $options = [] ) {
+    public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
         $this->urlBase = trim( $this->domain, "/" );
         $this->baseurl = "https://nupepa.org/?a=cl&cl=CL2";
         $this->baseurl = 'https://nupepa.org/?a=cl&cl=CL2&e=-------en-20--1--txt-txIN%7CtxNU%7CtxTR%7CtxTI---------0';
         $this->semanticSplit = true;
-        $this->options = $options['preprocess'] ?? false;
         $this->logName = "NupepaHTML";
         $this->groupname = "nupepa";
         $this->extractPatterns = [
             '//sec/div/p', '//p/span', '//td/div/div', '//center/table/tr/td/*',
         ];
+    }
+    public function extractFormattedDate($title) {
+        // Match patterns like "1 August 1893", "2 May 1891", "20 November 1891"
+        if (preg_match('/\b(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\b/', $title, $matches)) {
+            $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            $monthName = ucfirst(strtolower($matches[2]));
+            $year = $matches[3];
+
+            // Convert month name to number
+            $monthNum = date('m', strtotime($monthName));
+
+            return "$year-$monthNum-$day";
+        }
+
+        return "1970-01-01";
     }
     
     public function getDocumentList() {
@@ -1250,16 +1166,19 @@ class NupepaHTML extends HtmlParse {
                             $fullUrl = 'https://nupepa.org' . $href;
                             $imgNode = $itemNode->filter('img');
                             $imgSrc = $imgNode->count() ? 'https://nupepa.org' . $imgNode->attr('src') : null;
+                            $normalizedDate = $this->extractFormattedDate( $dateText );
                             $dateText = preg_replace('/^\(\w+, (.*?)\)$/', '$1', $dateText);
-                            $results[] = [
-                                'sourcename' => "{$titleText} {$dateText}",
+                            $source = [
+                                'sourcename' => "{$titleText}: {$normalizedDate}",
                                 'url' => $fullUrl,
                                 'image' => $imgSrc,
                                 'title' => "{$titleText} {$dateText}",
-                                'date' => $dateText,
+                                'date' => $normalizedDate,
                                 'author' => '',
                                 'groupname' => 'nupepa',
                             ];
+                            //echo( var_export( $source, true ) . "\n" );
+                            $results[] = $source;
                         }
                     });
                 });
@@ -1303,17 +1222,14 @@ class NupepaHTML extends HtmlParse {
             $this->metadata['title'] = preg_replace( '/ &mdash\;.*/', '', $title );
         }
         if( $this->metadata['title'] ) {
-            $parts = explode( " ", $this->metadata['title'] );
-            $len = sizeof( $parts );
-            $date = "{$parts[$len-3]} {$parts[$len-2]} {$parts[$len-1]}";
-            $this->metadata['date'] = date( 'Y-m-d', strtotime( $date ) );
+            $this->metadata['date'] = $this->extractFormattedDate( $this->metadata['title'] );
         }
         $this->metadata['sourcename'] = $this->metadata['title'];
     }
     
     public function connectLines(array $lines) {
         $this->funcName = "connectLines";
-        $connectors = [ "‘" => "", "ʻ" => "", '/^-{1,2}\s*[A-ZĀĒĪŌŪ ]+\s*-{1,2}$/' => " " ];
+        $connectors = [ "‘" => "", "ʻ" => "", '/^-\{1,2}\s*[A-ZĀĒĪŌŪ ]+\s*-\{1,2}$/' => " " ];
         $joined = [];
         $lastWasConnector = false;
         $lastConnectorInsert = '';
@@ -1349,7 +1265,7 @@ class NupepaHTML extends HtmlParse {
 // reads its output later on
 class UlukauHTML extends NupepaHTML {
     protected $hostname = "";
-    public function __construct( $options = [] ) {
+    public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
         $this->logName = "UlukauHTML";
         $this->baseurl = "https://puke.ulukau.org/ulukau-books/";
@@ -1428,7 +1344,7 @@ class KaPaaMooleloHTML extends HtmlParse {
             $url = $p->getAttribute( 'href' );
             if( $this->validLink( $url ) ) {
                 $sourcename =
-                    $this->basename . ": " .
+                    $this->basename . ": " . 
                     preg_replace( "/\s+/", " ", preg_replace( "/\n|\r/", " ", $p->firstChild->nodeValue ) );
                 $pages[] = [
                     'sourcename' => $sourcename,
@@ -1533,8 +1449,6 @@ class BaibalaHTML extends HtmlParse {
                 $href = $nextNode->getAttribute('href');
                 if ($href && $href !== '#') {
                     $currentUrl = $this->urlBase . "/" . ltrim($href, '/');
-                } else {
-                    $currentUrl = null;
                 }
             }
             else {
@@ -1548,7 +1462,7 @@ class BaibalaHTML extends HtmlParse {
 class EhoouluLahuiHTML extends HtmlParse {
     private $basename = "E Hooulu Lahui";
     private $domain = "https://ehooululahui.com/";
-    public function __construct( $options = [] ) {
+    public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
         $this->urlBase = trim( $this->domain, "/" );
         $this->baseurl = $this->domain;
@@ -1704,3 +1618,223 @@ class EhoouluLahuiHTML extends HtmlParse {
         return $urls;
     }
 }
+
+class KaiwakiloumokuHTML extends HtmlParse {
+    private $basename = "Kaiwakiloumoku";
+    private $domain = "https://kaiwakiloumoku.ksbe.edu/";
+    private $replaceChars = [];
+    private $documentCache = null;
+
+    public function __construct( $options = ['preprocess' => false] ) {
+        parent::__construct($options);
+        $this->urlBase = trim( $this->domain, "/" );
+        $this->baseurl = $this->domain . "moolelo";
+        $this->logName = "KawakiloumokuHTML";
+        $this->groupname = "kaiwakiloumoku";
+        $this->extractPatterns = ['//div[contains(@class, "large-8")]//h1 | //div[contains(@class, "large-8")]//p'];
+        $this->semanticSplit = true;
+        $this->replaceChars = [
+            '“' => '"',
+            '”' => '"',
+            '‘' => "'",
+            '’' => "'",
+        ];
+    }
+
+    private function makeAbsoluteUrl($url) {
+        if (preg_match('/^https?:\/\//', $url)) {
+            return $url;
+        }
+        return rtrim($this->domain, '/') . $url;
+    }
+
+    public function getDocumentList() {
+        $this->funcName = "getDocumentList";
+        $this->print( "" );
+        $dom = $this->getDomForDiscovery( $this->baseurl );
+        if (!$dom) {
+            return [];
+        }
+        $xpath = new DOMXpath($dom);
+        $query = '//div[@class="grid-x"]//div[contains(@class, "large-12")]';
+        $divs = $xpath->query( $query );
+        $moolelo = [];
+        $pages = [];
+
+        foreach ($divs as $div) {
+            $links = $xpath->query('.//a', $div);
+            if ($links->length === 0) {
+                continue;
+            }
+            $link = $links->item(0);
+            $href = $this->makeAbsoluteUrl($link->getAttribute('href'));
+            $title = trim($link->nodeValue);
+            
+            if (empty($title)) continue;
+
+            $descriptionNode = $xpath->query('.//text()[normalize-space()]', $div);
+            $description = '';
+            if ($descriptionNode->length > 1) {
+                $description = trim($descriptionNode->item(1)->nodeValue);
+            }
+
+            $author = '';
+            if (preg_match('/by (.*?)\./', $description, $matches)) {
+                $author = $matches[1];
+            }
+
+            $date = '';
+            if (preg_match('/(\d{1,2} \w+ \d{4})/', $description, $matches)) {
+                $date = date('Y-m-d', strtotime($matches[1]));
+            }
+
+            $baseTitle = trim(preg_replace('/(?: - Helu \d+| - Mokuna \d+)$/', '', $title));
+            $baseHref = preg_replace('/(?:-helu-\d+|-mokuna-\d+)$/', '', $href);
+
+            if (!isset($moolelo[$baseHref])) {
+                $moolelo[$baseHref] = [
+                    'sourcename' => $this->basename . ": " . $baseTitle,
+                    'url' => $href,
+                    'title' => $baseTitle,
+                    'image' => '',
+                    'author' => $author,
+                    'date' => $date,
+                    'groupname' => $this->groupname,
+                    'chapters' => [],
+                ];
+            }
+            $moolelo[$baseHref]['chapters'][] = ['title' => $title, 'url' => $href];
+        }
+
+        foreach ($moolelo as $story) {
+            if (empty($story['title'])) continue;
+            $pages[] = $story;
+        }
+        
+        // Cache the document list for getDocumentPageUrls
+        $this->documentCache = [];
+        foreach ($pages as $doc) {
+            $chapterUrls = [];
+            if (!empty($doc['chapters'])) {
+                foreach ($doc['chapters'] as $chapter) {
+                    $chapterUrls[] = $chapter['url'];
+                }
+            } else {
+                $chapterUrls[] = $doc['url'];
+            }
+            // Map all URLs within a document to the same list of chapter URLs
+            foreach ($chapterUrls as $url) {
+                $this->documentCache[$url] = $chapterUrls;
+            }
+        }
+
+        return $pages;
+    }
+
+    protected function getDocumentPageUrls($initialUrl) {
+        $this->funcName = "getDocumentPageUrls";
+        $this->print($initialUrl);
+
+        // If the cache isn't populated, run getDocumentList to build it.
+        if ($this->documentCache === null) {
+            $this->print("Cache miss, running getDocumentList()");
+            $this->getDocumentList();
+        }
+
+        if (isset($this->documentCache[$initialUrl])) {
+            $urls = $this->documentCache[$initialUrl];
+            $this->print(count($urls) . " URLs found in cache for $initialUrl");
+            return $urls;
+        }
+
+        $this->print("URL not found in cache, returning initial URL.");
+        return [$initialUrl];
+    }
+
+    public function extractMetadata( $dom = null ) {
+        if (!$dom) $dom = $this->dom;
+        $xpath = new DOMXpath($dom);
+        $titleNode = $xpath->query('//h1[contains(@class, "entry-title")]')->item(0);
+        if ($titleNode) {
+            $this->metadata['title'] = $titleNode->nodeValue;
+        }
+        $this->metadata['sourcename'] = "{$this->basename}: {$this->metadata['title']}";
+    }
+
+    public function replaceChars( $text ) {
+        foreach ($this->replaceChars as $from => $to) {
+            $text = str_replace($from, $to, $text);
+        }
+        return $text;
+    }
+
+    public function splitSentences( $paragraphs ) {
+        $this->funcName = "splitSentences";
+        $this->print( count($paragraphs) . " paragraphs" );
+        $text = ($paragraphs && count($paragraphs) > 0) ? implode( " ", $paragraphs ) : "";
+        $this->debugPrint( strlen($text) . " characters" );
+        if( empty( $text ) ) {
+            return [];
+        }
+        
+        $text = $this->replaceChars($text);
+        $text = preg_replace('/\s*\(sic\)\s*/iu', ' ', $text);
+        
+        $bracketedSentences = [];
+        $text = preg_replace_callback(
+            '/\[(.*?)\]/u',
+            function ($matches) use (&$bracketedSentences) {
+                $placeholder = "[[BRACKETED_" . count($bracketedSentences) . "]]";
+                $bracketedSentences[$placeholder] = trim($matches[1]);
+                return $placeholder;
+            },
+            $text
+        );
+
+        $text = $this->protectAbbreviations($text);
+        $lines = $this->splitLines($text);
+        
+        $finalLines = [];
+        foreach ($lines as $line) {
+            if (strpos($line, '[[BRACKETED_') !== false) {
+                foreach ($bracketedSentences as $placeholder => $sentence) {
+                    if (strpos($line, $placeholder) !== false) {
+                        $parts = explode($placeholder, $line);
+                        if (!empty(trim($parts[0]))) {
+                            $finalLines[] = trim($parts[0]);
+                        }
+                        $finalLines[] = $sentence;
+                        $line = trim($parts[1]);
+                    }
+                }
+            }
+
+            if (!empty(trim($line))) {
+                $cleaned = $this->cleanSentence($line);
+                if ($this->checkSentence($cleaned)) {
+                    $finalLines[] = $cleaned;
+                } else if (!empty($cleaned)) {
+                    $this->discarded[] = $cleaned;
+                }
+            }
+        }
+        return $finalLines;
+    }
+
+    public function splitLines( $text )  {
+        $this->funcName = "splitLines";
+        $this->print( strlen($text) . " characters in line" );
+
+        $text = preg_replace('/\s+/u', ' ', $text);
+        $text = preg_replace('/([.?!])\s/u', "$1<SPLIT_MARKER>", $text);
+        $text = preg_replace('/([.?!"])\s/u', "$1<SPLIT_MARKER>", $text);
+
+        return array_values(array_filter(array_map('trim', explode('<SPLIT_MARKER>', $text))));
+    }
+
+    protected function protectAbbreviations( $text ) {
+        return preg_replace('/\b([A-Z])\./u', '$1' . $this->placeholder, $text);
+    }
+}
+
+?>
