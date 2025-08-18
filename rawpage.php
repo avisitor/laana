@@ -1,22 +1,19 @@
 <?php
-include 'db/funcs.php';
+require_once __DIR__ . '/lib/provider.php';
+require_once __DIR__ . '/lib/utils.php';
 
 $sourceID = $_GET['id'] ?: '';
 $type = isset($_GET['simplified']) ? 'text' : 'html';
 $text = '';
 
 if( $sourceID ) {
-    $sql = "select $type from " . CONTENTS . " where sourceid = :sourceid";
-    $values = [
-        'sourceid' => $sourceID,
-    ];
-    $db = new DB();
-    $row = $db->getOneDBRow( $sql, $values );
-    if( isset($row[$type]) ) {
+    $doc = $provider->getDocument( $sourceID, $type );
+    $content = $doc['content'];
+    if( $content ) {
         if( $type == 'text' ) {
-            $text = str_replace( "\n", "<br />\n", $row[$type] );
+            $text = str_replace( "\n", "<br />\n", $content );
         } else {
-            $text = $row[$type] . "\n";
+            $text = $content . "\n";
         }
     }
 }

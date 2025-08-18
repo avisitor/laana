@@ -1,6 +1,8 @@
 <?php
 header('Content-type: text/plain');
-include '../db/funcs.php';
+require_once __DIR__ . '/../lib/provider.php';
+require_once __DIR__ . '/../lib/utils.php';
+
 $word = isset($_GET['search']) ? $_GET['search'] : "";
 $pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "any";
 $nodiacriticals = ( isset( $_REQUEST['nodiacriticals'] ) && $_REQUEST['nodiacriticals'] == 1 ) ? 1 : 0;
@@ -11,8 +13,7 @@ if( $nodiacriticals ) {
 $options['count'] = true;
 $count = 0;
 if( $word && $pattern ) {
-    $laana = new Laana();
-    $count = $laana->getMatchingSentenceCount( $word, $pattern, -1, $options );
+    $count = $provider->getMatchingSentenceCount( $word, $pattern, -1, $options );
 }
 echo "$count";
 ?>
