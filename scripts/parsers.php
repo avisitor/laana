@@ -10,6 +10,7 @@ $parsermap = [
     'kapaamoolelo' => new KaPaaMooleloHTML(),
     'baibala' => new BaibalaHTML(),
     'ehooululahui' => new EhoouluLahuiHTML(),
+    'kaiwakiloumoku' => new KaiwakiloumokuHTML(),
 ];
 $urlmap = [
     'kaulanapilina' => 'https://www.civilbeat.org/2022/05/%CA%BBo-na-mea-a-ka-limu-e-ho%CA%BBike-aku-ai-e-pili-ana-i-ko-kakou-%CA%BBaina-ma-hawai%CA%BBi/',
