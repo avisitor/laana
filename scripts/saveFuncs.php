@@ -291,7 +291,7 @@ class SaveManager {
                 return $a['sourceid'] <=> $b['sourceid'];
             });
         }
-        echo sizeof($docs) . " pages found\n...\n";
+        echo sizeof($docs) . " documents found\n...\n";
         $this->debugPrint($docs);
 
         $updates = 0;
