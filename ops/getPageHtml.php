@@ -1,5 +1,6 @@
 <?php
-include '../db/funcs.php';
+require_once __DIR__ . '/../lib/provider.php';
+require_once __DIR__ . '/../lib/utils.php';
 
 // Allow invocation over HTTP as well as from the command line
 function getParameters() {
@@ -10,7 +11,7 @@ function getParameters() {
         $params['order'] = strtolower( $_REQUEST['order'] );
         $params['page'] = isset($_REQUEST['page']) ? $_REQUEST['page'] : 0;
         $params['raw'] = isset($_REQUEST['raw']) ? $_REQUEST['raw'] : 0;
-        $params['nodiacriticals'] = isset( $_REQUEST['nodiacriticals'] ) || ($pattern == 'any') || ($pattern == 'all');
+        $params['nodiacriticals'] = isset( $_REQUEST['nodiacriticals'] ) || ($params['pattern'] == 'any') || ($params['pattern'] == 'all');
         $params['from'] = isset($_GET['from']) ? $_GET['from'] : "";
         $params['to'] = isset($_GET['to']) ? $_GET['to'] : "";
     } else {
@@ -25,13 +26,14 @@ function getParameters() {
             'raw',
         ];
         $args = getopt( "", $longopts );
-        $params['raw'] = isset( $args['raw'] ) ? true : false;
-        $params['word'] = $args['word'] ?: '';
-        $params['pattern'] = $args['pattern'] ?: '';
-        $params['order'] = $args['order'] ?: '';
-        $params['from'] = $args['from'] ?: '';
-        $params['to'] = $args['to'] ?: '';
-        $params['nodiacriticals'] = $args['nodiacriticals'] ?: 0;
+        $params['raw'] = isset( $args['raw'] );
+        $params['word'] = $args['word'] ?? '';
+        $params['pattern'] = $args['pattern'] ?? '';
+        $params['order'] = $args['order'] ?? '';
+        $params['from'] = $args['from'] ?? '';
+        $params['to'] = $args['to'] ?? '';
+        $params['page'] = $args['page'] ?? 0;
+        $params['nodiacriticals'] = $args['nodiacriticals'] ?? 0;
         if( !($params['word'] && $params['pattern']) ) {
             echo "Usage: getPageHTML.php --word SEARCHTERM --pattern PATTERN [--order ORDER] [--nodiacriticals=1] [--raw=1]\n";
             return '';
@@ -40,7 +42,7 @@ function getParameters() {
     return $params;
 }
 
-function getPage( $params ) {
+function getPage( $params, $provider ) {
     $word = $params['word'];
     $pattern = $params['pattern'];
     $order = $params['order'];
@@ -66,7 +68,6 @@ function getPage( $params ) {
     ];
     $orderBy = (isset($orders[$order])) ? $orders[$order] : '';
     debuglog( $_REQUEST );
-    $laana = new Laana();
     $output = "";
     if( $word ) {
         $replace = [
@@ -140,7 +141,8 @@ function getPage( $params ) {
         if( $to ) {
             $options['to'] = $to;
         }
-        $rows = $laana->getSentences( $word, $pattern, $page, $options );
+        $rows = $provider->getSentences( $word, $pattern, $page, $options );
+        debuglog( "getPageHTML rows: " . var_export( $rows, true ) );
         if( $raw ) {
             echo json_encode( $rows );
             return;
@@ -156,19 +158,26 @@ function getPage( $params ) {
             // mysql fulltext search returns some matches where the words of
             // the search phrase are not contiguous
             if( $stripped && !preg_match( '/' . $stripped . '/', $hawaiiantext ) ) {
+                debuglog("Skipping sentence: stripped=$stripped, hawaiiantext=$hawaiiantext");
                 //continue;
             }
             $link = isset($row['link']) ? $row['link'] : '';
             $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
-            $idlink = "<a class='fancy' href='context?id=$sentenceid&raw' target='_blank'>Context</a>";
-            $simplified = "<a class='fancy' href='context?id=$sentenceid' target='_blank'>Simplified</a>";
-            $snapshot = "<a class='fancy' href='rawpage?id=$sourceid' target='_blank'>Snapshot</a>";
+            
+            $displaySentence = ''; // Initialize a variable for the displayed sentence
             if( !$pat ) {
-                $sentence = $hawaiiantext;
+                $displaySentence = $hawaiiantext;
             } else {
-                $sentence = preg_replace($pat, $repl, $hawaiiantext );
+                $displaySentence = preg_replace($pat, $repl, $hawaiiantext );
             }
+
+            $encodedSentence = urlencode($hawaiiantext);
+            $idlink = "<a class='fancy' href='context?id=$sentenceid&raw&highlight_text=$encodedSentence' target='_blank'>Context</a>";
+            $simplified = "<a class='fancy' href='context?id=$sentenceid&highlight_text=$encodedSentence' target='_blank'>Simplified</a>";
+            $snapshot = "<a class='fancy' href='rawpage?id=$sourceid' target='_blank'>Snapshot</a>";
+            
             $haw = urlencode( $hawaiiantext );
+            $sentence = $displaySentence; // Assign to $sentence for the EOF block
             $translate = "https://translate.google.com/?sl=auto&tl=en&op=translate&text=$haw";
             $output .= <<<EOF
                   
@@ -193,7 +202,7 @@ function getPage( $params ) {
 
 $params = getParameters();
 if( $params ) {
-    getPage( $params );
+    getPage( $params, $provider );
 }
 ?>
 
