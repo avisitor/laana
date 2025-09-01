@@ -1,10 +1,13 @@
 <?php
-namespace NoiOlelo;
+namespace Noiiolelo;
 
 require_once __DIR__ . '/SearchProviderInterface.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/ElasticsearchClient.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/EmbeddingClient.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/MetadataCache.php';
+
+// For source metadata, for now
+require_once __DIR__ . '/../db/funcs.php';
 
 use HawaiianSearch\ElasticsearchClient;
 use HawaiianSearch\EmbeddingClient;
@@ -17,18 +20,22 @@ class ElasticsearchProvider implements SearchProviderInterface {
     private bool $verbose;
     private bool $quiet = true;
 
-    public function __construct() {
+    public function __construct( $options ) {
         /*
         $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
         $dotenv->load();
          */
-        $this->verbose = false;
+        $this->verbose = $options['verbose'] ?? false;
         $this->client = new ElasticsearchClient([
             'verbose' => $this->verbose,
             'quiet' => true,
         ]);
     }
 
+    public function getName(): string {
+        return "Elasticsearch";
+    }
+    
     public function print( $msg, $prefix="" ) {
         if( $this->quiet ) {
             return;
@@ -47,7 +54,10 @@ class ElasticsearchProvider implements SearchProviderInterface {
         try {
             // Note: client->search signature is (query, mode, maxResults, offset, indexName, sortOptions)
             // It does not support source filtering directly. This would need to be added to QueryBuilder.
-            $response = $this->client->search($query, $mode, $limit, $offset);
+            $response = $this->client->search($query, $mode, [
+                'k' => $limit,
+                'offset' => $offset
+            ]);
             if ($response === null) {
                 return ['hits' => [], 'total' => 0];
             }
@@ -65,38 +75,54 @@ class ElasticsearchProvider implements SearchProviderInterface {
 
     public function getDocument(string $docId, string $format = 'text'): ?array {
         $this->print( "getDocument($docId,$format)" );
-        return $this->client->getDocument( $docId );
+
+        return ($format === 'text') ? $this->client->getDocumentText( $docId ) : $this->client->getDocumentRaw( $docId );
     }
 
+    protected function documentToSentenceMode( $mode ) {
+        $pattern = $mode;
+        if( strpos($mode, 'sentence') !== false ) {
+            $this->debuglog( "documentToSentenceMode: $mode already is a sentence mode" );
+            return $mode;
+        }
+        switch ($mode) {
+            case 'phrase':
+                $mode = 'phrasesentence';
+                break;
+            case 'hybrid':
+                $mode = 'hybridsentence';
+                break;
+            case 'match':
+                $mode = 'matchsentence';
+                break;
+            case 'matchall':
+                $mode = 'matchsentence_all'; // Use the new "all words" (AND) mode.
+                break;
+            case 'regex':
+                $mode = 'regexpsentence';
+                break;
+            default:
+                $mode = 'matchsentence';
+                break;
+        }
+        $this->debuglog( "documentToSentenceMode: converted $pattern to $mode" );
+        return $mode;
+    }
+   
     public function getSentences($term, $pattern, $pageNumber = -1, $options = []) {
         $this->print( "getSentences($term, pattern: $pattern, page: $pageNumber)" );
 
-        $limit = $this->pageSize > 0 ? $this->pageSize : 10;
+        $limit = $options['limit'] ?? ($this->pageSize > 0 ? $this->pageSize : 10);
         $offset = 0;
         if ($pageNumber > 0) {
             $offset = $pageNumber * $limit;
         }
 
         // Map the pattern from getPageHtml.php to a mode understood by ElasticsearchClient's QueryBuilder.
-        $mode = 'matchsentence'; // default
-        switch ($pattern) {
-            case 'exact':
-            case 'phrase':
-                $mode = 'phrasesentence';
-                break;
-            case 'any':
-                $mode = 'matchsentence'; // Assumes 'matchsentence' is OR
-                break;
-            case 'all':
-                $mode = 'matchsentence_all'; // Assumes a mode for AND logic exists.
-                break;
-            case 'regex':
-            case 'order': // Treat 'order' as regex for now, as getPageHtml does.
-                $mode = 'regexp_sentence'; // Assumes a mode for regex on sentences.
-                break;
-        }
+        $mode = $this->documentToSentenceMode( $pattern );
 
         $sortOptions = [];
+        $orderByString = "";
         if (isset($options['orderby'])) {
             $orderByString = $options['orderby'];
             // Translate SQL-like order to ES sort array
@@ -126,19 +152,28 @@ class ElasticsearchProvider implements SearchProviderInterface {
             }
         }
 
-        $rawResults = $this->client->search($term, $mode, $limit, $offset, null, $sortOptions);
+        $rawResults = $this->client->search($term, $mode, [
+            'k' => $limit,
+            'offset' => $offset,
+            'sort' => $sortOptions,
+            'sentence_highlight' => true,
+        ]);
         $this->print( "getSentences: using mode='$mode', got " . count($rawResults ?: []) . " results" );
 
         $formattedResults = [];
         if ($rawResults && is_array($rawResults)) {
             foreach ($rawResults as $hit) {
+                if( $this->verbose ) {
+                    echo "ElasticsearchProvider getSentences: " . json_encode( $hit ) . "\n";
+                }
                 $formattedResults[] = [
                     "sentenceid" => $hit["_id"], // This needs to be unique, will be fixed in ElasticsearchClient
                     "sourcename" => $hit["sourcename"] ?? 'unknown',
                     "authors" => is_array($hit["authors"]) ? implode(', ', $hit["authors"]) : ($hit["authors"] ?? ""),
                     "sourceid" => $hit["sourceid"] ?? $hit["_id"] ?? "",
                     "date" => $hit["date"] ?? "",
-                    "hawaiiantext" => trim($hit["text"] ?? ''),
+                    //"hawaiiantext" => trim($hit["text"] ?? ''),
+                    "hawaiiantext" => trim($hit["highlighted_text"] ?? ''),
                     "link" => ""
                 ];
             }
@@ -149,8 +184,10 @@ class ElasticsearchProvider implements SearchProviderInterface {
     }
 
     public function getMatchingSentenceCount( $term, $pattern, $pageNumber = -1, $options = [] ) {
-        $this->print( "getMatchingSentenceCount($term,$pattern,$pageNumber)" );
-        return  $this->client->getMatchingSentenceCount( $term, $pattern );
+        $pattern = $this->documentToSentenceMode( $pattern );
+        $this->print( "getMatchingSentenceCount($term,$pattern)" );
+        $this->debuglog( "getMatchingSentenceCount($term,$pattern)" );
+        return $this->client->getMatchingSentenceCount( $term, $pattern );
     }
 
     public function getSourceMetadata(): array {
@@ -198,39 +235,14 @@ class ElasticsearchProvider implements SearchProviderInterface {
     }
 
     public function getCorpusStats(): array {
-        $this->print( "getCorpusStats" );
-        try {
-            $params = [
-                'index' => $this->index,
-                'body' => [
-                    'size' => 0,
-                    'aggs' => [
-                        'total_docs' => ['value_count' => ['field' => 'doc_id']],
-                        'avg_hawaiian_ratio' => ['avg' => ['field' => 'hawaiian_word_ratio']],
-                        'date_range' => ['stats' => ['field' => 'date']]
-                    ]
-                ]
-            ];
-
-            $response = $this->client->search($params);
-            $aggs = $response['aggregations'] ?? [];
-            
-            return [
-                'total_documents' => $aggs['total_docs']['value'] ?? 0,
-                'average_hawaiian_ratio' => $aggs['avg_hawaiian_ratio']['value'] ?? 0,
-                'date_range' => $aggs['date_range'] ?? []
-            ];
-        } catch (\Exception $e) {
-            error_log("Failed to get corpus stats: " . $e->getMessage());
-            return [];
-        }
+        return $this->client->getCorpusStats();
     }
 
     public function getTotalSourceGroupCounts(): array
     {
         try {
             $params = [
-                'index' => $this->index,
+                'index' => $this->client->getIndexName(),
                 'body' => [
                     'size' => 0,
                     'aggs' => [
@@ -244,7 +256,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
                 ]
             ];
 
-            $response = $this->client->search($params);
+            $response = $this->client->getRawClient()->search($params);
             $buckets = $response['aggregations']['by_group']['buckets'] ?? [];
             
             $counts = [];
@@ -270,15 +282,101 @@ class ElasticsearchProvider implements SearchProviderInterface {
     public function getAvailableSearchModes(): array
     {
         return [
-            'matchsentence' => 'Match words anywhere in sentences', 
-            'phrasesentence' => 'Match exact phrase in sentences',
-            'termsentence' => 'Match one word',
-            'hybridsentence' => 'Hybrid keyword + semantic search on sentences',
+            'match' => 'Match words anywhere in sentences', 
+            'matchall' => 'Match all words anywhere in sentences', 
+            'phrase' => 'Match exact phrase in sentences',
+            'term' => 'Match one word',
+            'hybrid' => 'Hybrid keyword + semantic search on sentences',
         ];
     }
 
     public function getLatestSourceDates(): array
     {
         return $this->client->getLatestSourceDates();
+    }
+
+    public function providesHighlights(): bool
+    {
+        // The elastic search client provides highlights for matches
+        return true;
+    }
+
+    public function providesNoDiacritics(): bool
+    {
+        // The elastic search client provides support for diacritic insensitivity
+        return true;
+    }
+    public function formatLogMessage( $msg, $intro = "" )
+    {
+        if( is_object( $msg ) || is_array( $msg ) ) {
+            $msg = var_export( $msg, true );
+        }
+        $defaultTimezone = 'Pacific/Honolulu';
+        $now = new \DateTimeImmutable( "now", new \DateTimeZone( $defaultTimezone ) );
+        $now = $now->format( 'Y-m-d H:i:s' );
+        $out = "$now " . $_SERVER['SCRIPT_NAME'];
+        if( $intro ) {
+            $out .= " $intro:";
+        }
+        return "$out $msg";
+   }
+    
+    public function debuglog( $msg, $intro = "" )
+    {
+        $msg = $this->formatLogMessage( $msg, $intro );
+        error_log( "$msg\n" );
+    }
+
+    public function checkStripped( $hawaiianText ) {
+        return true;
+    }
+
+    public function processText( $hawaiiantext ) {
+        // Replace elastic search highlight markup with our own
+        $text = str_replace( ['<mark>', '</mark>'], ['<span class="match">', '</span>'], $hawaiiantext );
+        //echo "processText: converted |$hawaiiantext| to |$text|\n";
+        return $text;
+    }
+    
+    public function normalizeString( $term ) {
+        $a = array( 'ō', 'ī', 'ē', 'ū', 'ā', 'Ō', 'Ī', 'Ē', 'Ū', 'Ā', '‘', 'ʻ' );
+        $b = array('o', 'i', 'e', 'u', 'a', 'O', 'I', 'E', 'U', 'A', '', '' );
+        return str_replace($a, $b, $term);
+    }
+    
+    // Mapping between mysql search modes and elastic search modes for pattern matching
+    public function normalizeMode( $mode ) {
+        return $mode;
+    }
+
+    // Fix this
+    public function getRandomWord() {
+        return $this->client->getRandomWord();
+    }
+
+    public function getSourceGroupCounts() {
+        return $this->client->getTotalSourceGroupCounts();
+    }
+
+    public function getSources( $groupname ) {
+        $sources = $this->client->getAllRecords( $this->client->getSourceMetadataName() );
+        return array_column( $sources, "_source" );
+    }
+
+    public function getSentencesBySourceID( $sourceid ) {
+        $sentences = $this->client->getSentencesBySourceID( $sourceid );
+        return $sentences;
+    }
+
+    public function getSource( $sourceid ) {
+        return $this->client->getDocumentOutline( $sourceid );
+    }
+
+    public function getText( $sourceid ) {
+        return $this->client->getDocumentText( $sourceid );
+    }
+    
+    public function getRawText( $sourceid ) {
+        return $this->client->getDocumentRaw( $sourceid );
     }
 }
