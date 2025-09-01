@@ -9,31 +9,51 @@ function getParameters() {
         $params['word'] = $_REQUEST['word'];
         $params['pattern'] = strtolower( $_REQUEST['pattern'] );
         $params['order'] = strtolower( $_REQUEST['order'] );
-        $params['page'] = isset($_REQUEST['page']) ? $_REQUEST['page'] : 0;
-        $params['raw'] = isset($_REQUEST['raw']) ? $_REQUEST['raw'] : 0;
-        $params['nodiacriticals'] = isset( $_REQUEST['nodiacriticals'] ) || ($params['pattern'] == 'any') || ($params['pattern'] == 'all');
-        $params['from'] = isset($_GET['from']) ? $_GET['from'] : "";
-        $params['to'] = isset($_GET['to']) ? $_GET['to'] : "";
+        $params['page'] = $_REQUEST['page'] ?? 0;
+        $params['raw'] = $_REQUEST['raw'] ?? 0;
+        $params['nodiacriticals'] = isset( $_REQUEST['nodiacriticals'] ) ||
+                                    ($params['pattern'] == 'any') ||
+                                    ($params['pattern'] == 'match') ||
+                                    ($params['pattern'] == 'all');
+        $params['from'] = $_GET['from'] ?? "";
+        $params['to'] = $_GET['to'] ?? "";
+        $params['limit'] = $_GET['limit'] ?? 20;
+        $params['verbose'] = 0;
+        if( isset( $_REQUEST['provider'] ) ) {
+            $params['provider'] = $_REQUEST['provider'];
+        }
     } else {
         $longopts = [
             "word:",
             "pattern:",
             'order:',
             'page:',
-            'nodiacriticals:',
+            'nodiacriticals',
             'from:',
             'to:',
             'raw',
+            'verbose',
+            'limit:',
+            'provider:',
         ];
         $args = getopt( "", $longopts );
         $params['raw'] = isset( $args['raw'] );
         $params['word'] = $args['word'] ?? '';
         $params['pattern'] = $args['pattern'] ?? '';
-        $params['order'] = $args['order'] ?? '';
+        $params['order'] = $args['order'] ?? 'source';
         $params['from'] = $args['from'] ?? '';
         $params['to'] = $args['to'] ?? '';
         $params['page'] = $args['page'] ?? 0;
-        $params['nodiacriticals'] = $args['nodiacriticals'] ?? 0;
+        $params['limit'] = $args['limit'] ?? 20;
+        $params['verbose'] = isset($args['verbose']);
+        if( isset( $args['provider'] ) ) {
+            $params['provider'] = $args['provider'];
+        }
+        $params['nodiacriticals'] = isset( $args['nodiacriticals'] ) ||
+                                    ($params['pattern'] == 'any') ||
+                                    ($params['pattern'] == 'match') ||
+                                    ($params['pattern'] == 'all');
+
         if( !($params['word'] && $params['pattern']) ) {
             echo "Usage: getPageHTML.php --word SEARCHTERM --pattern PATTERN [--order ORDER] [--nodiacriticals=1] [--raw=1]\n";
             return '';
@@ -42,20 +62,7 @@ function getParameters() {
     return $params;
 }
 
-function getPage( $params, $provider ) {
-    $word = $params['word'];
-    $pattern = $params['pattern'];
-    $order = $params['order'];
-    $page = $params['page'];
-    $nodiacriticals = $params['nodiacriticals'];
-    $raw = $params['raw'];
-    $from = $params['from'];
-    $to = $params['to'];
-    
-    // For some reason infiniteScroll skips the requests for the first two pages
-    if( $page >= 2 ) {
-        $page -= 2;
-    }
+function getOrderBy( $order ) {
     $orders = [
         'alpha' => "hawaiianText",
         'rand' => 'rand()',
@@ -66,89 +73,40 @@ function getPage( $params, $provider ) {
         'date' => 'date,hawaiianText',
         'date desc' => 'date desc,hawaiianText',
     ];
-    $orderBy = (isset($orders[$order])) ? $orders[$order] : '';
-    debuglog( $_REQUEST );
+    $orderBy = $orders[$order] ?? '';
+    return $orderBy;
+}
+
+function getPage( $params, $provider ) {
+    $word = $params['word'];
+    //$pattern = $provider->normalizeMode( $params['pattern'] );
+    $pattern = $params['pattern'];
+    $page = $params['page'];
+    // For some reason infiniteScroll skips the requests for the first two pages
+    if( $page >= 2 ) {
+        $page -= 2;
+    }
+    $orderBy = getOrderBy( $params['order'] );
     $output = "";
     if( $word ) {
-        $replace = [
-            /*
-               "/a|ā|Ā/" => "‘|ʻ*[aĀā]",
-               "/e|ē|Ē/" => "‘|ʻ*[eĒē]",
-               "/i|ī|Ī/" => "‘|ʻ*[iĪī]",
-               "/o|ō|Ō/" => "‘|ʻ*[oŌō]",
-               "/u|ū|Ū/" => "‘|ʻ*[uŪū]",
-             */
-            "/a|ā|Ā/" => "ʻ*[aĀā]",
-            "/e|ē|Ē/" => "ʻ*[eĒē]",
-            "/i|ī|Ī/" => "ʻ*[iĪī]",
-            "/o|ō|Ō/" => "ʻ*[oŌō]",
-            "/u|ū|Ū/" => "ʻ*[uŪū]",
+        $options = [
+            'nodiacriticals' => $params['nodiacriticals'],
+            'orderby' => $orderBy,
+            'from' => $params['from'],
+            'to' => $params['to'],
+            'limit' => $params['limit'],
+            'sentence_highlight' => true,
         ];
-        $repl = "<span>$1</span>";
-        $target = ($nodiacriticals) ? normalizeString( $word ) :  $word;
-        //$target = normalizeString( $word );
-        if( $pattern != 'exact' && $pattern != 'regex' ) {
-            $target = str_replace( 'ʻ', 'ʻ*', $target );
-        }
-        $targetwords = preg_split( "/[\s]+/",  $target );
-        $tw = '';
-        $pat = '';
-        $stripped = '';
-        if( $pattern == 'exact' || $pattern == 'regex' ) {
-            $target = preg_replace( '/^‘/', '', $target );
-        }
-        if( $pattern == 'exact' ) {
-            $tw = "\\b$target\\b";
-        } else if( $pattern == 'any' || $pattern == 'all' ) {
-            $quoted = preg_match( '/^".*"$/', $target );
-            if( $quoted ) {
-                $stripped = preg_replace( '/^"/', '', $target );
-                $stripped = preg_replace( '/"$/', '', $stripped );
-                $tw = '\\b' . $stripped . '\\b';
-            } else {
-                $tw = '\\b' . implode( '\\b|\\b', $targetwords ) . '\\b';
-            }
-        } else if( $pattern == 'order' ) {
-            $tw = '\\b' . implode( '\\b.*\\b', $targetwords ) . '\\b';
-        } else if( $pattern == 'regex' ) {
-            $tw = str_replace( "[[:>:]]", "\\b",
-                               str_replace("[[:<:]]", "\\b", $target) );
-        }
-        if( $tw ) {
-            $expanded = "/(" . preg_replace( array_keys( $replace ),
-                                             array_values( $replace ),
-                                             $tw ) . ")/ui";
-            
-            $pat = "/(" . $tw . ")/ui";
-            if( $pattern != 'exact' && $pattern != 'regex' ) {
-                $pat = $expanded;
-            }
-            $repl = '<span class="match">$1</span>';
-            debuglog( "getPageHTML highlight: target=$target, pat=$pat, repl=$repl");
-        } else {
-            debuglog( "getPageHTML highlight: nothing to match" );
-        }
-        $options = [];
-        if( $nodiacriticals ) {
-            $options['nodiacriticals'] = true;
-        }
-        if( $orderBy ) {
-            $options['orderby'] = $orderBy;
-        }
-        if( $from ) {
-            $options['from'] = $from;
-        }
-        if( $to ) {
-            $options['to'] = $to;
+        if( $params['verbose'] ) {
+            echo "Call getSentences($word,$pattern,$page," . json_encode($options) . ")\n";
         }
         $rows = $provider->getSentences( $word, $pattern, $page, $options );
-        debuglog( "getPageHTML rows: " . var_export( $rows, true ) );
-        if( $raw ) {
-            echo json_encode( $rows );
-            return;
-        }
+        $provider->debuglog( "getPageHTML rows: " . var_export( $rows, true ) );
         foreach( $rows as $row ) {
-            //debuglog( "getPageHTML source: " . var_export( $row, true ) );
+            //$provider->debuglog( "getPageHTML source: " . var_export( $row, true ) );
+            if( $params['verbose'] ) {
+                echo json_encode( $row ) . "\n";
+            }
             $source = $row['sourcename'];
             $sentenceid = $row['sentenceid'];
             $authors = $row['authors'];
@@ -157,19 +115,14 @@ function getPage( $params, $provider ) {
             $hawaiiantext = $row['hawaiiantext'];
             // mysql fulltext search returns some matches where the words of
             // the search phrase are not contiguous
-            if( $stripped && !preg_match( '/' . $stripped . '/', $hawaiiantext ) ) {
-                debuglog("Skipping sentence: stripped=$stripped, hawaiiantext=$hawaiiantext");
+            if( !$provider->checkStripped( $hawaiiantext ) ) {
                 //continue;
             }
             $link = isset($row['link']) ? $row['link'] : '';
             $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
             
-            $displaySentence = ''; // Initialize a variable for the displayed sentence
-            if( !$pat ) {
-                $displaySentence = $hawaiiantext;
-            } else {
-                $displaySentence = preg_replace($pat, $repl, $hawaiiantext );
-            }
+            // Need to mark up the sentence and replace diacritics?
+            $displaySentence = $provider->processText( $hawaiiantext );
 
             $encodedSentence = urlencode($hawaiiantext);
             $idlink = "<a class='fancy' href='context?id=$sentenceid&raw&highlight_text=$encodedSentence' target='_blank'>Context</a>";
@@ -179,7 +132,12 @@ function getPage( $params, $provider ) {
             $haw = urlencode( $hawaiiantext );
             $sentence = $displaySentence; // Assign to $sentence for the EOF block
             $translate = "https://translate.google.com/?sl=auto&tl=en&op=translate&text=$haw";
-            $output .= <<<EOF
+            if( $params['raw'] ) {
+                echo "\n" . json_encode( $row, JSON_PRETTY_PRINT ) . "\n";
+                echo "$sentence\n";
+                echo "\n$link | rawpage?id=$sourceid | context?id=$sentenceid&raw&highlight_text=$encodedSentence | context?id=$sentenceid&highlight_text=$encodedSentence | $translate\n";
+            } else {
+                $output .= <<<EOF
                   
             <div class="hawaiiansentence">
               <p class='title'>$sentence</p>
@@ -195,6 +153,7 @@ function getPage( $params, $provider ) {
             </div>
             <hr>
  EOF;
+            }
         }
     }
     echo $output;
@@ -202,7 +161,23 @@ function getPage( $params, $provider ) {
 
 $params = getParameters();
 if( $params ) {
-    getPage( $params, $provider );
+    print_r( $params );
+    $providerName = $params['provider'] ?? 'Elasticsearch';
+    if( !in_array( $providerName, ['Elasticsearch', 'Laana'] ) ) {
+        echo "Invalid provider name; must be Elasticsearch or Laana\n";
+    } else {
+        $provider = getProvider( $providerName );
+        if( $_REQUEST && sizeof($_REQUEST) > 0 ) {
+            $provider->debuglog( $_REQUEST, '_REQUEST' );
+        }
+        $modes = array_keys( $provider->getAvailableSearchModes() );
+        if( !in_array( $params['pattern'], $modes ) ) {
+            echo "Invalid search mode for this provider; must be one of " . json_encode(  $modes ) . "\n";
+            $provider->debuglog( "Invalid search mode for provider $providerName; must be one of " . json_encode(  $modes ) );
+        } else {
+            getPage( $params, $provider );
+        }
+    }
 }
 ?>
 
