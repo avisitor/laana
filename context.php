@@ -24,18 +24,29 @@
         require_once __DIR__ . '/lib/provider.php';
         require_once __DIR__ . '/lib/utils.php';
 
+        function debugFile( $filename, $text ) {
+            //file_put_contents($ilename, $text);
+        }
+        
+        $provider = getProvider();
         $sentenceID = $_GET['id'] ?: '';
+        $parts = explode( "_", $sentenceID );
+        if( sizeof($parts) > 1 ) {
+            $documentID = $parts[0];
+        } else {
+            $documentID = $sentenceID;
+        }
         $raw = isset($_GET['raw']) ? 1 : 0;
         $highlightText = isset($_GET['highlight_text']) ? urldecode($_GET['highlight_text']) : '';
 
-        if( $sentenceID ) {
-            $doc = $provider->getDocument( $sentenceID );
+        if( $documentID ) {
+            $doc = $provider->getDocument( $documentID );
             if( $doc ) {
                 $sentence = $doc['text'] ?? ''; // Assuming 'text' holds the sentence content
                 $sourceid = $doc['doc_id'] ?? ''; // Assuming 'doc_id' is the source ID
                 $sourcename = $doc['sourcename'] ?? ''; // Assuming 'sourcename' is available
 
-                debuglog( "context: $sentenceID=$sentence" );
+                $provider->debuglog( "context: $documentID=$sentence" );
                 if( $raw ) {
                     $classtext = "";
                     $titletext = "";
@@ -75,8 +86,8 @@
                         $debugMessage .= "Highlighting debug: strippedHighlightTextForMatching (hex) = " . bin2hex($strippedHighlightTextForMatching) . "\n";
                         $debugMessage .= "Highlighting debug: normalizedDocumentText (partial hex) = " . bin2hex(mb_substr($normalizedDocumentText, 0, 500)) . "\n"; // Log partial normalized text
                         
-                        file_put_contents($strippedHighlightTextFile, $strippedHighlightTextForMatching);
-                        file_put_contents($normalizedDocumentTextFile, $normalizedDocumentText);
+                        debugFile($strippedHighlightTextFile, $strippedHighlightTextForMatching);
+                        debugFile($normalizedDocumentTextFile, $normalizedDocumentText);
 
                         $regexPattern = preg_quote($strippedHighlightTextForMatching, '/');
                         $regexPattern = str_replace(' ', '\\s+', $regexPattern); // Allow multiple spaces
@@ -86,15 +97,15 @@
                         // Check if the pattern matches in the normalized text
                         $matchFound = preg_match($regexPattern, $normalizedDocumentText, $matches);
                         $debugMessage .= "Highlighting debug: preg_match result = " . ($matchFound ? "Match found: " . bin2hex($matches[0]) : "No match") . "\n";
-                        file_put_contents($debugLogFile, $debugMessage, FILE_APPEND);
+                        debugFile($debugLogFile, $debugMessage, FILE_APPEND);
 
                         if ($matchFound) {
                             // Replace in the original $originalDocumentText using the flexible regex
                             $text = preg_replace( $regexPattern, '<p id="start" class="highlight">' . 
                                                             $highlightText . '</p>', $originalDocumentText, 1 ); // Limit to 1 replacement
-                            file_put_contents($debugLogFile, "Highlighting debug: Replacement performed using flexible regex on original text.\n", FILE_APPEND);
+                            debugFile($debugLogFile, "Highlighting debug: Replacement performed using flexible regex on original text.\n", FILE_APPEND);
                         } else {
-                            file_put_contents($debugLogFile, "Highlighting debug: No replacement performed.\n", FILE_APPEND);
+                            debugFile($debugLogFile, "Highlighting debug: No replacement performed.\n", FILE_APPEND);
                             $text = $originalDocumentText; // Revert to original if no highlight
                         }
                     } else {
