@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hawaiian Document Review</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>Hawaiian Document Review</h1>
+                <div class="document-info">
+                    <div class="info-item">
+                        <label>Title:</label>
+                        <span id="document-title">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Group:</label>
+                        <select id="group-selector" class="group-selector">
+                            <option value="">Loading groups...</option>
+                        </select>
+                    </div>
+                    <div class="info-item">
+                        <label>Source ID:</label>
+                        <span id="document-sourceid">-</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Controls -->
+        <div class="navigation">
+            <div class="nav-controls">
+                <button id="prev-btn" class="nav-btn">← Previous</button>
+                <div class="sourceid-input-container">
+                    <input type="text" id="sourceid-input" placeholder="Enter or search source ID..." autocomplete="off">
+                    <div id="typeahead-dropdown" class="typeahead-dropdown"></div>
+                    <div class="sourceid-slider-container">
+                        <input type="range" id="sourceid-slider" class="sourceid-slider" min="0" max="100" value="0">
+                        <div class="slider-labels">
+                            <span id="slider-min-label">1</span>
+                            <span id="slider-max-label">100</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="next-btn" class="nav-btn">Next →</button>
+                <button id="view-toggle-btn" class="nav-btn view-toggle">📄 Full Text</button>
+            </div>
+            <div class="progress-info">
+                <span id="progress-text">Loading documents...</span>
+            </div>
+        </div>
+
+        <!-- Document Content -->
+        <main class="main-content">
+            <div id="document-container" class="document-container">
+                <div id="document-content" class="document-content">
+                    <div class="loading">Loading document content...</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="spinner"></div>
+            <p>Loading documents...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
