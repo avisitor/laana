@@ -8,6 +8,7 @@ $count = $_POST['count'];
 $order = $_POST['order'];
 $elapsed = $_POST['elapsed'];
 if( $search && $searchpattern && isset($count) ) {
+    $provider = getProvider();
     $provider->logQuery( [
         'searchterm' => $search,
         'pattern' => $searchpattern,
