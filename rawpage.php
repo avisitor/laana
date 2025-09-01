@@ -2,13 +2,15 @@
 require_once __DIR__ . '/lib/provider.php';
 require_once __DIR__ . '/lib/utils.php';
 
+$provider = getProvider();
 $sourceID = $_GET['id'] ?: '';
 $type = isset($_GET['simplified']) ? 'text' : 'html';
 $text = '';
 
 if( $sourceID ) {
     $doc = $provider->getDocument( $sourceID, $type );
-    $content = $doc['content'];
+    $provider->debuglog( "rawpage doc for $sourceID: " . var_export( $doc, true ) );
+    $content = $doc['content'] ?? $doc['text'] ?? '';
     if( $content ) {
         if( $type == 'text' ) {
             $text = str_replace( "\n", "<br />\n", $content );
