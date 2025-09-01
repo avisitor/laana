@@ -1,9 +1,15 @@
 <?php
 require_once __DIR__ . '/lib/provider.php';
-require_once __DIR__ . '/lib/utils.php';
+$providerName = $_GET['provider'] ?? 'Elasticsearch';
+$provider = getProvider( $providerName );
+//require_once __DIR__ . '/lib/utils.php';
 $word = isset($_GET['search']) ? $_GET['search'] : "";
-$normalizedWord = normalizeString( $word );
-$pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "any";
+$normalizedWord = $provider->normalizeString( $word );
+$pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "";
+if( !$pattern ) {
+    $modes = $provider->getAvailableSearchModes();
+    $pattern = array_keys( $modes )[0];
+}
 $from = isset($_GET['from']) ? $_GET['from'] : "";
 $to = isset($_GET['to']) ? $_GET['to'] : "";
 $groupname = isset($_GET['group']) ? $_GET['group'] : "";
@@ -17,7 +23,7 @@ $doResources = isset( $_GET['resources'] );
 $nodiacriticals = ( isset( $_REQUEST['nodiacriticals'] ) && $_REQUEST['nodiacriticals'] == 1 ) ? 1 : 0;
 $nodiacriticalsparam = ($nodiacriticals) ? "&nodiacriticals=1" : "";
 $order = isset($_GET['order']) ? $_GET['order'] : "rand";
-debuglog( "pattern: $pattern; word: $word; order: $order; nodiacriticals: $nodiacriticals" );
+$provider->debuglog( "pattern: $pattern; word: $word; order: $order; nodiacriticals: $nodiacriticals" );
 $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 //error_log( var_export( $_SERVER, true ) );
 ?>
@@ -290,7 +296,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
          let startTime = new Date();
          let url;
          let count = 0;
-         url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}&order=<?=$order?>&from=<?=$from?>&to=<?=$to?><?=$nodiacriticalsparam?>';
+         url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}&order=<?=$order?>&from=<?=$from?>&to=<?=$to?><?=$nodiacriticalsparam?>&provider=<?=$provider->getName()?>';
          let $container = $('.sentences').infiniteScroll({
              path: url,
              history: false,
