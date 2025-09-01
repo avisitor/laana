@@ -1,9 +1,11 @@
 <?php
 
-namespace NoiOlelo;
+namespace Noiiolelo;
 
 interface SearchProviderInterface
 {
+    public function getName(): string;
+    
     /**
      * Performs a search query.
      * @return array ['hits' => [], 'total' => 0]
@@ -38,4 +40,32 @@ interface SearchProviderInterface
      * @return array
      */
     public function getAvailableSearchModes(): array;
+
+    public function providesHighlights(): bool;
+
+    public function providesNoDiacritics(): bool;
+
+    public function formatLogMessage( $msg, $intro = "" );
+    
+    public function debuglog( $msg, $intro = "" );
+
+    public function normalizeString( $term );
+
+    public function normalizeMode( $mode );
+
+    public function checkStripped( $hawaiianText );
+
+    public function processText( $hawaiianText );
+
+    public function getRandomWord();
+
+    public function getSourceGroupCounts();
+    
+    public function getSource( $sourceid );
+    
+    public function getText( $sourceid );
+    
+    public function getRawText( $sourceid );
+    
+    public function getSentencesBySourceID( $sourceid );
 }
