@@ -93,6 +93,10 @@ class HtmlParse {
         "text-align:",
         "margin-bottom:",
         "Vote Hawaii's Best",
+        "Javascript",
+        "Internet",
+        "Scripting",
+        "Warning",
     ];
     // Skip a sentence consisting entirely of one of these
     protected $skipMatches = [
@@ -1313,11 +1317,11 @@ class UlukauHTML extends NupepaHTML {
 // documents from there, but we have them in our database
 class KaPaaMooleloHTML extends HtmlParse {
     private $basename = "Ka Paa Moolelo";
-    private $domain = "https://www2.hawaii.edu/~kroddy/";
+    private $domain = "https://web.archive.org/web/20160215022435/https://www2.hawaii.edu/~kroddy/";
     protected $baseurls = [
-        "https://www2.hawaii.edu/~kroddy/moolelo/papa_kaao.htm",
-        "https://www2.hawaii.edu/~kroddy/moolelo/papa_moolelo.htm",
-        "https://www2.hawaii.edu/~kroddy/moolelo/kaao_unuhiia.htm",
+        "https://web.archive.org/web/20160215022435/https://www2.hawaii.edu/~kroddy/moolelo/papa_kaao.htm",
+        "https://web.archive.org/web/20160215022435/https://www2.hawaii.edu/~kroddy/moolelo/papa_moolelo.htm",
+        "https://web.archive.org/web/20160215022435/https://www2.hawaii.edu/~kroddy/moolelo/kaao_unuhiia.htm",
     ];
     public function __construct( $options = [] ) {
         parent::__construct($options);
@@ -1362,7 +1366,7 @@ class KaPaaMooleloHTML extends HtmlParse {
     public function getDocumentList() {
         $pages = [];
         // Return an empty list to prevent crawling
-        return $pages;
+        //return $pages;
         foreach( $this->baseurls as $url ) {
             $pages = array_merge( $pages, $this->getOneDocumentList( $url ) );
         }
@@ -1405,57 +1409,356 @@ class BaibalaHTML extends HtmlParse {
         $this->urlBase = trim( $this->domain, "/" );
         $this->baseurl =
             "https://baibala.org/cgi-bin/bible?e=d-1off-01994-bible--00-1-0--01994v2-0--4--Sec---1--1en-Zz-1-other---20000-frameset-search-browse----011-01994v1--210-0-2-escapewin&cl=&d=NULL.2.1.1&cid=&bible=&d2=1&toc=0&gg=text#a1-";
-        $this->semanticSplit = true; // Use semantic splitting
+        $this->semanticSplit = false; // Use element-based splitting to preserve <br> structure
         $this->logName = "BaibalaHTML";
         $this->groupname = "baibala";
         $this->extractPatterns = ['//td', '//body'];
     }
     
+    public function splitLines( $text )  {
+        $this->funcName = "splitLines";
+        $this->print( strlen($text) . " characters in line" );
+        
+        // Split on <br> tags for Baibala content - handle both <br> and <br />
+        $lines = preg_split('/<br\s*\/?>/i', $text);
+        
+        // Clean up each line and also split chapter titles from verses
+        $cleanedLines = [];
+        foreach ($lines as $line) {
+            $line = trim(strip_tags($line));
+            if (empty($line)) continue;
+            
+            // Check if this line contains a chapter title followed by verse content
+            if (preg_match('/^(MOKUNA\s+[IVXLCDM]+\.?)\s+(.+)$/', $line, $matches)) {
+                // Split into chapter title and verse content
+                $cleanedLines[] = trim($matches[1]); // Chapter title only
+                $cleanedLines[] = trim($matches[2]); // Verse content
+            } else {
+                $cleanedLines[] = $line;
+            }
+        }
+        
+        return $cleanedLines;
+    }
+    
+    public function checkElement( $p ) {
+        $this->funcName = "checkElement";
+        if ($p->nodeName === 'br') {
+            return '';
+        }
+        // For Baibala, preserve <br> tags in the text instead of stripping all HTML
+        $html = $p->ownerDocument->saveHTML($p);
+        // Keep only <br> tags (including <br />, <br/>, <br>), strip everything else
+        $text = strip_tags($html, '<br>');
+        
+        // Decode HTML entities to preserve ¶ and other special characters
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
+        // Filter out navigation elements - only keep cells that contain biblical content
+        $trimmedText = trim($text);
+        
+        // Skip cells that are likely navigation (short text without verse numbers or content)
+        if (strlen($trimmedText) < 10) {
+            return '';
+        }
+        
+        // Skip cells that contain only navigation text
+        $navigationPatterns = [
+            'Baibala (full bible)',
+            'Old Testament',
+            'New Testament',
+            'Genesis',
+            'Exodus',
+            'Leviticus',
+            // Add other book names as needed
+        ];
+        
+        foreach ($navigationPatterns as $pattern) {
+            if (strpos($trimmedText, $pattern) !== false && strlen($trimmedText) < 50) {
+                return '';
+            }
+        }
+        
+        return $trimmedText;
+    }
+    
+    protected function DOMToStringArray( $contents ) {
+        $this->funcName = "DOMToStringArray";
+        $count = count($contents);
+        $this->print( "$count elements" );
+        $paragraphs = [];
+        
+        for ($idx = 0; $idx < $count; $idx++) {
+            $node = $contents[$idx];
+            if (!($node instanceof DOMNode)) {
+                $this->debugPrint("Skipping non-DOMNode at index $idx");
+                continue;
+            }
+            
+            // For Baibala, we need to handle mixed content in table cells
+            $html = $node->ownerDocument->saveHTML($node);
+            
+            // Extract different types of content separately
+            $this->extractBaibalaContent($html, $paragraphs);
+        }
+        
+        return $paragraphs;
+    }
+    
+    protected function extractBaibalaContent($html, &$paragraphs) {
+        // Create DOM from the HTML to analyze structure
+        $dom = $this->getDOMFromString('<div>' . $html . '</div>');
+        if (!$dom) return;
+        
+        $xpath = new DOMXpath($dom);
+        
+        // Remove navigation links first (book/chapter links)
+        $navLinks = $xpath->query('//a[contains(@href, "d=NULL") and contains(@target, "main")]');
+        foreach ($navLinks as $link) {
+            $link->parentNode->removeChild($link);
+        }
+        
+        // Get the cleaned HTML after removing navigation
+        $cleanedHtml = $dom->saveHTML();
+        
+        // Now process to separate titles and add line breaks
+        // Replace <p><span>TITLE</span></p> with <br />TITLE<br />
+        $cleanedHtml = preg_replace('/<p[^>]*><span[^>]*>([^<]+)<\/span><\/p>/', "<br />$1<br />", $cleanedHtml);
+        
+        // Strip all remaining HTML tags except <br>
+        $content = strip_tags($cleanedHtml, '<br>');
+        
+        // Clean up the content
+        $content = trim($content);
+        $content = html_entity_decode($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
+        // Remove navigation patterns like "Acts Acts 1"
+        $content = preg_replace('/\b([A-Za-z]+)\s+\1\s+\d+\b/', '', $content);
+        
+        // Clean up extra whitespace
+        $content = preg_replace('/\s+/', ' ', $content);
+        $content = preg_replace('/\s*<br\s*\/?>\s*/', "<br />", $content);
+        
+        if (!empty($content) && strlen($content) > 10) {
+            $paragraphs[] = $content;
+        }
+    }
+    
     public function extractMetadata( $dom = null ) {
         if (!$dom) $dom = $this->dom;
-        $this->metadata['title'] = $this->documentname;
+        $this->metadata['title'] = $this->metadata['title'] ?? $this->documentname;
         $this->metadata['sourcename'] = $this->documentname;
         $this->metadata['date'] = '2012-01-01';
     }
     
     public function getDocumentList() {
         $this->funcName = "getDocumentList";
-        $this->print( "" );
-        // It's a single document
-        $pages[] = [
-            'sourcename' => $this->documentname,
-            'url' => $this->baseurl,
-            'title' => $this->documentname,
-            'image' => '',
-            'author' => '',
-            'groupname' => $this->groupname,
-        ];
-        return $pages;
-    }
-
-    protected function getDocumentPageUrls($initialUrl) {
-        $urls = [];
-        $currentUrl = $initialUrl;
-        $processedUrls = [];
-        while ($currentUrl && !in_array($currentUrl, $processedUrls)) {
-            $urls[] = $currentUrl;
-            $processedUrls[] = $currentUrl;
-            $html = $this->getRaw($currentUrl, false);
-            if (!$html) break;
-            $dom = $this->getDOMFromString($html);
+        $this->print("Fetching dynamic document list from overview page");
+        
+        $overviewUrl = "https://baibala.org/cgi-bin/bible";
+        $pages = [];
+        
+        try {
+            // Extract the main frame content from overview page
+            $mainFrameContent = $this->extractOverviewFrameContent($overviewUrl);
+            if (!$mainFrameContent) {
+                $this->print("Failed to extract main frame content, falling back to static list");
+                return $this->getStaticDocumentList();
+            }
+            
+            // Parse the main frame content to extract book links
+            $dom = $this->getDOMFromString($mainFrameContent);
+            if (!$dom) {
+                $this->print("Failed to parse main frame HTML, falling back to static list");
+                return $this->getStaticDocumentList();
+            }
+            
             $xpath = new DOMXpath($dom);
-            $nextNode = $xpath->query('//a[contains(@class, "right")]')->item(0);
-            if ($nextNode) {
-                $href = $nextNode->getAttribute('href');
-                if ($href && $href !== '#') {
-                    $currentUrl = $this->urlBase . "/" . ltrim($href, '/');
+            
+            // Find all book links in the table
+            $bookLinks = $xpath->query('//table//td[@class="booklinkbox"]//a[@target="_blank"]');
+            
+            if (!$bookLinks || $bookLinks->length === 0) {
+                $this->print("No book links found, falling back to static list");
+                return $this->getStaticDocumentList();
+            }
+            
+            $this->print("Found " . $bookLinks->length . " book links");
+            
+            foreach ($bookLinks as $link) {
+                $href = $link->getAttribute('href');
+                $titleText = trim($link->textContent);
+                
+                if (empty($href) || empty($titleText)) {
+                    continue;
                 }
+                
+                // Convert relative URL to absolute
+                if (strpos($href, 'http') !== 0) {
+                    $href = $this->urlBase . $href;
+                }
+                
+                // Transform the URL to direct content access using your specification
+                $directUrl = $this->transformToDirectUrl($href);
+                if (!$directUrl) {
+                    $this->print("Failed to transform URL: " . $href);
+                    continue;
+                }
+                
+                // Extract the English title (part before the slash if present)
+                $title = $titleText;
+                if (strpos($titleText, ' / ') !== false) {
+                    $parts = explode(' / ', $titleText, 2);
+                    $title = trim($parts[0]);
+                }
+                
+                $pages[] = [
+                    'sourcename' => $this->documentname . " " . $title,
+                    'url' => $directUrl,
+                    'title' => $title,
+                    'image' => '',
+                    'author' => '',
+                    'groupname' => $this->groupname,
+                ];
             }
-            else {
-                $currentUrl = null;
+            
+            if (empty($pages)) {
+                $this->print("No valid pages extracted, falling back to static list");
+                return $this->getStaticDocumentList();
             }
+            
+            $this->print("Successfully extracted " . count($pages) . " books from overview page");
+            return $pages;
+            
+        } catch (Exception $e) {
+            $this->print("Exception occurred: " . $e->getMessage() . ", falling back to static list");
+            return $this->getStaticDocumentList();
         }
-        return $urls;
+    }
+    
+    protected function transformToDirectUrl($originalUrl) {
+        $this->print("Building direct URL from: " . $originalUrl);
+        
+        // Extract only the d parameter from the original URL
+        $dParameter = null;
+        if (preg_match('/[&?]d=([^&]*)/', $originalUrl, $matches)) {
+            $dParameter = $matches[1];
+            $this->print("Extracted d parameter: " . $dParameter);
+        } else {
+            $this->print("No d parameter found in original URL");
+            return null;
+        }
+        
+        // Build the URL with exact parameter order as specified
+        $baseUrl = "https://baibala.org/cgi-bin/bible";
+        $eParameter = "d-1off-01994-bible--00-1-0--01994v2-0--4--Sec---1--1en-Zz-1-other---20000-home-main-home----011-01994v1--210-0-2-utfZz-8";
+        
+        $directUrl = $baseUrl . 
+            "?e=" . $eParameter .
+            "&cl=" .
+            "&d=" . $dParameter .
+            "&cid=" .
+            "&d2=1" .
+            "&toc=0" .
+            "&exp=1-" .
+            "&gg=text" .
+            "#a1-";
+        
+        $this->print("Built direct URL: " . $directUrl);
+        return $directUrl;
+    }
+    
+    protected function extractOverviewFrameContent($overviewUrl) {
+        $this->funcName = "extractOverviewFrameContent";
+        $this->print("Extracting main frame from overview page: " . $overviewUrl);
+        
+        // Fetch the overview page
+        $html = parent::getRaw($overviewUrl, false);
+        if (!$html) {
+            $this->print("Failed to fetch overview page");
+            return null;
+        }
+        
+        // Check if this is a frameset page
+        if (strpos($html, '<frameset') === false) {
+            $this->print("No frameset found in overview page");
+            return null;
+        }
+        
+        $dom = $this->getDOMFromString($html);
+        if (!$dom) {
+            $this->print("Failed to parse overview HTML");
+            return null;
+        }
+        
+        $xpath = new DOMXpath($dom);
+        
+        // Find the main frame in the frameset
+        $mainFrame = $xpath->query('//frame[@name="main"]')->item(0);
+        if (!$mainFrame) {
+            $this->print("No main frame found in overview page");
+            return null;
+        }
+        
+        $mainFrameSrc = $mainFrame->getAttribute('src');
+        if (!$mainFrameSrc) {
+            $this->print("Main frame has no src attribute");
+            return null;
+        }
+        
+        // Convert relative URL to absolute
+        if (strpos($mainFrameSrc, 'http') !== 0) {
+            $mainFrameSrc = $this->urlBase . $mainFrameSrc;
+        }
+        
+        $this->print("Fetching main frame content: " . $mainFrameSrc);
+        
+        // Fetch the main frame content
+        $mainFrameHtml = parent::getRaw($mainFrameSrc, false);
+        if (!$mainFrameHtml) {
+            $this->print("Failed to fetch main frame content");
+            return null;
+        }
+        
+        return $mainFrameHtml;
+    }
+    
+    protected function getStaticDocumentList() {
+        $this->print("Using static document list");
+        // Fallback to the original static list with correct URL format
+        $baseUrlPattern = "https://baibala.org/cgi-bin/bible?e=d-1off-01994-bible--00-1-0--01994v2-0--4--Sec---1--1en-Zz-1-other---20000-home-main-home----011-01994v1--210-0-2-utfZz-8&cl=&d={D_PARAM}&cid=&d2=1&toc=0&exp=1-&gg=text#a1-";
+        
+        $books = [
+            ['title' => 'Genesis', 'd' => 'NULL.2.1.1'],
+            ['title' => 'Exodus', 'd' => 'NULL.2.1.2'],
+            ['title' => 'Leviticus', 'd' => 'NULL.2.1.3'],
+            ['title' => 'Numbers', 'd' => 'NULL.2.1.4'],
+            ['title' => 'Deuteronomy', 'd' => 'NULL.2.1.5'],
+            ['title' => 'Joshua', 'd' => 'NULL.2.2.1'],
+            ['title' => 'Judges', 'd' => 'NULL.2.2.2'],
+            ['title' => 'Ruth', 'd' => 'NULL.2.2.3'],
+            ['title' => 'Samuel', 'd' => 'NULL.2.2.4'],
+            ['title' => 'Samuel 2', 'd' => 'NULL.2.2.5'],
+            ['title' => 'Kings', 'd' => 'NULL.2.2.6'],
+            ['title' => 'Kings 2', 'd' => 'NULL.2.2.7'],
+            ['title' => 'Chronicles', 'd' => 'NULL.2.2.8'],
+            ['title' => 'Chronicles 2', 'd' => 'NULL.2.2.9'],
+        ];
+        
+        $pages = [];
+        foreach ($books as $book) {
+            $url = str_replace('{D_PARAM}', $book['d'], $baseUrlPattern);
+            $pages[] = [
+                'sourcename' => $this->documentname . " " . $book['title'],
+                'url' => $url,
+                'title' => $book['title'],
+                'image' => '',
+                'author' => '',
+                'groupname' => $this->groupname,
+            ];
+        }
+        
+        return $pages;
     }
 }
 
