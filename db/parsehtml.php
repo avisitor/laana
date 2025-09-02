@@ -534,17 +534,51 @@ $sentence) {
         $count = count($contents);
         $this->print( "$count elements" );
         $paragraphs = [];
+        
+        // For Ulukau content with <nobr> elements, we need to concatenate fragments
+        $currentParagraph = '';
+        
         for ($idx = 0; $idx < $count; $idx++) {
             $node = $contents[$idx];
             if (!($node instanceof DOMNode)) {
                 $this->debugPrint("Skipping non-DOMNode at index $idx");
                 continue;
             }
+            
+            // Get the HTML to check for nobr elements
+            $html = $node->ownerDocument->saveHTML($node);
             $text = $this->checkElement($node);
+            
             if ($text !== '') {
-                $paragraphs[] = $text;
+                // Check if this is a nobr fragment that should be concatenated
+                if (strpos($html, '<nobr>') !== false) {
+                    // This is a nobr element - add to current paragraph
+                    if ($currentParagraph !== '') {
+                        $currentParagraph .= ' ';
+                    }
+                    $currentParagraph .= trim($text);
+                    
+                    // Check if this completes a sentence (ends with . ! ?)
+                    if (preg_match('/[.!?]\s*$/', $currentParagraph)) {
+                        $paragraphs[] = $currentParagraph;
+                        $currentParagraph = '';
+                    }
+                } else {
+                    // Regular element - finish any pending paragraph first
+                    if ($currentParagraph !== '') {
+                        $paragraphs[] = $currentParagraph;
+                        $currentParagraph = '';
+                    }
+                    $paragraphs[] = $text;
+                }
             }
         }
+        
+        // Add any remaining paragraph
+        if ($currentParagraph !== '') {
+            $paragraphs[] = $currentParagraph;
+        }
+        
         return $paragraphs;
     }
     
@@ -716,10 +750,208 @@ class TextParse extends HTMLParse {
 class UlukauLocal extends HTMLParse {
     protected $baseDir = __DIR__ . '/../ulukau';
     protected $pageListFile = "ulukau-books.json";
+    protected $boilerplatePatterns = [];
+    protected $publisherKeywords = [];
+    
     public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
         $this->semanticSplit = true;
-         $this->endMarkers[] = "No part of";
+        // Removed incorrect "No part of" end marker - copyright text should be filtered as boilerplate, not end processing
+        
+        // Enhanced boilerplate detection patterns
+        $this->boilerplatePatterns = [
+            // Copyright and publication info
+            '/No part of this book may be reproduced/u', // English copyright text
+            '/The Center provides professional and material resources necessary to address this goal/u', // Institutional description
+            '/Kuleana Kope|nona nā kuleana a pau|ʻAʻole e hana kope/u',
+            '/Hale Kuamoʻo.*University of Hawaiʻi/u',
+            '/Ka Haka ʻUla O Keʻelikōlani/u',
+            '/Paʻi ʻia e ka.*Kulanui o Hawaiʻi/u',
+            '/Hoʻopuka ʻia e ka.*Hale Kuamoʻo/u',
+            '/Hoʻopuka ʻia e/u', // Published by
+            '/Ko.*olauloa Early Education Program/u',
+            '/KA HUI SIWILA HAWAIʻI O KOʻOLAULOA/u',
+            
+            // Contact information
+            '/\(\d{3}\)\s*\d{3}-\d{4}/u', // Phone numbers
+            '/\d+ West .* Street.*Hilo.*Hawaii.*\d{5}/u', // Addresses
+            '/@.*\.edu|www\./u', // Email/web addresses
+            
+            // Author/editor credits  
+            '/Kākau a paʻi kiʻi ʻia na/u',
+            '/Hoʻokele ʻia na.*lāua/u',
+            '/Loihape ʻia na/u',
+            '/Hakulau ʻia na.*lāua/u',
+            
+            // Funding and institutional acknowledgments
+            '/ke kālā haʻawina na ka.*Pekelala/u',
+            '/ʻOihana Hoʻonaʻauao Pekelala/u',
+            '/University of Hawaiʻi Foundation/u',
+            '/Inā makemake ʻoe e kākoʻo/u',
+            
+            // Generic publisher boilerplate
+            '/Na ka Hale Kuamoʻo e hoʻomohala/u',
+            '/Ua hoʻokumu ʻia ka Hale Kuamoʻo/u',
+            '/ʻO ka Hale Kuamoʻo ke keʻena/u',
+            
+            // New patterns for book-specific content
+            '/^For .* and .* in our lives/u', // Dedication text
+            '/\.indd \d+ \d+\/\d+\/\d+ \d+:\d+:\d+ [AP]M/u', // File metadata
+            '/\w+ Book v\d+\.\d+\.indd/u', // Generic book file metadata pattern
+            '/Kamehameha Schools.*established.*\d{4}/u', // School history
+            '/Students benefit from.*classrooms/u', // Educational descriptions
+            '/What happens after.*\?/u', // Study questions
+            '/Why does.*\?/u', // Study questions
+            '/How can.*\?/u', // Study questions
+            '/He aha.*\?/u', // Hawaiian study questions
+            '/Pehea.*\?/u', // Hawaiian study questions
+            '/No ke aha.*\?/u', // Hawaiian study questions
+            '/FIVE TIPS|FIve tIPs/u', // Educational sections
+            '/kaMehaMeha PUblIshIng/u', // Publisher names
+            '/Amplifying Hawaiian Perspectives/u', // Publisher taglines
+            '/^Printed in [A-Z][a-z]+$/u', // "Printed in Korea" etc.
+            '/^ISBN:\s*\d+/u', // ISBN numbers
+            '/ISBN \d+-\d+-\d+-\d+/u', // ISBN format like "0-9760892-1-1"
+            '/He Aha Ka Mea .*Ai No Ka .*Aina Awakea\?/u', // Educational question pattern
+            '/Kuleana Kope.*\d{4}/u', // Copyright with year
+            
+            // Enhanced patterns for severely corrupted text formatting
+            '/^[A-Z\s]{20,}$/u', // Lines of mostly uppercase letters and spaces
+            '/^.*A division of Kamehameha Schools.*$/u', // Publisher attribution
+            '/^.*Hale Kuamo.o.*$/u', // Publisher attribution
+            '/^[A-Z\s\']{30,}$/u', // Long strings of uppercase, spaces, and apostrophes
+            '/Printed in [A-Z][a-z]+\s*\$\d+\.\d+/u', // "Printed in China $14.95"
+            '/^Ho omohala ia na ka Hale Kuamo o/u', // Publishing boilerplate with spacing issues
+            '/^MALIA KRUGER.*$/u', // Corrupted author/title metadata - eliminate entirely
+            '/Inquiries should be addressed to:/u', // Contact info
+            
+            // School and institutional descriptions
+            '/Its mission: ka mālama/u', // Mission statements
+            '/Founded in \d{4}.*laboratory public charter school/u', // School founding descriptions
+            '/The school partners with community groups/u', // Partnership descriptions
+            '/The school carries the name of.*\(\d{4}–\d{2,4}\)/u', // Biographical information
+            '/.*life symbolizes integral qualities.*contemporary Native Hawaiians/u', // Cultural aspirations
+            '/aboUt thIs book.*cReatIon/u', // Book creation sections
+            '/The story was developed to create meaningful connections/u', // Educational methodology
+            '/students learned about composition.*texture/u', // Art curriculum descriptions
+            '/Haumāna were guided through.*scaffolding/u', // Teaching methodology
+            '/students endured draft after draft/u', // Process descriptions
+            '/Born was a story based on moʻokaʻao/u', // Story origin explanations
+            '/According to Kumu.*creative drawing and writing processes/u', // Teacher quotes
+            '/children discovered that the retelling/u', // Learning outcomes
+            '/Today, Kamehameha Schools is a comprehensive/u', // Current institutional descriptions
+            '/Kamehameha Schools also provides.*additional students/u', // Services descriptions
+            '/no ke kUla$/u', // Section headers
+            
+            // Song book specific patterns
+            '/^SONG TO HAWAIIAN\.$/u', // English song titles
+            '/HAWAIIAN MISSION CHILDREN\'S SOCIETY/u', // Organization names
+            '/^The wind from over the sou$/u', // English song lyrics start
+            '/^Sing\'s sweetly aloha to me$/u', // English song lyrics
+            '/^The waves as they fall on the sand$/u', // English song lyrics
+            '/^[A-Z][A-Z ]+\.$/', // All caps titles like "PUA MELEKULE."
+            
+            // Academic/institutional publishing patterns
+            '/Historical Society \d+ [A-Z][a-z]+ Street/u', // Street addresses
+            '/Hawaiian Historical Society/u', // Organization names
+            '/Hawaiʻi and the Pacific Islands\./u', // Geographic descriptions
+            '/CommitteeHawaiian Historical/u', // Committee variations
+            '/For this assistance we thank [A-Z][a-z]+/u', // Acknowledgment patterns
+            '/We are grateful to Dr\./u', // Gratitude expressions
+            '/Hawaiian language newspapers carried out by/u', // Research descriptions
+            '/withfunding from the University/u', // Funding acknowledgments
+            '/Hawai-ian Historical Society\./u', // Society references with hyphens
+            '/Honolulu, Hawaiʻi \d{5}/u', // City, state, zip format
+            '/Photographer unknown\./u', // Photo credits
+            '/Courtesy [A-Z][a-z]+ [A-Z]\. [A-Z][a-z]+\./u', // Courtesy credits
+            '/Hawaiian Language Reprint/u', // Publication series
+            '/Foundation$/u', // Foundation names
+            '/Committee$/u', // Committee names
+            '/Publications$/u', // Publication departments
+            '/ACKNOWLEDGMENTS/u', // Section headers
+            '/FOREWORD/u', // Section headers
+            '/INTRODUCTION/u', // Section headers
+            '/FOR FURTHER STUDY/u', // Bibliography sections
+            '/Ph\.D\. dissertation/u', // Academic citations
+            '/University Press/u', // Publisher names
+            '/Originally published:/u', // Reprint citations
+            '/Manuscript in Library of Congress/u', // Archive references
+            '/Hawaiian Journal of History/u', // Journal names
+            '/Associated University Presses/u', // Publisher names
+            '/^\d{2}—\d{2}\.$/u', // Page ranges like "27—42."
+            '/^\[\d{4}—\d{2}\]$/u', // Year ranges in brackets
+            '/^Page$/u', // Page headers
+            '/^Date$/u', // Date headers
+            '/palapala mele\/sheet music/u', // Sheet music references
+            '/^Ka [A-Z][a-z]+ \d{2}-\d{2}-\d{4}$/u', // Hawaiian newspaper citations with dates
+            '/^ʻaoʻao inoa mele paʻi ʻia ma lā$/u', // Hawaiian citation format
+            '/^[A-Z][a-z]+ \d{2}-\d{2}-\d{4} \d+ [A-Z][a-z]+$/u', // Publication citations
+            '/San Francisco: [A-Z][a-z]+ and [A-Z][a-z]+ Model$/u', // Publisher citations
+            '/Honolulu: [A-Z][a-z]+ [A-Z][a-z]+, \d{4}/u', // Honolulu publisher citations
+            '/Washington, D\.C\., \d{4}\.$/u', // DC publication citations
+            '/Rutland, VT: [A-Z][a-z]+ [A-Z]\. [A-Z][a-z]+/u', // Vermont publisher citations
+            '/Video, \d+ min\., \d{4}\.$/u', // Video production info
+            '/^\d+ \([A-Z][a-z]+\), \d+—\d+\.$/u', // Journal volume/page citations
+            '/\[\s*[a-z]+\s*\]$/u', // Page markers in brackets
+            '/Lāʻie: Institute for Polynesian Studies/u', // Institute citations
+            '/^Committee is assisting$/u', // Committee references
+            '/These purposes are not limited to particular/u', // Mission statements
+            '/^Membership is open to all$/u', // Membership statements
+            '/Associate$/u', // Academic titles
+            '/Curator, Hawaiian Collection/u', // Job titles
+            '/Hamilton Library, University/u', // Institution names
+            '/teacher at t$/u', // Incomplete teacher references
+            '/and [A-Z][a-z]+ [A-Z][a-z]+, with$/u', // Name lists with prepositions
+            
+            // Bishop Museum and institutional references
+            '/Bishop.*Museum/u', // Bishop Museum references
+            '/^\s*Bishop\s*\[\s*[xiv]+\s*\]\s*Museum\s*$/u', // "Bishop [ xxiii ] Museum"
+            
+            // Newspaper publication patterns
+            '/^Published in Date\s*\d*\s*[A-Z][a-z]*$/u', // "Published in Date 1 Mele"
+            '/^Ka Makaainana \d{2}-\d{2}-\d{4}\s*\d*\s*[A-Z][a-z]*$/u', // "Ka Makaainana 05-06-1895 7 Hua"
+            '/^Spencer \d{4}\s*\d*\s*[A-Z][a-z]*$/u', // "Spencer 1895 15 Aloalo"
+            '/^Nakanaela-[IVX]+ \d{4}\s*\d*\s*[A-Z][a-z\s]*$/u', // "Nakanaela-VI 1890 48 Lei"
+            '/^Ka Lei Momi \d{2}-\d{2}-\d{4}\s*[A-Z][a-z]*$/u', // "Ka Lei Momi 08-17-1893 Ka"
+            '/^Momi \d{2}-\d{2}-\d{4}.*ʻaoʻao inoa mele/u', // "Momi 08-21-1893 ʻaoʻao inoa mele paʻi ʻia ma lā Page"
+            '/Typescript edited by.*Hart.*King.*Hawaiʻi State/u', // Typescript editing credits
+            '/Archives.*Honolulu.*———\./u', // Archive citations
+            '/^[A-Z][a-z]+ O [A-Z][a-z]+$/u', // Hawaiian titles like "Nihoniho O Uwesanana"
+            '/^[A-Z][a-z]+ O Ka [A-Z][a-z]+ [A-Z][a-z]+$/u', // "Ala O Ka Mea Pohihihi"
+        ];
+        
+        $this->publisherKeywords = [
+            'Hale Kuamoʻo', 'University of Hawaiʻi', 'Kulanui o Hawaiʻi',
+            'Ka Haka ʻUla O Keʻelikōlani', 'Kuleana Kope', 'copyright',
+            'Kelepona:', 'Kelepaʻi:', 'hale kuamoo@', 'www.olelo.hawaii.edu',
+            'Kamehameha Schools', 'Princess Bernice Pauahi', 'charter school',
+            'kindergarten', 'first-grade', 'classroom', 'students', 'teachers',
+            'Koʻolauloa Early Education Program', 'KA HUI SIWILA HAWAIʻI',
+            'Hoʻopuka ʻia e', 'ISBN', 'Kaipāpaʻu', 'Aina Awakea',
+            'mission', 'founded', 'laboratory', 'curriculum', 'community groups',
+            'Paepae o Heʻeia', 'Aloha ʻĀina Health Center', 'Ulupō Heiau',
+            'Samuel Mānaiakalani Kamakau', 'genealogist', 'historian', 'legislator',
+            'composition', 'color blending', 'scaffolding', 'vocabulary', 'fluency',
+            'moʻokaʻao', 'oral tradition', 'comprehensive educational system',
+            'preschool sites', 'financial aid', 'scholarships',
+            
+            // Academic/institutional publishing keywords
+            'Historical Society', 'Foundation', 'Committee', 'Publications',
+            'acknowledgments', 'foreword', 'introduction', 'bibliography',
+            'dissertation', 'University Press', 'originally published',
+            'manuscript', 'library', 'congress', 'archives', 'journal',
+            'associated', 'presses', 'photographer', 'courtesy', 'reprint',
+            'series', 'street', 'address', 'zip', 'cover', 'photograph',
+            'assistance', 'grateful', 'thank', 'funding', 'curator', 'collection',
+            'hamilton', 'mānoa', 'associate', 'professor', 'research', 'carried out',
+            'newspapers', 'basham', 'bobbit', 'makekau', 'stillman', 'pacific islands',
+            
+            // Museum and newspaper references
+            'Bishop Museum', 'Museum', 'Archives', 'Honolulu', 'typescript',
+            'edited by', 'Ka Makaainana', 'Spencer', 'Nakanaela', 'Ka Lei Momi',
+            'Momi', 'published in', 'date', 'ʻaoʻao inoa mele', 'paʻi ʻia ma lā'
+        ];
+        
         $dir = dirname(__DIR__, 1);
         if( strpos( $dir, "worldspot.com" ) !== false ) {
             $fqdn = "noiiolelo.org";
@@ -729,7 +961,11 @@ class UlukauLocal extends HTMLParse {
         $this->urlBase = "https://" . $fqdn . "/ulukau";
         $this->groupname = "ulukau";
         $this->extractPatterns = [
+            '//div[contains(@class, "ulukaupagetextview")]//div[contains(@class, "pBodycopy")]',
+            '//div[contains(@class, "ulukaupagetextview")]//p',
+            '//div[contains(@class, "ulukaupagetextview")]//td//div',
             '//div[contains(@class, "ulukaupagetextview")]//span',
+            '//div[contains(@class, "ulukaupagetextview")]',
             '//body'
         ];
     }
@@ -774,11 +1010,440 @@ class UlukauLocal extends HTMLParse {
     public function cleanSentence( $sentence ) {
         $this->funcName = "cleanSentence";
         $sentence = parent::cleanSentence( $sentence );
+        
+        // Remove file metadata that gets appended to sentences
+        // Pattern: "Hauwahine Book v4.2.indd 3 7/9/08 3:44:03 PM" or similar
+        $sentence = preg_replace('/\s+\w+ Book v\d+\.\d+\.indd \d+ \d+\/\d+\/\d+ \d+:\d+:\d+ [AP]M.*$/u', '', $sentence);
+        
+        // Remove other file metadata patterns
+        $sentence = preg_replace('/\s+\w+\.indd \d+ \d+\/\d+\/\d+ \d+:\d+:\d+ [AP]M.*$/u', '', $sentence);
+        
+        // Fix malformed double-diacritic patterns from OCR errors
+        // Examples: "kanuiaāi" should be "kanuia ai", "huiiaāi" should be "huiia ai"
+        // Also handles cases with embedded space/quote characters: "kanuia ™i" -> "kanuia ai"
+        $sentence = preg_replace('/([aeiou])iaā.{0,3}i/u', '$1ia ai', $sentence);
+        
+        // Remove trailing section/page numbers (e.g. "49.", "50.", "53.")
+        $sentence = preg_replace('/\s+\d{1,3}\.\s*$/u', '', $sentence);
+        
+        // Remove trailing page numbers and metadata
         $pattern = '/\. {5,}[\s\x{00A0}\d]*/u';
         if (preg_match($pattern, $sentence, $matches)) {
             $sentence = preg_replace($pattern, '', $sentence);
         }
-        return $sentence;
+        
+        return trim($sentence);
+    }
+    
+    /**
+     * Check if a sentence appears to be boilerplate/publisher content
+     */
+    protected function isBoilerplate($sentence) {
+        $sentence = trim($sentence);
+        
+        // Skip very short sentences that are likely not meaningful content
+        // But be more lenient for Hawaiian content - allow shorter meaningful phrases
+        if (strlen($sentence) < 8) {
+            return true;
+        }
+        
+        // Allow short Hawaiian phrases but filter out obvious fragments
+        if (strlen($sentence) < 20) {
+            // Allow if it contains Hawaiian content indicators
+            if (preg_match('/[ʻāēīōū]|\\b(ka|ke|o|a|i|ma|no|me|lā)\\b/u', $sentence)) {
+                // But still filter out obvious English fragments
+                if (preg_match('/^(written by|illustrated by|edited by|translated by|and|by)$/i', $sentence)) {
+                    return true;
+                }
+                return false; // Allow Hawaiian content
+            }
+            return true; // Filter out other short content
+        }
+        
+        // Check against boilerplate patterns
+        foreach ($this->boilerplatePatterns as $pattern) {
+            if (preg_match($pattern, $sentence)) {
+                return true;
+            }
+        }
+        
+        // Check for addresses and street patterns more broadly
+        if (preg_match('/\d+\s+[A-Z][a-z]+.*Street/u', $sentence)) {
+            return true;
+        }
+        
+        // Check for institutional organization names
+        if (preg_match('/Hawaiian Historical Society/u', $sentence)) {
+            return true;
+        }
+        
+        // Check for geographic/institutional descriptions
+        if (preg_match('/Hawaiʻi and the Pacific Islands/u', $sentence)) {
+            return true;
+        }
+        
+        // Check for committee/organization fragment patterns
+        if (preg_match('/Committee.*Hawaiian.*Historical/u', $sentence)) {
+            return true;
+        }
+        
+        // Check for acknowledgment patterns
+        if (preg_match('/For this assistance.*thank|We are grateful.*Dr\./u', $sentence)) {
+            return true;
+        }
+        
+        // Check for funding/research patterns
+        if (preg_match('/Hawaiian language newspapers.*carried out|funding.*University/u', $sentence)) {
+            return true;
+        }
+        
+        // Check for sentences that are primarily or entirely institutional metadata
+        if (preg_match('/^\s*[A-Z][a-z]*\s*(Historical\s*)?Society.*[A-Z][a-z]+.*Street\s*$/u', $sentence)) {
+            return true;
+        }
+        
+        // Check for incomplete sentences ending with academic titles
+        if (preg_match('/teacher at t$|Associate$|Curator.*Collection$/u', $sentence)) {
+            return true;
+        }
+        
+        // Check for dedication patterns more specifically
+        if (preg_match('/^For .+? and .+? in our lives/u', $sentence)) {
+            return true;
+        }
+        
+        // Check for high concentration of publisher keywords
+        $keywordCount = 0;
+        $sentenceWords = preg_split('/\s+/u', $sentence);
+        $wordCount = count($sentenceWords);
+        
+        foreach ($this->publisherKeywords as $keyword) {
+            if (stripos($sentence, $keyword) !== false) {
+                $keywordCount++;
+            }
+        }
+        
+        // If more than 20% of the words are publisher-related, likely boilerplate
+        // Increased threshold to be less aggressive for mixed content
+        if ($wordCount > 5 && ($keywordCount / $wordCount) > 0.20) {
+            return true;
+        }
+        
+        // Check for sentences that are primarily English or mixed with lots of English
+        if ($this->isPrimarilyEnglish($sentence)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check if a sentence is primarily English rather than Hawaiian
+     */
+    protected function isPrimarilyEnglish($sentence) {
+        // Common English words that shouldn't appear in Hawaiian text
+        $englishWords = [
+            'copyright', 'university', 'foundation', 'published', 'printed',
+            'street', 'phone', 'email', 'website', 'www', 'http', 'com', 'edu',
+            'author', 'editor', 'illustrator', 'funded', 'supported', 'grant',
+            'the', 'and', 'that', 'with', 'for', 'was', 'were', 'are', 'they',
+            'have', 'from', 'this', 'what', 'when', 'where', 'how', 'why',
+            'students', 'classroom', 'school', 'teacher', 'grade', 'learning',
+            'book', 'story', 'chapter', 'page', 'text', 'lesson', 'activity',
+            'project', 'research', 'community', 'family', 'children', 'youth'
+        ];
+        
+        $englishCount = 0;
+        $totalWords = 0;
+        $words = preg_split('/\s+/u', strtolower($sentence));
+        
+        // Check for Hawaiian dialect markers that indicate this is Hawaiian content
+        $hawaiianDialectMarkers = ['ta', 'te', 'tana', 'tona', 'ta mata', 'ta alii', 'ta aina'];
+        $hasHawaiianDialect = false;
+        foreach ($hawaiianDialectMarkers as $marker) {
+            if (strpos(strtolower($sentence), $marker) !== false) {
+                $hasHawaiianDialect = true;
+                break;
+            }
+        }
+        
+        // If this has Hawaiian dialect markers (like Niihau "ta" for "ka"), don't flag as English
+        if ($hasHawaiianDialect) {
+            return false;
+        }
+        
+        foreach ($words as $word) {
+            $word = preg_replace('/[^\w]/u', '', $word); // Remove punctuation
+            if (strlen($word) > 2) { // Only count substantial words
+                $totalWords++;
+                if (in_array($word, $englishWords)) {
+                    $englishCount++;
+                }
+            }
+        }
+        
+        // If more than 50% of substantial words are English, likely not pure Hawaiian content
+        // Increased threshold to be less aggressive
+        if ($totalWords > 0 && ($englishCount / $totalWords) > 0.5) {
+            return true;
+        }
+        
+        // Also check for purely English sentences (no Hawaiian characters or patterns)
+        if (preg_match('/^[A-Za-z\s\.,\!\?\:\;\-\'\"0-9\(\)]+$/', $sentence)) {
+            // Check if it contains common Hawaiian words - if not, likely English
+            $hawaiianMarkers = ['ʻ', 'ā', 'ē', 'ī', 'ō', 'ū'];
+            $hasHawaiianMarkers = false;
+            foreach ($hawaiianMarkers as $marker) {
+                if (strpos($sentence, $marker) !== false) {
+                    $hasHawaiianMarkers = true;
+                    break;
+                }
+            }
+            
+            // Also check for Hawaiian words regardless of diacritics
+            $hawaiianWords = ['aloha', 'mahalo', 'ohana', 'keiki', 'kane', 'wahine', 'alii', 'aina', 'pono', 'mana', 'hula', 'makai', 'mauka', 'pau', 'wiki'];
+            foreach ($hawaiianWords as $hawaiianWord) {
+                if (stripos($sentence, $hawaiianWord) !== false) {
+                    $hasHawaiianMarkers = true;
+                    break;
+                }
+            }
+            
+            if (!$hasHawaiianMarkers && $totalWords > 3) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Override process method to filter out boilerplate content
+     */
+    public function process( $contents ) {
+        $this->funcName = "process";
+        $count = count($contents);
+        $this->print( "$count elements" );
+        
+        if( $count == 0 ) {
+            return [];
+        }
+        
+        $paragraphs = $this->DOMToStringArray( $contents );
+        $sentences = $this->splitSentences( $paragraphs );
+        echo "Processing " . count($sentences) . " sentences" . PHP_EOL;
+        $finalLines = [];
+        
+        $acceptedCount = 0;
+        $rejectedCount = 0;
+        $emptyCount = 0;
+        $endMarkerCount = 0;
+        
+        foreach( $sentences as $i => $line ) {
+            $originalLine = $line;
+            $line = $this->cleanSentence( $line );
+
+            if( $this->containsEndMarker( $line ) ) {
+                $endMarkerCount++;
+                break;
+            }
+
+            $line = trim($line);
+            if( strlen($line) > 0 ) {
+                // Apply boilerplate filtering - but be more lenient for page number patterns
+                $isPageNumber = preg_match('/^\d+$/', $line) || preg_match('/^Page \d+$/', $line);
+
+                if (!$this->isBoilerplate($line) && !$isPageNumber) {
+                    $line = preg_replace('/[\s\n\r]+/u', ' ', $line);
+                    $line = preg_replace('/\n+([\'ʻ])\n+/u', '$1', $line);
+                    $line = substr($line, 0, self::MAX_SENTENCE_LENGTH);
+                    $finalLines[] = $line;
+                    $acceptedCount++;
+                    // Show first few accepted sentences
+                    if($acceptedCount <= 3) {
+                        echo "ACCEPTED #$acceptedCount: " . substr($line, 0, 100) . "..." . PHP_EOL;
+                    }
+                } else {
+                    $this->discarded[] = $line;
+                    $rejectedCount++;
+                    // Show first few rejected sentences to understand the pattern
+                    if($rejectedCount <= 5) {
+                        $reason = $this->isBoilerplate($line) ? "boilerplate" : "page_number";
+                        echo "REJECTED #$rejectedCount ($reason): " . substr($line, 0, 100) . "..." . PHP_EOL;
+                    }
+                    $this->debugPrint("Discarded boilerplate: " . substr($line, 0, 100) . "...");
+                }
+            } else {
+                $emptyCount++;
+                $this->discarded[] = $line;
+                // Show what's making sentences empty
+                if($emptyCount <= 3) {
+                    echo "EMPTY #$emptyCount - original: " . substr($originalLine, 0, 100) . "..." . PHP_EOL;
+                }
+            }
+        }
+        
+        echo "FINAL RESULT: $acceptedCount accepted, $rejectedCount rejected, $emptyCount empty, $endMarkerCount end-marker" . PHP_EOL;        $this->metadata['sentence_count'] = count($finalLines);
+        $this->metadata['final_text_char_count'] = strlen(implode("\n", $finalLines));
+        
+        // If we have very few sentences left, this might be a document with no real content
+        if (count($finalLines) < 3) {
+            $this->debugPrint("Warning: Only " . count($finalLines) . " sentences remain after filtering. Document may have no substantial Hawaiian content.");
+        }
+        
+        return $finalLines;
+    }
+    
+    /**
+     * Custom splitLines method to handle numbered sentences in Ulukau content
+     */
+    public function splitLines( $text )  {
+        $this->funcName = "splitLines";
+        $this->print( strlen($text) . " characters in line" );
+        
+        // First, fix common spacing issues from source text processing
+        $text = preg_replace('/([a-z])([A-Z][a-z])/u', '$1 $2', $text); // Add space between "thatspecifically" -> "that specifically"
+        $text = preg_replace('/([a-z])([A-Z][a-z])/u', '$1 $2', $text); // Run twice to catch multiple consecutive cases
+        
+        // Fix specific known patterns that cause issues
+        $text = str_replace('thatspecifically', 'that specifically', $text);
+        $text = str_replace('counterrevo-lution', 'counterrevolution', $text);
+        $text = str_replace('QueenLiliʻuokalani', 'Queen Liliʻuokalani', $text);
+        $text = str_replace('ahe kuhi w', 'a he kuhi waiwai', $text);
+        $text = str_replace('puke, ahe', 'puke, a he', $text);
+        $text = str_replace('1895 a me', '1895, a me', $text);
+        $text = str_replace('1895,he hōʻike', '1895, he hōʻike', $text);
+        
+        // Fix Hawaiian word tokenization issues - words that got spaces inserted incorrectly
+        $text = str_replace('Po oinoa', 'Poʻoinoa', $text);
+        $text = str_replace('Pūka ina', 'Pūkaʻina', $text);
+        $text = str_replace('Ku una', 'Kuʻuna', $text);
+        $text = str_replace('Mo olelo', 'Moʻolelo', $text);
+        $text = str_replace('O opu', 'Oʻopu', $text);
+        $text = str_replace('Īlio Moo', 'Īlio Moʻo', $text);
+        $text = str_replace('Ka ao', 'Kaʻao', $text);
+        $text = str_replace(' Anae', ' ʻAnae', $text);
+        $text = str_replace('no ka Anae', 'no ka ʻAnae', $text);
+        
+        // Preserve page markers and similar bracketed content within sentences
+        // Don't split on page markers like [ xv ] or [ xxiii ] within text
+        $text = preg_replace('/\s*\[\s*([xivlcdmXIVLCDM]+)\s*\]\s*/u', ' [$1] ', $text);
+        
+        // Don't split on quotes or parenthetical content that continues a sentence
+        // Handle cases like '"text continues' where quote doesn't end the sentence
+        $preserveQuotes = [];
+        if (preg_match_all('/"[^"]*"[^.!?]*[a-z]/u', $text, $matches)) {
+            foreach ($matches[0] as $i => $match) {
+                $placeholder = "<<PRESERVE_QUOTE_$i>>";
+                $preserveQuotes[$placeholder] = $match;
+                $text = str_replace($match, $placeholder, $text);
+            }
+        }
+        
+        // Handle numbered sentences that appear in learning materials
+        // Pattern: "1 Sentence text. 2 Another sentence. 3 More text."
+        $text = preg_replace('/(\.)(\s*)(\d+\s+)/u', '$1<SENTENCE_BREAK>$3', $text);
+        
+        // Handle song titles and section breaks (lines that end with dashes or are standalone titles)
+        $text = preg_replace('/(————————————)(\s*)/u', '$1<SENTENCE_BREAK>', $text);
+        
+        // Split on sentence endings followed by capital letters, but be more conservative
+        // Don't split if there's a page marker or quote continuation
+        $text = preg_replace('/([.!?])(\s+)([A-ZĀĒĪŌŪÆØÅÑŚČŽĆẼ])(?![a-z]*\s*\[)/u', '$1<SENTENCE_BREAK>$3', $text);
+        
+        // Don't split on periods followed by lowercase (abbreviations, initials, etc.)
+        // Don't split within quotes unless there's a clear sentence ending
+        
+        // Split very long verses by splitting on line breaks that separate verses/stanzas
+        // But be more conservative - only split if there are clear verse patterns
+        $text = preg_replace('/([.!?])\s*\n\s*([A-ZĀĒĪŌŪ][a-z]+)/u', '$1<SENTENCE_BREAK>$2', $text);
+        
+        // Split on the markers we created
+        $lines = explode('<SENTENCE_BREAK>', $text);
+        
+        // Clean up each line and restore preserved content
+        $cleanedLines = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (!empty($line)) {
+                // Restore preserved quotes
+                foreach ($preserveQuotes as $placeholder => $original) {
+                    $line = str_replace($placeholder, $original, $line);
+                }
+                
+                // Remove leading numbers if they exist (like "2 " at the start)
+                $line = preg_replace('/^\d+\s+/u', '', $line);
+                
+                // Clean up excessive spacing and separators
+                $line = preg_replace('/\s+/u', ' ', $line);
+                $line = preg_replace('/^—+\s*/u', '', $line); // Remove leading dashes
+                $line = preg_replace('/\s*—+$/u', '', $line); // Remove trailing dashes
+                
+                // Fix any remaining spacing issues
+                $line = preg_replace('/\s*\[\s*([xivlcdmXIVLCDM]+)\s*\]\s*/u', ' [$1] ', $line);
+                $line = preg_replace('/\s+/u', ' ', $line); // Clean up multiple spaces
+                
+                // Apply final specific fixes
+                $line = str_replace('thatspecifically', 'that specifically', $line);
+                $line = str_replace('QueenLiliʻuokalani', 'Queen Liliʻuokalani', $line);
+                
+                if (!empty(trim($line))) {
+                    $cleanedLines[] = $line;
+                }
+            }
+        }
+        
+        return $cleanedLines;
+    }
+    
+    /**
+     * Override checkSentence to handle Hawaiian content better
+     */
+    public function checkSentence( $sentence ) {
+        $this->funcName = "checkSentence";
+        $this->log( strlen($sentence) . " characters" );
+
+        // Check for Hawaiian apostrophe (ʻokina) or regular apostrophe
+        $hasApostrophe = (strpos($sentence, "'") !== false || strpos($sentence, "ʻ") !== false);
+        
+        if( str_word_count($sentence) < $this->minWords ) {
+            return false;
+        }
+        if (preg_match_all('/[^\d\s]/u', $sentence, $matches) < 3) {
+        }
+        if (preg_match('/^No\.?[\d[:punct:]]*$/u', trim($sentence))) {
+            return false;
+        }
+        if (preg_match('/^P\.?[\d[:punct:]]*$/u', trim($sentence))) {
+            return false;
+        }
+        foreach( $this->toSkip as $pattern ) {
+            if( strpos( $sentence, $pattern ) !== false ) {
+                return false;
+            }
+        }
+        foreach( $this->skipMatches as $pattern ) {
+            if( $sentence === $pattern ) {
+                return false;
+            }
+        }
+        
+        // Return true if we have apostrophe/okina (Hawaiian text indicator)
+        if ($hasApostrophe) {
+            return true;
+        }
+        
+        // Check for Hawaiian words/patterns even without apostrophe
+        if (preg_match('/\b(ka|ke|o|a|i|ma|no|me|lā|ola|ali|aina|mau|pau|kauikeaouli|kamehameha|hawaii|honolulu|kona|maui|molokai|lanai|kohala)\b/ui', $sentence)) {
+            return true;
+        }
+        
+        // Check for Hawaiian diacritical marks
+        if (preg_match('/[āēīōūĀĒĪŌŪ]/u', $sentence)) {
+            return true;
+        }
+        
+        return false;
     }
 }
 
