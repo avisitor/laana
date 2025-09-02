@@ -5,7 +5,7 @@ class HawaiianDocumentReviewer {
         this.currentIndex = 0;
         this.currentSourceId = null;
         this.currentGroup = ''; // Currently selected group
-        this.viewMode = 'text'; // 'text', 'sentences', or 'html'
+        this.viewMode = 'text'; // 'text', 'sentences', 'html', or 'original'
         this.touchStartX = 0;
         this.touchStartY = 0;
         this.isDragging = false;
@@ -350,6 +350,83 @@ class HawaiianDocumentReviewer {
                     this.elements.documentContent.classList.remove('transitioning');
                     this.elements.documentContent.scrollTop = 0;
                 }, 150);
+            } else if (this.viewMode === 'original') {
+                // Display original document in iframe with error handling
+                const originalLink = document.link;
+                if (originalLink) {
+                    this.elements.documentContent.classList.add('transitioning');
+                    setTimeout(() => {
+                        this.elements.documentContent.innerHTML = `
+                            <div class="iframe-container">
+                                <iframe 
+                                    id="original-iframe-${document.sourceid}"
+                                    src="${originalLink}" 
+                                    style="width: 100%; height: 600px; border: 1px solid #ccc; border-radius: 4px;"
+                                    title="Original Document"
+                                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
+                                >
+                                    <p>Your browser does not support iframes. <a href="${originalLink}" target="_blank" rel="noopener noreferrer">Open original document in new tab</a></p>
+                                </iframe>
+                                <div class="iframe-fallback" style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                                    <p><strong>Original Source:</strong> <a href="${originalLink}" target="_blank" rel="noopener noreferrer">${originalLink}</a></p>
+                                    <p><em>If the iframe above doesn't load (shows blank or 404), the website may block iframe embedding. Use the button below to open in a new tab.</em></p>
+                                    <div style="margin-top: 10px;">
+                                        <a href="${originalLink}" 
+                                           target="_blank" 
+                                           rel="noopener noreferrer" 
+                                           style="background: #0984e3; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 14px;">
+                                            🔗 Open in New Tab
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Add error handling for iframe loading
+                        const iframe = document.getElementById(`original-iframe-${document.sourceid}`);
+                        let iframeLoaded = false;
+                        let hasError = false;
+                        
+                        // Track if iframe loads successfully
+                        iframe.onload = () => {
+                            iframeLoaded = true;
+                            console.log(`Iframe loaded for ${originalLink}`);
+                            
+                            // Try to detect if we can access the iframe content (CORS check)
+                            try {
+                                // This will throw an error if CORS blocks access
+                                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                                if (doc && doc.title) {
+                                    console.log(`Iframe content accessible: ${doc.title}`);
+                                }
+                            } catch (e) {
+                                console.log(`CORS restriction detected for ${originalLink}:`, e.message);
+                                // Even with CORS restrictions, the iframe might still display content
+                                // so we don't show an error unless we detect other issues
+                            }
+                        };
+                        
+                        // Handle iframe loading errors
+                        iframe.onerror = (e) => {
+                            hasError = true;
+                            console.error(`Iframe error for ${originalLink}:`, e);
+                            this.showIframeError(originalLink, document.sourceid, 'Failed to load the original document');
+                        };
+                        
+                        // Timeout to detect if iframe never loads or loads to an error page
+                        setTimeout(() => {
+                            if (!iframeLoaded && !hasError) {
+                                console.warn(`Iframe timeout for ${originalLink}`);
+                                this.showIframeError(originalLink, document.sourceid, 'Document took too long to load or returned an error');
+                            }
+                        }, 8000); // 8 second timeout
+                        
+                        this.elements.documentContent.classList.remove('transitioning');
+                        this.elements.documentContent.scrollTop = 0;
+                    }, 150);
+                } else {
+                    this.elements.documentContent.innerHTML = '<div class="empty-state">No original link available for this document</div>';
+                }
             } else {
                 // Fetch plain text document content
                 const response = await fetch(`https://noiiolelo.worldspot.org/api.php/source/${document.sourceid}/plain`);
@@ -428,17 +505,19 @@ class HawaiianDocumentReviewer {
     }
 
     toggleView() {
-        // Cycle through: text -> sentences -> html -> text
+        // Cycle through: text -> sentences -> html -> original -> text
         if (this.viewMode === 'text') {
             this.viewMode = 'sentences';
         } else if (this.viewMode === 'sentences') {
             this.viewMode = 'html';
+        } else if (this.viewMode === 'html') {
+            this.viewMode = 'original';
         } else {
             this.viewMode = 'text';
         }
         
         // Update button text and style
-        this.elements.viewToggleBtn.classList.remove('sentences-mode', 'html-mode');
+        this.elements.viewToggleBtn.classList.remove('sentences-mode', 'html-mode', 'original-mode');
         
         if (this.viewMode === 'sentences') {
             this.elements.viewToggleBtn.textContent = '📝 Sentences';
@@ -446,6 +525,9 @@ class HawaiianDocumentReviewer {
         } else if (this.viewMode === 'html') {
             this.elements.viewToggleBtn.textContent = '🌐 HTML';
             this.elements.viewToggleBtn.classList.add('html-mode');
+        } else if (this.viewMode === 'original') {
+            this.elements.viewToggleBtn.textContent = '🔗 Original';
+            this.elements.viewToggleBtn.classList.add('original-mode');
         } else {
             this.elements.viewToggleBtn.textContent = '📄 Full Text';
         }
@@ -774,6 +856,45 @@ class HawaiianDocumentReviewer {
     showError(message) {
         this.elements.documentContent.innerHTML = `<div class="error">${message}</div>`;
     }
+
+    showIframeError(originalLink, sourceid, errorMessage) {
+        const container = document.querySelector('.iframe-container');
+        if (container) {
+            const iframe = container.querySelector('iframe');
+            if (iframe) {
+                // Replace the iframe with an error message
+                iframe.style.display = 'none';
+            }
+            
+            // Add or update error message
+            let errorDiv = container.querySelector('.iframe-error');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'iframe-error';
+                container.insertBefore(errorDiv, container.firstChild);
+            }
+            
+            errorDiv.innerHTML = `
+                <div style="padding: 20px; border: 2px solid #ff6b6b; border-radius: 8px; background: #ffe0e0; margin-bottom: 15px;">
+                    <h3 style="color: #d63031; margin-top: 0;">⚠️ Cannot Display Original Document</h3>
+                    <p><strong>Error:</strong> ${errorMessage}</p>
+                    <p>The original website (${new URL(originalLink).hostname}) may be blocking iframe embedding or returned an error (like 404).</p>
+                    <div style="margin-top: 15px;">
+                        <a href="${originalLink}" 
+                           target="_blank" 
+                           rel="noopener noreferrer" 
+                           style="background: #0984e3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">
+                            🔗 Open Original Document in New Tab
+                        </a>
+                        <button onclick="navigator.clipboard.writeText('${originalLink}')" 
+                                style="background: #636e72; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                            📋 Copy Link
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }
 }
 
 // Initialize the app when DOM is loaded
@@ -792,6 +913,12 @@ Hawaiian Document Reviewer - Keyboard Shortcuts:
 Touch/Mouse:
 - Swipe left/right in the navigation area to navigate between documents
 - Document area allows full text selection without interference
+
+View Modes:
+- Full Text: Plain text content
+- Sentences: Parsed sentences with metadata
+- HTML: Original HTML markup
+- Original: Original document in iframe
 
 URL Parameters:
 - ?sourceid=12345 - Navigate directly to a specific source ID
