@@ -5,8 +5,12 @@ require_once __DIR__ . '/lib/provider.php';
 
 header('Content-Type: application/json');
 
-$provider = getProvider( 'Laana' );
-#$provider = getProvider( 'Elasticsearch' );
+// Get provider from URL parameter, default to 'Laana'
+$providerName = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'Laana';
+if (!in_array($providerName, ['Laana', 'Elasticsearch'])) {
+    error_response('Invalid provider. Must be either Laana or Elasticsearch', 400);
+}
+$provider = getProvider($providerName);
 $method = $_SERVER['REQUEST_METHOD'];
 $path = isset($_SERVER['PATH_INFO']) ? $_SERVER['PATH_INFO'] : (isset($_GET['path']) ? $_GET['path'] : '');
 if (!$path) {
