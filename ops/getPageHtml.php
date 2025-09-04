@@ -65,6 +65,7 @@ function getParameters() {
 function getOrderBy( $order ) {
     $orders = [
         'alpha' => "hawaiianText",
+        'alpha desc' => "hawaiianText desc",
         'rand' => 'rand()',
         'length' => 'length(hawaiianText),hawaiianText',
         'length desc' => 'length(hawaiianText) desc,hawaiianText',
