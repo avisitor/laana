@@ -108,6 +108,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 			<select id="select-order" class="dd-menu" value ="<?=$order?>" onchange="orderSelected(this)">
                 <option value="rand">Random</option>
                 <option value="alpha">Alphabetical</option>
+                <option value="alpha desc">Alphabetical descending</option>
                 <option value="date">By date</option>
                 <option value="date desc">By date descending</option>
                 <option value="source">By source</option>
@@ -255,6 +256,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         $sentenceCount = number_format($stats['sentence_count']);
         $sourceCount = number_format($stats['source_count']);
         $totalGroupSourceCounts = $provider->getTotalSourceGroupCounts();
+        $provider->debuglog( $totalGroupSourceCounts, "totalGroupSourceCounts" );
         $nupepaTotalCount = number_format($totalGroupSourceCounts['nupepa']);
         include 'overview.html';
     }
