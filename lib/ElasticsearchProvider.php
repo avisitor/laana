@@ -110,6 +110,17 @@ class ElasticsearchProvider implements SearchProviderInterface {
     }
    
     public function getSentences($term, $pattern, $pageNumber = -1, $options = []) {
+        // Date filtering support
+        $dateFilter = null;
+        if (!empty($options['from']) || !empty($options['to'])) {
+            $dateFilter = ['range' => ['date' => []]];
+            if (!empty($options['from'])) {
+                $dateFilter['range']['date']['gte'] = $options['from'];
+            }
+            if (!empty($options['to'])) {
+                $dateFilter['range']['date']['lte'] = $options['to'];
+            }
+        }
         $this->print( "getSentences($term, pattern: $pattern, page: $pageNumber)" );
 
         $limit = $options['limit'] ?? ($this->pageSize > 0 ? $this->pageSize : 10);
@@ -123,41 +134,70 @@ class ElasticsearchProvider implements SearchProviderInterface {
 
         $sortOptions = [];
         $orderByString = "";
+        error_log('ElasticsearchProvider getSentences: options[orderby]=' . json_encode($options['orderby'] ?? null));
         if (isset($options['orderby'])) {
             $orderByString = $options['orderby'];
-            // Translate SQL-like order to ES sort array
             $sortParts = explode(',', $orderByString);
             foreach ($sortParts as $part) {
-                $part = trim($part);
+                $part = strtolower(trim($part));
                 $direction = 'asc';
+                if ($part === '') continue;
                 if (str_ends_with($part, ' desc')) {
                     $direction = 'desc';
-                    $part = trim(str_replace(' desc', '', $part));
+                    $part = strtolower(trim(str_replace(' desc', '', $part)));
                 }
+                error_log('ElasticsearchProvider sort parsing: part=' . json_encode($part) . ', direction=' . json_encode($direction));
 
-                // Map provider field names to Elasticsearch field names
+                // Map provider field names to Elasticsearch field names and special sorts
                 switch ($part) {
-                    case 'hawaiianText':
-                        // This requires the .keyword field which is missing.
-                        // For now, we cannot sort by text.
-                        // $sortOptions[] = ['sentences.text.keyword' => ['order' => $direction, 'nested' => ['path' => 'sentences']]];
+                    case 'hawaiiantext':
+                    case 'alpha':
+                        // For sentence-level queries, use 'text.keyword' and respect direction
+                        $sortOptions['text.keyword'] = $direction;
                         break;
                     case 'sourcename':
+                    case 'source':
                         $sortOptions['sourcename'] = $direction;
                         break;
                     case 'date':
                         $sortOptions['date'] = $direction;
                         break;
+                    case 'length':
+                        $sortOptions['length'] = $direction;
+                        break;
+                    case 'rand':
+                    case 'rand()':
+                        $sortOptions['_special'] = 'random';
+                        break;
+                    case 'none':
+                        $sortOptions['_special'] = 'none';
+                        break;
+                    case 'score':
+                        $sortOptions['_special'] = 'score';
+                        break;
+                    default:
+                        if (strpos($part, 'length(hawaiiantext)') !== false) {
+                            $sortOptions['length'] = $direction;
+                        }
+                        break;
                 }
             }
+            // Debug: print sortOptions to error log
+            error_log('ElasticsearchProvider getSentences sortOptions: ' . json_encode($sortOptions));
         }
 
-        $rawResults = $this->client->search($term, $mode, [
+        $searchOptions = [
             'k' => $limit,
             'offset' => $offset,
-            'sort' => $sortOptions,
             'sentence_highlight' => true,
-        ]);
+        ];
+        if (!empty($sortOptions)) {
+            $searchOptions['sort'] = $sortOptions;
+        }
+        if (!empty($dateFilter)) {
+            $searchOptions['date_filter'] = $dateFilter;
+        }
+        $rawResults = $this->client->search($term, $mode, $searchOptions);
         $this->print( "getSentences: using mode='$mode', got " . count($rawResults ?: []) . " results" );
 
         $formattedResults = [];
@@ -240,35 +280,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
 
     public function getTotalSourceGroupCounts(): array
     {
-        try {
-            $params = [
-                'index' => $this->client->getIndexName(),
-                'body' => [
-                    'size' => 0,
-                    'aggs' => [
-                        'by_group' => [
-                            'terms' => [
-                                'field' => 'groupname',
-                                'size' => 100
-                            ]
-                        ]
-                    ]
-                ]
-            ];
-
-            $response = $this->client->getRawClient()->search($params);
-            $buckets = $response['aggregations']['by_group']['buckets'] ?? [];
-            
-            $counts = [];
-            foreach ($buckets as $bucket) {
-                $counts[$bucket['key']] = $bucket['doc_count'];
-            }
-            
-            return $counts;
-        } catch (\Exception $e) {
-            error_log("Failed to get source group counts: " . $e->getMessage());
-            return [];
-        }
+        return $this->client->getTotalSourceGroupCounts();
     }
 
     public function logQuery(array $params): void
