@@ -14,6 +14,57 @@ setDebug( true );
 //setDebug( false );
 $laana = new Laana();
 
+function extractFormatted($str) {
+    // Match the date portion: day month year
+    if (preg_match('/^(.*?):\s*(\d{4}-\d{2}-\d{2})$/', $str, $matches)) {
+        $title = trim($matches[1]);
+        $formattedDate = $matches[2];
+        return "$title: $formattedDate";
+    } else if (preg_match('/\b(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\b/', $str, $matches, PREG_OFFSET_CAPTURE)) {
+        $day = $matches[1][0];
+        $month = $matches[2][0];
+        $year = $matches[3][0];
+        $dateStr = "$day $month $year";
+
+        // Convert to YYYY-MM-DD
+        $date = DateTime::createFromFormat('j F Y', $dateStr);
+        $formattedDate = $date ? $date->format('Y-m-d') : 'Invalid date';
+
+        // Extract title before the date match
+        $titleRaw = substr($str, 0, $matches[0][1]);
+
+        // Remove trailing punctuation and weekday names
+        $title = preg_replace('/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s*$/i', '', $titleRaw);
+        $title = rtrim($title, ", ");
+        //echo "Title: $title\n";
+        //echo "Date: $formattedDate\n\n";
+        return "$title: $formattedDate";
+    } else {
+        echo "No date found in: $str\n\n";
+        return "";
+    }
+}
+
+function convertNupepaSourceNames() {
+    $groupname = 'nupepa';
+    $laana = new Laana();
+    $sources = $laana->getSources( $groupname );
+    $db = new DB();
+    foreach( $sources as $source ) {
+        $sourceid = $source['sourceid'];
+        $sourcename = $source['sourcename'];
+        $revised = extractFormatted( $sourcename );
+        if( $revised ) {
+            $sql = "update sources set sourcename = '$revised' where sourceid = $sourceid";
+            echo "$sql\n";
+            $db->executeSQL( $sql );
+        }
+    }
+}
+convertNupepaSourceNames();
+return;
+
+
 $parser = new NupepaHTML();
 $url = "https://nupepa.org/?a=d&d=KNK18630606-01.1.3&e=-------en-20--1--txt-txIN%7CtxNU%7CtxTR%7CtxTI---------0";
 $url = "https://nupepa.org/?a=d&d=KNK18630606-01.1.1&e=-------en-20--1--txt-txIN%7CtxNU%7CtxTR%7CtxTI---------0";
