@@ -1,9 +1,7 @@
 <?php
-$dir = dirname(__DIR__);
-require_once 'db/funcs.php';
+require_once __DIR__ . '/lib/provider.php';
+$provider = getProvider();
 
-$laana = new Laana();
-
-$rows = $laana->getSourceGroupCounts();
+$rows = $provider->getSourceGroupCounts();
 echo json_encode( $rows );
 ?>

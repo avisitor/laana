@@ -1,29 +1,32 @@
 #!/usr/bin/php
 <?php
-include 'funcs.php';
+include_once __DIR__ . '/parsehtml.php';
 
-$longopts = [
-    "pattern:",
-    "method:",
-    'sort:',
-];
-$args = getopt( "", $longopts );
-$pattern = isset( $args['pattern'] ) ? $args['pattern']: 'hale';
-$method = isset( $args['method'] ) ? $args['method']: 'any';
-$sort = isset( $args['sort'] ) ? $args['sort']: '';
+echo "Testing BaibalaHTML class...\n";
 
-$options = [];
-if( $sort ) {
-    $options['orderby'] = $sort;
+try {
+    $parser = new BaibalaHTML();
+    echo "BaibalaHTML instance created successfully.\n";
+    
+    $documents = $parser->getDocumentList();
+    echo "Number of documents found: " . count($documents) . "\n";
+    
+    if (count($documents) > 0) {
+        echo "First document: " . print_r($documents[0], true) . "\n";
+        
+        $testUrl = $documents[0]['url'];
+        echo "Testing URL: $testUrl\n";
+        
+        $sentences = $parser->extractSentences($testUrl);
+        echo "Number of sentences extracted: " . count($sentences) . "\n";
+        
+        // Show first few sentences for verification
+        for ($i = 0; $i < min(10, count($sentences)); $i++) {
+            echo "Sentence " . ($i + 1) . ": " . $sentences[$i] . "\n";
+        }
+    } else {
+        echo "No documents found in BaibalaHTML.\n";
+    }
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage() . "\n";
 }
-
-$laana = new Laana();
-/*
-$word = $laana->getRandomWord();
-echo "$word\n";
-return;
-*/
-$rows = $laana->getSentences( $pattern, $method, 0, $options );
-var_export( $rows );
-?>
-

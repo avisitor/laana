@@ -22,7 +22,8 @@ function printObject( $obj, $intro = '' ) {
 
 function debuglog( $msg, $intro = "" ) {
     $msg = formatLogMessage( $msg, $intro );
-    error_log( "$msg \n", 3, "/tmp/php_errorlog" );
+    //error_log( "$msg \n", 3, "/tmp/php_errorlog" );
+    error_log( $msg );
     return;
 }
 
@@ -46,8 +47,7 @@ class DB {
     }
 
     public function connect() {
-        global $dbconfig;
-	    //error_log( "connect: " . var_export( $dbconfig, true ) );
+        include( __DIR__ . '/dbconfig.php' );
         $servername = $dbconfig["servername"];
         if( isset($_SERVER['HTTP_HOST']) && $servername == $_SERVER['HTTP_HOST'] ) {
             $servername = "localhost";
@@ -74,6 +74,10 @@ class DB {
         }
     }
 
+    public function debuglog( $msg, $intro = "" ) {
+        debuglog( $msg, $intro );
+    }
+    
     public function getDBRows( $sql, $values = [] ) {
         $funcName = "getDBRows";
         debuglog( "$funcName sql: " . $sql );
@@ -291,6 +295,7 @@ class Laana extends DB {
         $countOnly = isset($options['count']) ? $options['count'] : false;
         $nodiacriticals = isset($options['nodiacriticals']) ? $options['nodiacriticals'] : false;
         $orderBy = isset($options['orderby']) ? "order by " . $options['orderby'] : '';
+        $pageSize = $options['limit'] ?? $this->pageSize;
         $normalizedTerm = normalizeString( $term );
         $search = "hawaiianText";
         $values = [];
@@ -349,15 +354,15 @@ class Laana extends DB {
         if( isset( $options['orderby'] ) && preg_match( '/^date/', $options['orderby'] ) ) {
             $sql .= ' and not isnull(date)';
         }
-        if( isset( $options['from'] ) ) {
+        if( isset( $options['from'] ) && $options['from'] ) {
             $sql .= " and date >= '" . $options['from'] . "-01-01'";
         }
-        if( isset( $options['to'] ) ) {
+        if( isset( $options['to'] ) && $options['to'] ) {
             $sql .= " and date <= '" . $options['to'] . "-12-31'";
         }
         $sql .= " $orderBy";
         if( $pageNumber >= 0 && !$countOnly ) {
-            $sql .= " limit " . $pageNumber * $this->pageSize . "," . $this->pageSize;
+            $sql .= " limit " . $pageNumber * $pageSize . "," . $pageSize;
         }
         //echo "sql: $sql, values: " . var_export( $values, true ) . "\n";
         $rows = $this->getDBRows( $sql, $values );
@@ -386,12 +391,14 @@ class Laana extends DB {
     }
     
     public function getSentencesBySourceID( $sourceid ) {
-        $sql = "select sentenceID, hawaiianText from " . SENTENCES . " where sourceID = :sourceid";
+        $sql = "select sentenceID, hawaiianText text from " . SENTENCES . " where sourceID = :sourceid";
         $values = [
             'sourceid' => $sourceid,
         ];
-        $rows = $this->getDBRows( $sql, $values );
-        return $rows;
+        $results = $this->getSource( $sourceid );
+        $results['sentences'] = $this->getDBRows( $sql, $values );
+        //echo "getSource: " . var_export( $results, true ) . "\n";
+        return $results;
     }
     
     public function getSentence( $sentenceid ) {
@@ -404,7 +411,8 @@ class Laana extends DB {
     }
     
     public function getSources( $groupname = '', $properties = [] ) {
-        $criteria = "having count > 0 ";
+        $criteria = "";
+        $criteria = "having sentencecount > 0";
         if( sizeof($properties) < 1 ) {
             $properties = ["*"];
         }
@@ -417,11 +425,11 @@ class Laana extends DB {
         $selection = implode( ",", $properties );
         if( !$groupname ) {
             //$sql = "select $selection,count(sentenceID) sentencecount from " . SOURCES . " o," . SENTENCES . " s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
-            $sql = "select $selection,count(sentenceID) sentencecount from " . SOURCES . " o left join " . SENTENCES . " s on o.sourceID = s.sourceID group by o.sourceID order by sourceName";
+            $sql = "select $selection,count(sentenceID) sentencecount from " . SOURCES . " o left join " . SENTENCES . " s on o.sourceID = s.sourceID group by o.sourceID $criteria order by sourceName";
             //echo $sql;
             $rows = $this->getDBRows( $sql );
         } else {
-            $sql = "select $selection from (select o.*,count(sentenceID) sentencecount from " . SOURCES . " o  left join " . SENTENCES . " s on o.sourceID = s.sourceID  group by o.sourceID order by date,sourceName) h where groupname = :groupname";
+            $sql = "select $selection from (select o.*,count(sentenceID) sentencecount from " . SOURCES . " o  left join " . SENTENCES . " s on o.sourceID = s.sourceID  group by o.sourceID $criteria order by date,sourceName) h where groupname = :groupname";
             $values = [
                 'groupname' => $groupname,
             ];

@@ -15,7 +15,7 @@ setDebug(true);
 $sourceid = $argv[1];
 
 // Fetch metadata for the sourceid
-$meta_url = "https://noiiolelo.org/api.php/source/$sourceid";
+$meta_url = "https://noiiolelo.worldspot.org/api.php/source/$sourceid?details";
 $meta_json = file_get_contents($meta_url);
 if ($meta_json === false) {
     fwrite(STDERR, "Failed to fetch metadata for sourceid $sourceid\n");

@@ -11,7 +11,7 @@ include_once $dir . '/db/parsehtml.php';
 include_once $dir . '/scripts/parsers.php';
 
 setDebug( true );
-//setDebug( false );
+setDebug( false );
 $laana = new Laana();
 
 function extractFormatted($str) {
@@ -45,6 +45,16 @@ function extractFormatted($str) {
     }
 }
 
+// Test cases
+$inputs = [
+    "Hawaii Holomua 1 August 1893",
+    "Hawaii Holomua 1 February 1894 Edition 02",
+    "Ka Elele Tuesday, 1 July 1845",
+    "Ka Nupepa Kuokoa Saturday, 2 May 1891",
+    "Ka Leo o ka Lahui Edition 02 Friday, 20 November 1891"
+];
+
+
 function convertNupepaSourceNames() {
     $groupname = 'nupepa';
     $laana = new Laana();
@@ -64,6 +74,46 @@ function convertNupepaSourceNames() {
 convertNupepaSourceNames();
 return;
 
+
+foreach ($inputs as $input) {
+    echo extractFormattedDate($input) . PHP_EOL;
+}
+return
+
+$parser = new EhooululahuiHTML();
+$url = 'https://ehooululahui.maui.hawaii.edu/?page_id=265';
+$parser->initialize( $url );
+show( $parser->metadata );
+//$text = $parser->getRawText( $url );
+//echo "$text\n";
+//return;
+
+$parser = new AolamaHTML();
+$url = "https://keaolama.org/2025/05/14/05-14-25/";
+$parser->initialize( $url );
+show( $parser->metadata );
+
+$parser = new CBHTML();
+$url = "https://www.civilbeat.org/2025/05/alai-ka-%ca%bbaha%ca%bbolelo-i-ko-honlulu-wahi-%ca%bbopala-i-hapai-%ca%bbia/";
+$parser->initialize( $url );
+show( $parser->metadata );
+
+$url = " https://www.staradvertiser.com/2025/06/28/editorial/kauakukalahale/column-he-kowali-he-pakaaeawili/";
+$parser = new KauakukalahaleHTML();
+$parser->initialize( $url );
+show( $parser->metadata );
+return;
+
+$parser = new AolamaHTML();
+$url = "https://keaolama.org/2025/05/14/05-14-25/";
+//$sentences = $parser->extractSentences( $url );
+
+$parser = new BaibalaHTML();
+//$text = $parser->getRawText();
+//echo "$text\n";
+$sentences = $parser->extractSentences();
+show( $sentences );
+return;
 
 $parser = new NupepaHTML();
 $url = "https://nupepa.org/?a=d&d=KNK18630606-01.1.3&e=-------en-20--1--txt-txIN%7CtxNU%7CtxTR%7CtxTI---------0";
@@ -90,7 +140,7 @@ foreach( $pageList as $sourcename => $values ) {
 }
 return;
 
-$pageList = $parser->getPageList();
+$pageList = $parser->getDocumentList();
 show( $pageList );
 return;
 
@@ -784,7 +834,7 @@ $parser->initialize( $url );
 echo "date=" . $parser->extractDate() . "\n";
 return;
 
-$pages = $parser->getPageList();
+$pages = $parser->getDocumentList();
 echo( var_export( $pages, true ) . "\n" );
 $key = array_keys( $pages[0] )[0];
 //echo "key = " . var_export( $key, true ) . "\n";
@@ -1252,7 +1302,7 @@ return;
    $pagenr++;
    }
  */
-$pages = $parser->getPageList();
+$pages = $parser->getDocumentList();
 echo( var_export( $pages, true ) . "\n" );
 return;
 
@@ -1261,7 +1311,7 @@ $sentences = $parser->extractSentences( $url );
 echo( var_export( $sentences, true ) . "\n" );
 return;
 
-$pages = $parser->getPageList();
+$pages = $parser->getDocumentList();
 echo( var_export( $pages, true ) . "\n" );
 return;
 

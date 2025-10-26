@@ -1,8 +1,15 @@
 <?php
-include 'db/funcs.php';
+require_once __DIR__ . '/lib/provider.php';
+$providerName = $_GET['provider'] ?? 'Elasticsearch';
+$provider = getProvider( $providerName );
+//require_once __DIR__ . '/lib/utils.php';
 $word = isset($_GET['search']) ? $_GET['search'] : "";
-$normalizedWord = normalizeString( $word );
-$pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "any";
+$normalizedWord = $provider->normalizeString( $word );
+$pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "";
+if( !$pattern ) {
+    $modes = $provider->getAvailableSearchModes();
+    $pattern = array_keys( $modes )[0];
+}
 $from = isset($_GET['from']) ? $_GET['from'] : "";
 $to = isset($_GET['to']) ? $_GET['to'] : "";
 $groupname = isset($_GET['group']) ? $_GET['group'] : "";
@@ -16,7 +23,7 @@ $doResources = isset( $_GET['resources'] );
 $nodiacriticals = ( isset( $_REQUEST['nodiacriticals'] ) && $_REQUEST['nodiacriticals'] == 1 ) ? 1 : 0;
 $nodiacriticalsparam = ($nodiacriticals) ? "&nodiacriticals=1" : "";
 $order = isset($_GET['order']) ? $_GET['order'] : "rand";
-debuglog( "pattern: $pattern; word: $word; order: $order; nodiacriticals: $nodiacriticals" );
+$provider->debuglog( "pattern: $pattern; word: $word; order: $order; nodiacriticals: $nodiacriticals" );
 $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 //error_log( var_export( $_SERVER, true ) );
 ?>
@@ -83,10 +90,9 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                     <td>
             <label for="searchtype">Search type:</label>
 			<select id="searchtype" class="dd-menu" onchange="patternSelected(this)">
-                <option value="any">Any</option>
-                <option value="all">All</option>
-                <option value="exact">Exact</option>
-                <option value="regex">Regex</option>
+                <?php foreach ($provider->getAvailableSearchModes() as $mode => $description) { ?>
+                    <option value="<?=$mode?>" <?=($pattern == $mode) ? 'selected' : ''?>><?=$description?></option>
+                <?php } ?>
 			</select>
                     </td>
                     <td>
@@ -102,6 +108,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 			<select id="select-order" class="dd-menu" value ="<?=$order?>" onchange="orderSelected(this)">
                 <option value="rand">Random</option>
                 <option value="alpha">Alphabetical</option>
+                <option value="alpha desc">Alphabetical descending</option>
                 <option value="date">By date</option>
                 <option value="date desc">By date descending</option>
                 <option value="source">By source</option>
@@ -122,9 +129,8 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 <?php } // !($doSources || $doResources) ?>
 
 <?php
-     $laana = new Laana();
-     $groups = $laana->getLatestSourceDates();
-     //$groupcounts = $laana->getSourceGroupCounts();
+     $groups = $provider->getLatestSourceDates();
+     //$groupcounts = $provider->getSourceGroupCounts();
      $groupdates = [];
      foreach( $groups as $group ) {
          $groupdates[$group['groupname']] = $group['date'];
@@ -186,7 +192,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
           });
           
           function showHoverBox( sourceid, s ) {
-              let url = "rawpage?id=" + sourceid;
+              let url = "rawpage.php?id=" + sourceid;
               if( s ) {
                   url += "&simplified";
               }
@@ -211,14 +217,14 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
          </thead><tbody>
 
 <?php
-             $rows = $laana->getSources( $groupname );
+             $rows = $provider->getSources( $groupname );
              //var_export( $rows );
              foreach( $rows as $row ) {
                  $source = $row['sourcename'];
                  $short = substr( $source, 0, 20 );
                  $sourceid = $row['sourceid'];
-                 $plainlink = "<a class='context fancy' sourceid='$sourceid' simplified='1' href='rawpage?simplified&id=$sourceid' target='_blank'>Plain</a>";
-                 $htmllink = "<a class='context fancy' sourceid='$sourceid' simplified='0' href='rawpage?id=$sourceid' target='_blank'>HTML</a>";
+                 $plainlink = "<a class='context fancy' sourceid='$sourceid' simplified='1' href='rawpage.php?simplified&id=$sourceid' target='_blank'>Plain</a>";
+                 $htmllink = "<a class='context fancy' sourceid='$sourceid' simplified='0' href='rawpage.php?id=$sourceid' target='_blank'>HTML</a>";
                  $authors = $row['authors'];
                  $link = $row['link'];
                  $date = $row['date'];
@@ -246,15 +252,15 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         include 'resources.html';
     } else {
         // No word, not sources, not resources
-        $laana = new Laana();
-        $sentenceCount = $sourceCount = 0;
-        $sentenceCount = number_format($laana->getSentenceCount());
-        $sourceCount = number_format($laana->getSourceCount());
-        $totalGroupSourceCounts = $laana->getTotalSourceGroupCounts();
+        $stats = $provider->getCorpusStats();
+        $sentenceCount = number_format($stats['sentence_count']);
+        $sourceCount = number_format($stats['source_count']);
+        $totalGroupSourceCounts = $provider->getTotalSourceGroupCounts();
+        $provider->debuglog( $totalGroupSourceCounts, "totalGroupSourceCounts" );
         $nupepaTotalCount = number_format($totalGroupSourceCounts['nupepa']);
         include 'overview.html';
     }
-} else {
+} else { 
     /* Word passed */
     $options = [];
     if( $nodiacriticals ) {
@@ -287,12 +293,12 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
      }
      $(document).ready(function() {
          let term = '<?=urldecode( $word )?>';
-         //term = term.replace( '"', '\\"' );
+         //term = term.replace( '"', '\"' );
          let countLoaded = false;
          let startTime = new Date();
          let url;
          let count = 0;
-         url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}&order=<?=$order?>&from=<?=$from?>&to=<?=$to?><?=$nodiacriticalsparam?>';
+         url = 'ops/getPageHtml.php?word=<?=$word?>&pattern=<?=$pattern?>&page={{#}}&order=<?=$order?>&from=<?=$from?>&to=<?=$to?><?=$nodiacriticalsparam?>&provider=<?=$provider->getName()?>';
          let $container = $('.sentences').infiniteScroll({
              path: url,
              history: false,
@@ -336,7 +342,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                      console.log('Infinite Scroll append body:%o path:%o items:%o response:%o', body, path, items, response)
                      count = items.length;
                      console.log( count + " items returned" );
-                     if( count < <?=$laana->pageSize?> ) { // Less than a page
+                     if( count < <?=$provider->pageSize?> ) { // Less than a page
                          console.log( 'Turning off loadOnScroll' );
                          this.option( {
                              //loadOnScroll : false,
@@ -349,13 +355,13 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                          const elapsedTime = new Date() - startTime;
                          startTime = new Date();
                          recordSearch( term, "<?=$pattern?>", count, "<?=$order?>", elapsedTime );
-                         if( count < <?=$laana->pageSize?> ) { // Less than a page
+                         if( count < <?=$provider->pageSize?> ) { // Less than a page
                              reportCount( count );
                              return;
                          }
                          // More than a page of results, so have to query
-                         url = 'ops/resultcount.php?search=' +
-                               '<?=$word?>&searchpattern=<?=$pattern?>';
+                         url = 'ops/resultcount.php?search='
+                               + '<?=$word?>&searchpattern=<?=$pattern?>';
                          fetch( url )
                              .then(response => response.text())
                              .then(count => {

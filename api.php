@@ -1,10 +1,16 @@
 <?php
 // REST API for sources
-require_once __DIR__ . '/db/funcs.php';
+//require_once __DIR__ . '/db/funcs.php';
+require_once __DIR__ . '/lib/provider.php';
 
 header('Content-Type: application/json');
 
-$laana = new Laana();
+// Get provider from URL parameter, default to 'Laana'
+$providerName = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'Laana';
+if (!in_array($providerName, ['Laana', 'Elasticsearch'])) {
+    error_response('Invalid provider. Must be either Laana or Elasticsearch', 400);
+}
+$provider = getProvider($providerName);
 $method = $_SERVER['REQUEST_METHOD'];
 $path = isset($_SERVER['PATH_INFO']) ? $_SERVER['PATH_INFO'] : (isset($_GET['path']) ? $_GET['path'] : '');
 if (!$path) {
@@ -27,9 +33,9 @@ if ($parts[0] === 'sources') {
     $details = isset($_REQUEST['details']);
     if( $details ) {
         $properties = ($properties) ? explode( ",", $properties ) : [];
-        $result = ['sources' => $laana->getSources($group, $properties)];
+        $result = ['sources' => $provider->getSources($group, $properties)];
     } else {
-        $result = ['sourceids' => $laana->getSourceIDs($group)];
+        $result = ['sourceids' => $provider->getSourceIDs($group)];
     }
     echo json_encode($result);
     exit;
@@ -40,23 +46,30 @@ if ($parts[0] === 'source' && isset($parts[1])) {
     if (!isset($parts[2])) {
         // GET /source/{sourceid}
         //if ($method !== 'GET') error_response('Method not allowed', 405);
-        $info = $laana->getSource($sourceid);
+        $info = $provider->getSource($sourceid);
         if (!$info) error_response('Source not found', 404);
         echo json_encode($info);
         exit;
     } elseif ($parts[2] === 'html') {
         // GET /source/{sourceid}/html
         //if ($method !== 'GET') error_response('Method not allowed', 405);
-        $html = $laana->getRawText($sourceid);
+        $html = $provider->getRawText($sourceid);
         if ($html === null) error_response('Source HTML not found', 404);
         echo json_encode(['html' => $html]);
         exit;
     } elseif ($parts[2] === 'plain') {
         // GET /source/{sourceid}/plain
         //if ($method !== 'GET') error_response('Method not allowed', 405);
-        $text = $laana->getText($sourceid);
+        $text = $provider->getText($sourceid);
         if ($text === null) error_response('Source text not found', 404);
         echo json_encode(['text' => $text]);
+        exit;
+    } elseif ($parts[2] === 'sentences') {
+        // GET /source/{sourceid}/sentences
+        //if ($method !== 'GET') error_response('Method not allowed', 405);
+        $text = $provider->getSentencesBySourceID($sourceid);
+        if ($text === null || count($text) < 1) error_response('Source sentences not found', 404);
+        echo json_encode($text);
         exit;
     } else {
         error_response('Unknown endpoint', 404);
