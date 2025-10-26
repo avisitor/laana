@@ -765,7 +765,7 @@ class Laana extends DB {
             'sourceid' => $sourceid,
         ];
         $row = $this->getOneDBRow( $sql, $values );
-        return $row['html'] ?: '';
+        return $row['html'] ?? '';
     }
     public function getText( $sourceid ) {
         $sql = "select text from " . CONTENTS . " where sourceID = :sourceid";
@@ -773,7 +773,7 @@ class Laana extends DB {
             'sourceid' => $sourceid,
         ];
         $row = $this->getOneDBRow( $sql, $values );
-        return $row['text'];
+        return $row['text'] ?? '';
     }
     public function removeContents( $sourceid ) {
         $sql = "delete from " . CONTENTS . " where sourceID = :sourceid";
