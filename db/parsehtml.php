@@ -1397,11 +1397,11 @@ class UlukauHTML extends NupepaHTML {
 // documents from there, but we have them in our database
 class KaPaaMooleloHTML extends HtmlParse {
     private $basename = "Ka Paa Moolelo";
-    private $domain = "https://www2.hawaii.edu/~kroddy/";
+    private $domain = "https://web.archive.org/web/20160215022435/https://www2.hawaii.edu/~kroddy/";
     protected $baseurls = [
-        "https://www2.hawaii.edu/~kroddy/moolelo/papa_kaao.htm",
-        "https://www2.hawaii.edu/~kroddy/moolelo/papa_moolelo.htm",
-        "https://www2.hawaii.edu/~kroddy/moolelo/kaao_unuhiia.htm",
+        "https://web.archive.org/web/20160215022435/https://www2.hawaii.edu/~kroddy/moolelo/papa_kaao.htm",
+        "https://web.archive.org/web/20160215022435/https://www2.hawaii.edu/~kroddy/moolelo/papa_moolelo.htm",
+        "https://web.archive.org/web/20160215022435/https://www2.hawaii.edu/~kroddy/moolelo/kaao_unuhiia.htm",
     ];
     public function __construct( $options = [] ) {
         parent::__construct($options);
@@ -1446,7 +1446,7 @@ class KaPaaMooleloHTML extends HtmlParse {
     public function getDocumentList() {
         $pages = [];
         // Return an empty list to prevent crawling
-        return $pages;
+        //return $pages;
         foreach( $this->baseurls as $url ) {
             $pages = array_merge( $pages, $this->getOneDocumentList( $url ) );
         }
