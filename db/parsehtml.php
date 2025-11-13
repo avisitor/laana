@@ -1699,15 +1699,141 @@ class KauakukalahaleHTML extends HtmlParse {
         return $this->updateVisibility( $text );
     }
 
+    public function getAllBlurbs() {
+        $ajaxUrl = 'https://www.staradvertiser.com/wp-content/themes/hsa-redesign/inc/ajax/load-more-posts.php'; // Replace with dynamicLoadMore.ajaxUrl
+        $archiveType = 'category';        // Replace with dynamicLoadMore.archiveType
+        $archiveSlug = 'kauakukalahale';            // Replace with dynamicLoadMore.archiveSlug
+        $nonce = '96e27be76b';      // Replace with dynamicLoadMore.nonce
+        $startPage = 0;                   // Replace with dynamicLoadMore.currentPage
+        $allHtml = '';
+
+        while (true) {
+            $postData = http_build_query([
+                'action'      => 'load_more_posts',
+                'pagenum'     => $startPage,
+                'currentPage'     => $startPage,
+                'archiveType' => $archiveType,
+                'archiveSlug' => $archiveSlug,
+                'security'    => $nonce,
+                'none'        => $nonce,
+                'ajaxUrl'     => $ajaxUrl,
+            ]);
+
+            $options = [
+                'http' => [
+                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                    'method'  => 'POST',
+                    'content' => $postData,
+                ]
+            ];
+
+            $context = stream_context_create($options);
+            $result = file_get_contents($ajaxUrl, false, $context);
+
+            if ($result === false) {
+                $this->print( "Request failed on page $startPage" );
+                break;
+            }
+
+            $response = json_decode($result, true);
+
+            if (!isset($response['success']) || !$response['success']) {
+                $this->print( "No more posts after page $startPage" );
+                break;
+            }
+
+            $allHtml .= $response['data'];
+            $this->print( "Fetched blurb segment $startPage" );
+            $startPage++;
+        }
+        return $allHtml;
+    }
+
+    public function extractPages( $htmlFragment ) {
+        // Wrap in full HTML structure with UTF-8 meta tag
+        $wrappedHtml = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Extract</title>
+</head>
+<body>
+$htmlFragment
+</body>
+</html>
+HTML;
+
+        libxml_use_internal_errors(true);
+        $dom = new DOMDocument();
+        $dom->loadHTML($wrappedHtml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $xpath = new DOMXPath($dom);
+
+        // Extract articles
+        $articles = $xpath->query('//article[contains(@class, "news-story")]');
+
+        $items = [];
+        foreach ($articles as $article) {
+            $imgurl = '';
+            $title = '';
+            $author = '';
+            $date = '';
+            $url = '';
+
+            // Image URL
+            $img = $xpath->query('.//img', $article);
+            if ($img->length > 0) {
+                $imgurl = $img->item(0)->getAttribute('src');
+            }
+
+            // Title and Article URL
+            $titleNode = $xpath->query('.//h3[contains(@class, "story-title")]//a', $article);
+            if ($titleNode->length > 0) {
+                $title = $titleNode->item(0)->getAttribute('title');
+                $title = preg_replace('/^Column:\s*/u', '', $title);
+                $url = $titleNode->item(0)->getAttribute('href');
+            }
+
+            // Author
+            $authorNode = $xpath->query('.//li[contains(@class, "custom_byline")]', $article);
+            if ($authorNode->length > 0) {
+                $author = trim(preg_replace('/^By\s*/u', '', $authorNode->item(0)->nodeValue));
+            }
+
+            // Date
+            $dateNode = $xpath->query('.//ul[contains(@class, "byline")]/li[2]', $article);
+            if ($dateNode->length > 0) {
+                $rawDate = trim($dateNode->item(0)->nodeValue);
+                $rawDate = preg_replace('/\s+/', ' ', $rawDate); // Normalize spacing
+                $dateObj = DateTime::createFromFormat('M. j, Y', $rawDate);
+                if (!$dateObj) {
+                    $dateObj = DateTime::createFromFormat('M j, Y', $rawDate); // fallback if no dot
+                }
+                $date = $dateObj ? $dateObj->format('Y-m-d') : $rawDate;
+            }
+
+            $sourcename = "Kauakukalahale: " . $date;
+            $groupname = "kauakukalahale";
+            $items[] = [
+                "title" => $title,
+                "author" => $author,
+                "date" => $date,
+                "image" => $imgurl,
+                "url" => $url,
+                "sourcename" => $sourcename,
+                "groupname" => $groupname,
+            ];
+        }
+        $this->print( "Found $items articles" );
+        return $items;
+    }
+
+    
     public function getDocumentList() {
         $this->funcName = "getDocumentList";
-        $pagenr = 1;
-        $pages = [];
-        while( ($morepages = $this->getSomePages( $pagenr )) &&
-               (sizeof($morepages) > 0) ) {
-            $pages = array_merge( $pages, $morepages );
-            $pagenr++;
-        }
+        $htmlFragment = $this->getAllBlurbs();
+
+        $pages = $this->extractPages( $htmlFragment );
         return $pages;
     }
     
