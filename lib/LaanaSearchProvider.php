@@ -25,6 +25,7 @@ class LaanaSearchProvider implements SearchProviderInterface
     public function getSources($groupname = '') { return $this->laana->getSources($groupname); }
     public function getTotalSourceGroupCounts() { return $this->laana->getTotalSourceGroupCounts(); }
     public function getSource( $sourceid ) { return $this->laana->getSource( $sourceid ); }    
+    public function getSourceIDs( $groupname ) { return $this->laana->getSourceIDs( $groupname ); }    
     public function getSentencesBySourceID( $sourceid ) { return $this->laana->getSentencesBySourceID( $sourceid ); }
     public function getText( $sourceid ) { return $this->laana->getText( $sourceid ); }
     public function getRawText( $sourceid ) { return $this->laana->getRawText( $sourceid ); }
