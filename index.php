@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/lib/provider.php';
-$providerName = $_GET['provider'] ?? 'Elasticsearch';
+$providerName = $_GET['provider'] ?? 'Laana' /*'Elasticsearch'*/;
 $provider = getProvider( $providerName );
 //require_once __DIR__ . '/lib/utils.php';
 $word = isset($_GET['search']) ? $_GET['search'] : "";

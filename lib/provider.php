@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-function getProvider( $searchProvider = 'Elasticsearch' ) {
+function getProvider( $searchProvider = 'Laana' /*'Elasticsearch'*/ ) {
     $options = [
         'verbose' => true,
     ];
