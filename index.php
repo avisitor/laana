@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/lib/provider.php';
-$providerName = $_GET['provider'] ?? 'Laana' /*'Elasticsearch'*/;
-$provider = getProvider( $providerName );
+$provider = getProvider();
 //require_once __DIR__ . '/lib/utils.php';
 $word = isset($_GET['search']) ? $_GET['search'] : "";
 $normalizedWord = $provider->normalizeString( $word );
@@ -289,7 +288,11 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
      }
      function reportCount( count ) {
          let div = document.getElementById('matchcount');
-         div.innerHTML = count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ' matching sentences';
+         if (count == -1) {
+             div.innerHTML = 'Exact count not available for this search mode';
+         } else {
+             div.innerHTML = count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ' matching sentences';
+         }
      }
      $(document).ready(function() {
          let term = '<?=urldecode( $word )?>';
@@ -361,7 +364,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                          }
                          // More than a page of results, so have to query
                          url = 'ops/resultcount.php?search='
-                               + '<?=$word?>&searchpattern=<?=$pattern?>';
+                               + '<?=$word?>&searchpattern=<?=$pattern?>&provider=<?=$provider->getName()?>';
                          fetch( url )
                              .then(response => response.text())
                              .then(count => {
