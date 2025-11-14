@@ -2,6 +2,7 @@
 namespace Noiiolelo;
 
 require_once __DIR__ . '/SearchProviderInterface.php';
+require_once __DIR__ . '/../../elasticsearch/php/vendor/autoload.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/ElasticsearchClient.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/EmbeddingClient.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/MetadataCache.php';
