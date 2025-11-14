@@ -1,7 +1,18 @@
 <?php
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../env-loader.php';
 
-function getProvider( $searchProvider = 'Laana' /*'Elasticsearch'*/ ) {
+function getProvider($searchProvider = null) {
+    // Priority: parameter > $_REQUEST > .env
+    if ($searchProvider === null) {
+        $searchProvider = $_REQUEST['provider'] ?? null;
+    }
+    
+    if ($searchProvider === null) {
+        $env = loadEnv();
+        $searchProvider = $env['PROVIDER'] ?? 'Laana';
+    }
+    
     $options = [
         'verbose' => true,
     ];
