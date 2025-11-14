@@ -77,10 +77,11 @@ class ElasticsearchProvider implements SearchProviderInterface {
         }
     }
 
-    public function getDocument(string $docId, string $format = 'text'): ?string {
+    public function getDocument(string $docId, string $format = 'text'): ?array {
         $this->print( "getDocument($docId,$format)" );
 
-        return ($format === 'text') ? $this->client->getDocumentText( $docId ) : $this->client->getDocumentRaw( $docId );
+        $content = ($format === 'text') ? $this->client->getDocumentText( $docId ) : $this->client->getDocumentRaw( $docId );
+        return $content !== null ? ['content' => $content] : null;
     }
 
     protected function documentToSentenceMode( $mode ) {
