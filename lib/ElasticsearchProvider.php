@@ -77,7 +77,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
         }
     }
 
-    public function getDocument(string $docId, string $format = 'text'): ?array {
+    public function getDocument(string $docId, string $format = 'text'): ?string {
         $this->print( "getDocument($docId,$format)" );
 
         return ($format === 'text') ? $this->client->getDocumentText( $docId ) : $this->client->getDocumentRaw( $docId );
