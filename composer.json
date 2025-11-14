@@ -1,0 +1,14 @@
+{
+  "require-dev": {
+    "phpunit/phpunit": "^10.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Noiiolelo\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit --configuration tests/phpunit.xml",
+    "test-json": "phpunit --configuration tests/phpunit.xml --log-json tests/results.json"
+  }
+}
