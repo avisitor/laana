@@ -328,7 +328,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
             'match' => 'Match words anywhere in sentences', 
             'matchall' => 'Match all words anywhere in sentences', 
             'phrase' => 'Match exact phrase in sentences',
-            'term' => 'Match one word',
+            'term' => 'Match any of the words',
             'hybrid' => 'Hybrid keyword + semantic search on sentences',
         ];
     }
