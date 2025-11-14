@@ -1700,11 +1700,32 @@ class KauakukalahaleHTML extends HtmlParse {
     }
 
     public function getAllBlurbs() {
-        $ajaxUrl = 'https://www.staradvertiser.com/wp-content/themes/hsa-redesign/inc/ajax/load-more-posts.php'; // Replace with dynamicLoadMore.ajaxUrl
-        $archiveType = 'category';        // Replace with dynamicLoadMore.archiveType
-        $archiveSlug = 'kauakukalahale';            // Replace with dynamicLoadMore.archiveSlug
-        $nonce = '96e27be76b';      // Replace with dynamicLoadMore.nonce
-        $startPage = 0;                   // Replace with dynamicLoadMore.currentPage
+        $categoryUrl = 'https://www.staradvertiser.com/category/editorial/kauakukalahale/';
+        $archiveType = 'category';
+        $archiveSlug = 'kauakukalahale';
+        
+        // Fetch the initial page to extract dynamicLoadMore config
+        $initialPage = file_get_contents($categoryUrl);
+        if ($initialPage === false) {
+            $this->print("Failed to fetch initial page");
+            return '';
+        }
+        
+        // Extract dynamicLoadMore JSON from the page
+        if (preg_match('/var dynamicLoadMore = ({[^;]+});/', $initialPage, $matches)) {
+            $config = json_decode($matches[1], true);
+            $ajaxUrl = $config['ajaxUrl'] ?? 'https://www.staradvertiser.com/wp-content/themes/hsa-redesign/inc/ajax/load-more-posts.php';
+            $nonce = $config['nonce'] ?? '';
+            $startPage = (int)($config['currentPage'] ?? 1);
+            
+            $this->print("Extracted nonce: $nonce, starting page: $startPage");
+        } else {
+            $this->print("Could not extract dynamicLoadMore config, using defaults");
+            $ajaxUrl = 'https://www.staradvertiser.com/wp-content/themes/hsa-redesign/inc/ajax/load-more-posts.php';
+            $nonce = '';
+            $startPage = 0;
+        }
+        
         $allHtml = '';
 
         while (true) {
@@ -1824,7 +1845,7 @@ HTML;
                 "groupname" => $groupname,
             ];
         }
-        $this->print( "Found $items articles" );
+        $this->print( "Found " . count($items) . " articles" );
         return $items;
     }
 
