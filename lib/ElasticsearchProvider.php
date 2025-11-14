@@ -108,8 +108,8 @@ class ElasticsearchProvider implements SearchProviderInterface {
             case 'matchall':
                 $mode = 'matchsentence_all'; // Use the new "all words" (AND) mode.
                 break;
-            case 'term':
-                $mode = 'termsentence';
+            case 'wildcard':
+                $mode = 'wildcardsentence';
                 break;
             case 'regex':
                 $mode = 'regexpsentence';
@@ -325,10 +325,10 @@ class ElasticsearchProvider implements SearchProviderInterface {
     public function getAvailableSearchModes(): array
     {
         return [
-            'match' => 'Match words anywhere in sentences', 
+            'match' => 'Match any of the words anywhere', 
             'matchall' => 'Match all words anywhere in sentences', 
             'phrase' => 'Match exact phrase in sentences',
-            'term' => 'Match any of the words',
+            'wildcard' => 'Wildcard search (use * and ?)',
             'hybrid' => 'Hybrid keyword + semantic search on sentences',
         ];
     }
