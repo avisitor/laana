@@ -108,6 +108,9 @@ class ElasticsearchProvider implements SearchProviderInterface {
             case 'matchall':
                 $mode = 'matchsentence_all'; // Use the new "all words" (AND) mode.
                 break;
+            case 'term':
+                $mode = 'termsentence';
+                break;
             case 'regex':
                 $mode = 'regexpsentence';
                 break;
