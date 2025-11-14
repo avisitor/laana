@@ -212,19 +212,37 @@ class ElasticsearchProvider implements SearchProviderInterface {
 
         $formattedResults = [];
         if ($rawResults && is_array($rawResults)) {
+            // Collect unique sourceids to fetch links in batch
+            $sourceids = array_unique(array_map(function($hit) {
+                return $hit["sourceid"] ?? "";
+            }, $rawResults));
+            $sourceids = array_filter($sourceids); // Remove empty values
+            
+            // Fetch links for all sourceids in batch
+            $links = [];
+            if (!empty($sourceids)) {
+                foreach ($sourceids as $sourceid) {
+                    $doc = $this->client->getDocument($sourceid, $this->client->getDocumentsIndexName());
+                    if ($doc) {
+                        $links[$sourceid] = $doc['link'] ?? '';
+                    }
+                }
+            }
+            
             foreach ($rawResults as $hit) {
                 if( $this->verbose && (!defined('PHPUNIT_RUNNING') || !PHPUNIT_RUNNING) ) {
                     echo "ElasticsearchProvider getSentences: " . json_encode( $hit ) . "\n";
                 }
+                $sourceid = $hit["sourceid"] ?? $hit["_id"] ?? "";
                 $formattedResults[] = [
                     "sentenceid" => $hit["_id"], // This needs to be unique, will be fixed in ElasticsearchClient
                     "sourcename" => $hit["sourcename"] ?? 'unknown',
                     "authors" => is_array($hit["authors"]) ? implode(', ', $hit["authors"]) : ($hit["authors"] ?? ""),
-                    "sourceid" => $hit["sourceid"] ?? $hit["_id"] ?? "",
+                    "sourceid" => $sourceid,
                     "date" => $hit["date"] ?? "",
                     //"hawaiiantext" => trim($hit["text"] ?? ''),
                     "hawaiiantext" => trim($hit["highlighted_text"] ?? ''),
-                    "link" => ""
+                    "link" => $links[$sourceid] ?? ""
                 ];
             }
         }
