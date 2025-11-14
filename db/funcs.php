@@ -21,9 +21,11 @@ function printObject( $obj, $intro = '' ) {
 }
 
 function debuglog( $msg, $intro = "" ) {
-    $msg = formatLogMessage( $msg, $intro );
-    //error_log( "$msg \n", 3, "/tmp/php_errorlog" );
-    error_log( $msg );
+    if (!defined('PHPUNIT_RUNNING') || !PHPUNIT_RUNNING) {
+        $msg = formatLogMessage( $msg, $intro );
+        //error_log( "$msg \n", 3, "/tmp/php_errorlog" );
+        error_log( $msg );
+    }
     return;
 }
 
@@ -70,7 +72,7 @@ class DB {
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch(PDOException $e) {
             echo "Connection failed: " . $e->getMessage();
-            error_log( "Connection failed: " . $e->getMessage() );
+            debuglog( "Connection failed: " . $e->getMessage() );
         }
     }
 
@@ -294,7 +296,7 @@ class Laana extends DB {
         debuglog( $options, "$funcName($term,$pattern,$pageNumber");
         $countOnly = isset($options['count']) ? $options['count'] : false;
         $nodiacriticals = isset($options['nodiacriticals']) ? $options['nodiacriticals'] : false;
-        $orderBy = isset($options['orderby']) ? "order by " . $options['orderby'] : '';
+        $orderBy = (isset($options['orderby']) && $options['orderby']) ? "order by " . $options['orderby'] : '';
         $pageSize = $options['limit'] ?? $this->pageSize;
         $normalizedTerm = normalizeString( $term );
         $search = "hawaiianText";
