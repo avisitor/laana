@@ -40,6 +40,9 @@ class ElasticsearchProvider implements SearchProviderInterface {
         if( $this->quiet ) {
             return;
         }
+        if (defined('PHPUNIT_RUNNING') && PHPUNIT_RUNNING) {
+            return;
+        }
         if( is_object( $msg ) || is_array( $msg ) ) {
             $msg = var_export( $msg, true );
         }
@@ -68,7 +71,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
                 'total' => count($response)
             ];
         } catch (\Exception $e) {
-            error_log("Elasticsearch search failed: " . $e->getMessage());
+            $this->debuglog("Elasticsearch search failed: " . $e->getMessage());
             return ['hits' => [], 'total' => 0];
         }
     }
@@ -134,7 +137,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
 
         $sortOptions = [];
         $orderByString = "";
-        error_log('ElasticsearchProvider getSentences: options[orderby]=' . json_encode($options['orderby'] ?? null));
+        $this->debuglog('ElasticsearchProvider getSentences: options[orderby]=' . json_encode($options['orderby'] ?? null));
         if (isset($options['orderby'])) {
             $orderByString = $options['orderby'];
             $sortParts = explode(',', $orderByString);
@@ -146,7 +149,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
                     $direction = 'desc';
                     $part = strtolower(trim(str_replace(' desc', '', $part)));
                 }
-                error_log('ElasticsearchProvider sort parsing: part=' . json_encode($part) . ', direction=' . json_encode($direction));
+                $this->debuglog('ElasticsearchProvider sort parsing: part=' . json_encode($part) . ', direction=' . json_encode($direction));
 
                 // Map provider field names to Elasticsearch field names and special sorts
                 switch ($part) {
@@ -183,7 +186,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
                 }
             }
             // Debug: print sortOptions to error log
-            error_log('ElasticsearchProvider getSentences sortOptions: ' . json_encode($sortOptions));
+            $this->debuglog('ElasticsearchProvider getSentences sortOptions: ' . json_encode($sortOptions));
         }
 
         $searchOptions = [
@@ -203,7 +206,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
         $formattedResults = [];
         if ($rawResults && is_array($rawResults)) {
             foreach ($rawResults as $hit) {
-                if( $this->verbose ) {
+                if( $this->verbose && (!defined('PHPUNIT_RUNNING') || !PHPUNIT_RUNNING) ) {
                     echo "ElasticsearchProvider getSentences: " . json_encode( $hit ) . "\n";
                 }
                 $formattedResults[] = [
@@ -269,7 +272,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
                 'authors' => array_column($aggregations['authors']['buckets'] ?? [], 'key')
             ];
         } catch (\Exception $e) {
-            error_log("Failed to get source metadata: " . $e->getMessage());
+            $this->debuglog("Failed to get source metadata: " . $e->getMessage());
             return ['sources' => [], 'groups' => [], 'authors' => []];
         }
     }
@@ -335,8 +338,10 @@ class ElasticsearchProvider implements SearchProviderInterface {
     
     public function debuglog( $msg, $intro = "" )
     {
-        $msg = $this->formatLogMessage( $msg, $intro );
-        error_log( "$msg\n" );
+        if (!defined('PHPUNIT_RUNNING') || !PHPUNIT_RUNNING) {
+            $msg = $this->formatLogMessage( $msg, $intro );
+            error_log( "$msg\n" );
+        }
     }
 
     public function checkStripped( $hawaiianText ) {
@@ -373,6 +378,11 @@ class ElasticsearchProvider implements SearchProviderInterface {
     public function getSources( $groupname ) {
         $sources = $this->client->getAllRecords( $this->client->getSourceMetadataName() );
         return array_column( $sources, "_source" );
+    }
+
+    public function getSourceIDs( $groupname = '' ) {
+        $sources = $this->getSources( $groupname );
+        return array_column( $sources, 'sourceID' );
     }
 
     public function getSentencesBySourceID( $sourceid ) {
