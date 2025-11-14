@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noiiolelo Test Results</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .timestamp {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .stat-card.passed .value { color: #28a745; }
+        .stat-card.failed .value { color: #dc3545; }
+        .stat-card.total .value { color: #007bff; }
+        .stat-card.time .value { font-size: 24px; }
+        
+        .suites {
+            padding: 30px;
+        }
+        
+        .suite {
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .suite-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .suite-header:hover {
+            background: #e9ecef;
+        }
+        
+        .suite-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .suite-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+        }
+        
+        .suite-stats .passed { color: #28a745; }
+        .suite-stats .failed { color: #dc3545; }
+        
+        .suite-body {
+            padding: 20px;
+        }
+        
+        .testcase {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .testcase.passed {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        
+        .testcase.failed {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .testcase-name {
+            flex: 1;
+            font-size: 14px;
+        }
+        
+        .testcase-time {
+            color: #6c757d;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .testcase-status {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .testcase.passed .testcase-status { color: #28a745; }
+        .testcase.failed .testcase-status { color: #dc3545; }
+        
+        .failure-details {
+            margin-top: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            color: #721c24;
+        }
+        
+        .failure-type {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        footer {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .toggle-icon {
+            transition: transform 0.3s;
+        }
+        
+        .suite.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .suite.collapsed .suite-body {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Noiiolelo Test Results</h1>
+            <div class="timestamp" id="timestamp"></div>
+        </header>
+        
+        <div class="summary" id="summary"></div>
+        
+        <div class="suites" id="suites"></div>
+        
+        <footer>
+            <p>Generated by Noiiolelo Test Suite Runner</p>
+        </footer>
+    </div>
+
+    <script>
+        // Load test results from JSON
+        async function loadTestResults() {
+            try {
+                const response = await fetch('results/test-results.json');
+                const data = await response.json();
+                renderResults(data);
+            } catch (error) {
+                document.getElementById('summary').innerHTML = 
+                    '<div style="padding: 20px; color: #dc3545;">Failed to load test results: ' + error.message + '</div>';
+            }
+        }
+        
+        function renderResults(data) {
+            // Set timestamp
+            document.getElementById('timestamp').textContent = 
+                'Generated on ' + new Date().toLocaleString();
+            
+            // Render summary
+            const summary = data.summary;
+            const passed = summary.total - summary.failures - summary.errors;
+            const summaryHTML = `
+                <div class="stat-card total">
+                    <div class="label">Total Tests</div>
+                    <div class="value">${summary.total}</div>
+                </div>
+                <div class="stat-card passed">
+                    <div class="label">Passed</div>
+                    <div class="value">${passed}</div>
+                </div>
+                <div class="stat-card failed">
+                    <div class="label">Failed</div>
+                    <div class="value">${summary.failures + summary.errors}</div>
+                </div>
+                <div class="stat-card time">
+                    <div class="label">Execution Time</div>
+                    <div class="value">${summary.time.toFixed(2)}s</div>
+                </div>
+            `;
+            document.getElementById('summary').innerHTML = summaryHTML;
+            
+            // Render test suites
+            const suitesHTML = data.suites.map(suite => {
+                const suitePassed = suite.tests - suite.failures - suite.errors;
+                const testcasesHTML = suite.testcases.map(tc => {
+                    let failureHTML = '';
+                    if (tc.status === 'failed' && tc.failure) {
+                        failureHTML = `
+                            <div class="failure-details">
+                                <div class="failure-type">${tc.failure.type}</div>
+                                ${tc.failure.message}
+                            </div>
+                        `;
+                    } else if (tc.status === 'error' && tc.error) {
+                        failureHTML = `
+                            <div class="failure-details">
+                                <div class="failure-type">${tc.error.type}</div>
+                                ${tc.error.message}
+                            </div>
+                        `;
+                    }
+                    
+                    return `
+                        <div class="testcase ${tc.status}">
+                            <span class="testcase-status">${tc.status === 'passed' ? '✓' : '✗'}</span>
+                            <span class="testcase-name">${tc.name}</span>
+                            <span class="testcase-time">${tc.time.toFixed(3)}s</span>
+                        </div>
+                        ${failureHTML}
+                    `;
+                }).join('');
+                
+                const shortName = suite.name.split('\\').pop();
+                
+                return `
+                    <div class="suite">
+                        <div class="suite-header" onclick="toggleSuite(this)">
+                            <div class="suite-name">
+                                <span class="toggle-icon">▼</span>
+                                ${shortName}
+                            </div>
+                            <div class="suite-stats">
+                                <span class="passed">${suitePassed} passed</span>
+                                ${suite.failures > 0 ? '<span class="failed">' + suite.failures + ' failed</span>' : ''}
+                                ${suite.errors > 0 ? '<span class="failed">' + suite.errors + ' errors</span>' : ''}
+                                <span>${suite.time.toFixed(2)}s</span>
+                            </div>
+                        </div>
+                        <div class="suite-body">
+                            ${testcasesHTML}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('suites').innerHTML = suitesHTML;
+        }
+        
+        function toggleSuite(header) {
+            header.parentElement.classList.toggle('collapsed');
+        }
+        
+        // Load results on page load
+        loadTestResults();
+    </script>
+</body>
+</html>

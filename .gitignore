@@ -3,3 +3,5 @@ vendor
 tests/results
 tests/reports
 *~
+tests/*.xml
+tests/*.html
