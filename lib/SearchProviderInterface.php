@@ -68,4 +68,24 @@ interface SearchProviderInterface
     public function getRawText( $sourceid );
     
     public function getSentencesBySourceID( $sourceid );
+    
+    /**
+     * Add a search statistic entry
+     */
+    public function addSearchStat( string $searchterm, string $pattern, int $results, string $order, float $elapsed ): bool;
+    
+    /**
+     * Get all search statistics ordered by creation date
+     */
+    public function getSearchStats(): array;
+    
+    /**
+     * Get summary of search statistics grouped by pattern
+     */
+    public function getSummarySearchStats(): array;
+    
+    /**
+     * Get the timestamp of the first search
+     */
+    public function getFirstSearchTime(): string;
 }

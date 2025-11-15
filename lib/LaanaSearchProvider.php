@@ -35,8 +35,21 @@ class LaanaSearchProvider implements SearchProviderInterface
         return $this->laana->getSentences($term, $pattern, $pageNumber, $options);
     }
     public function getSentence($sentenceid) { return $this->laana->getSentence($sentenceid); }
-    public function addSearchStat( $searchterm, $pattern, $results, $order,$elapsed ) { return $this->laana->addSearchStat( $searchterm, $pattern, $results, $order,$elapsed ); }
     public function getMatchingSentenceCount( $term, $pattern, $pageNumber = -1, $options = [] ) { return $this->laana->getMatchingSentenceCount( $term, $pattern, $pageNumber, $options ); }
+    
+    // Search stats methods
+    public function addSearchStat( string $searchterm, string $pattern, int $results, string $order, float $elapsed ): bool { 
+        return (bool)$this->laana->addSearchStat( $searchterm, $pattern, $results, $order, $elapsed ); 
+    }
+    public function getSearchStats(): array { 
+        return $this->laana->getSearchStats(); 
+    }
+    public function getSummarySearchStats(): array { 
+        return $this->laana->getSummarySearchStats(); 
+    }
+    public function getFirstSearchTime(): string { 
+        return $this->laana->getFirstSearchTime(); 
+    }
 
     // Interface-required methods
     public function getSourceMetadata(): array { return $this->laana->getSources(); }

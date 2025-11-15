@@ -313,10 +313,13 @@ class ElasticsearchProvider implements SearchProviderInterface {
 
     public function logQuery(array $params): void
     {
-        // TODO: Replace this with writing to a new index in Elasticsearch
-        $logFile = '/tmp/php_errorlog';
-        $message = date('Y-m-d H:i:s') . " " . json_encode($params) . "\n";
-        file_put_contents($logFile, $message, FILE_APPEND);
+        $this->addSearchStat(
+            $params['searchterm'],
+            $params['pattern'],
+            $params['results'],
+            $params['sort'],
+            $params['elapsed']
+        );
     }
 
     public function getAvailableSearchModes(): array
@@ -425,5 +428,22 @@ class ElasticsearchProvider implements SearchProviderInterface {
     
     public function getRawText( $sourceid ) {
         return $this->client->getDocumentRaw( $sourceid );
+    }
+    
+    // Search stats methods
+    public function addSearchStat( string $searchterm, string $pattern, int $results, string $order, float $elapsed ): bool {
+        return $this->client->addSearchStat( $searchterm, $pattern, $results, $order, $elapsed );
+    }
+    
+    public function getSearchStats(): array {
+        return $this->client->getSearchStats();
+    }
+    
+    public function getSummarySearchStats(): array {
+        return $this->client->getSummarySearchStats();
+    }
+    
+    public function getFirstSearchTime(): string {
+        return $this->client->getFirstSearchTime();
     }
 }

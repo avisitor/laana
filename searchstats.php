@@ -25,25 +25,30 @@ body {
 </script>
 </head>
 <?php
-include 'db/funcs.php';
+require_once __DIR__ . '/lib/provider.php';
 function changeTimeZone( $date ) {
+    if (!$date) {
+        return 'N/A';
+    }
     $datetime = new DateTime( $date );
     $newtime = new DateTimeZone('Pacific/Honolulu');
     $datetime->setTimezone($newtime);
     $date = $datetime->format('Y-m-d H:i:s');
     return $date;
 }
-$laana = new Laana();
-$rows = $laana->getSearchStats();
-$stats = $laana->getSummarySearchStats();
+$provider = getProvider();
+$providerName = $provider->getName();
+$rows = $provider->getSearchStats();
+$stats = $provider->getSummarySearchStats();
 $total = 0;
 foreach( $stats as $stat ) {
     $total += $stat['count'];
 }
-$first = changeTimeZone( $laana->getFirstSearchTime() );
+$first = changeTimeZone( $provider->getFirstSearchTime() );
 ?>
 <body>
     <h2>Searches on Noiʻiʻōlelo since <?=$first?></h2>
+    <p style="padding-left:1em; color:#666; font-style:italic;">Provider: <?=$providerName?></p>
     <div style="padding:1em;">
         <h3>Summary</h3>
         <table>
