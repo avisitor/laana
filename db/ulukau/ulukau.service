@@ -1,0 +1,14 @@
+[Unit]
+Description=Ulukau Puppeteer Service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node /var/www/html/noiiolelo/db/ulukau/service.js
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=ulukau
+
+[Install]
+WantedBy=multi-user.target
