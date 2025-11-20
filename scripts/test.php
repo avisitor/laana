@@ -1,18 +1,30 @@
 <?php
-//include 'saveFuncs.php';
+/**
+ * Test utility functions for noiiolelo parsers and text processing
+ * 
+ * Usage: php test.php <function_name> [args...]
+ * Example: php test.php testDate kauakukalahale
+ */
 
-function show( $var ) {
-    echo( var_export( $var, true ) . "\n" );
-}
+// Global configuration
+$HOST = "noiiolelo.worldspot.org";
+$PROVIDER = "Elasticsearch";
 
 $dir = dirname(__DIR__, 1);
 require_once $dir . '/db/funcs.php';
 include_once $dir . '/db/parsehtml.php';
 include_once $dir . '/scripts/parsers.php';
 
-setDebug( true );
-setDebug( false );
-$laana = new Laana();
+function show( $var ) {
+    echo( var_export( $var, true ) . "\n" );
+}
+
+function testGetPageHTML( $word, $pattern, $page, $order ) {
+    global $HOST, $PROVIDER;
+    $url = "https://$HOST/ops/getPageHtml.php?provider=$PROVIDER&word=$word&pattern=$pattern&page=$page&order=$order";
+    $text = file_get_contents( $url );
+    echo "$text\n";
+}
 
 function extractFormatted($str) {
     // Match the date portion: day month year
@@ -45,14 +57,6 @@ function extractFormatted($str) {
     }
 }
 
-// Test cases
-$inputs = [
-    "Hawaii Holomua 1 August 1893",
-    "Hawaii Holomua 1 February 1894 Edition 02",
-    "Ka Elele Tuesday, 1 July 1845",
-    "Ka Nupepa Kuokoa Saturday, 2 May 1891",
-    "Ka Leo o ka Lahui Edition 02 Friday, 20 November 1891"
-];
 
 
 function convertNupepaSourceNames() {
@@ -71,94 +75,117 @@ function convertNupepaSourceNames() {
         }
     }
 }
-convertNupepaSourceNames();
-return;
-
-
-foreach ($inputs as $input) {
-    echo extractFormattedDate($input) . PHP_EOL;
-}
-return
-
-$parser = new EhooululahuiHTML();
-$url = 'https://ehooululahui.maui.hawaii.edu/?page_id=265';
-$parser->initialize( $url );
-show( $parser->metadata );
-//$text = $parser->getRawText( $url );
-//echo "$text\n";
+//convertNupepaSourceNames();
 //return;
 
-$parser = new AolamaHTML();
-$url = "https://keaolama.org/2025/05/14/05-14-25/";
-$parser->initialize( $url );
-show( $parser->metadata );
 
-$parser = new CBHTML();
-$url = "https://www.civilbeat.org/2025/05/alai-ka-%ca%bbaha%ca%bbolelo-i-ko-honlulu-wahi-%ca%bbopala-i-hapai-%ca%bbia/";
-$parser->initialize( $url );
-show( $parser->metadata );
+function testInputs() {
+    // Test cases
+    $inputs = [
+        "Hawaii Holomua 1 August 1893",
+        "Hawaii Holomua 1 February 1894 Edition 02",
+        "Ka Elele Tuesday, 1 July 1845",
+        "Ka Nupepa Kuokoa Saturday, 2 May 1891",
+        "Ka Leo o ka Lahui Edition 02 Friday, 20 November 1891"
+    ];
+    foreach ($inputs as $input) {
+        echo extractFormattedDate($input) . PHP_EOL;
+    }
+}
+ // testInputs(); return;
 
-$url = " https://www.staradvertiser.com/2025/06/28/editorial/kauakukalahale/column-he-kowali-he-pakaaeawili/";
-$parser = new KauakukalahaleHTML();
-$parser->initialize( $url );
-show( $parser->metadata );
-return;
+function testEhooululahui() {
+    $parser = new EhooululahuiHTML();
+    $url = 'https://ehooululahui.maui.hawaii.edu/?page_id=265';
+    $parser->initialize( $url );
+    show( $parser->metadata );
+    $text = $parser->getRawText( $url );
+    echo "$text\n";
+}
+// testEhooululahui(); return;
 
-$parser = new AolamaHTML();
-$url = "https://keaolama.org/2025/05/14/05-14-25/";
-//$sentences = $parser->extractSentences( $url );
+function testAolama() {
+    $parser = new AolamaHTML();
+    $url = "https://keaolama.org/2025/05/14/05-14-25/";
+    $parser->initialize( $url );
+    show( $parser->metadata );
+}
 
-$parser = new BaibalaHTML();
-//$text = $parser->getRawText();
-//echo "$text\n";
-$sentences = $parser->extractSentences();
-show( $sentences );
-return;
+function testCivilBeat() {
+    $parser = new CBHTML();
+    $url = "https://www.civilbeat.org/2025/05/alai-ka-%ca%bbaha%ca%bbolelo-i-ko-honlulu-wahi-%ca%bbopala-i-hapai-%ca%bbia/";
+    $parser->initialize( $url );
+    show( $parser->metadata );
+}
 
-$parser = new NupepaHTML();
-$url = "https://nupepa.org/?a=d&d=KNK18630606-01.1.3&e=-------en-20--1--txt-txIN%7CtxNU%7CtxTR%7CtxTI---------0";
-$url = "https://nupepa.org/?a=d&d=KNK18630606-01.1.1&e=-------en-20--1--txt-txIN%7CtxNU%7CtxTR%7CtxTI---------0";
-$parser->initialize( $url );
-$text = $parser->getRawText( $url );
-echo "$text\n";
-return;
+function testKauakukalahale() {
+    $url = " https://www.staradvertiser.com/2025/06/28/editorial/kauakukalahale/column-he-kowali-he-pakaaeawili/";
+    $parser = new KauakukalahaleHTML();
+    $parser->initialize( $url );
+    show( $parser->metadata );
+}
 
-$parser = new UlukauLocal();
-$url = (isset( $argv[1] ) ) ? $argv[1] : '';
-if( $url ) {
-    echo "$url\n";
-    //url = $dir . "/ulukau/EBOOK-AIAIHEA.html";
-    $sentences = $parser->extractSentences( $url );
+function testBaibala() {
+    $parser = new BaibalaHTML();
+    $url = "https://baibala.org/bible/bh/GEN.1.1-31/";
+    $parser->initialize( $url );
+    show( $parser->metadata );
+    $sentences = $parser->extractSentences();
     show( $sentences );
 }
-return;
 
-foreach( $pageList as $sourcename => $values ) {
-    echo "$sourcename\n";
-    $sentences = $parser->extractSentences( $values['url'] );
+function testNupepa() {
+    $parser = new NupepaHTML();
+    $url = "https://nupepa.org/?a=d&d=KNK18630606-01.1.3&e=-------en-20--1--txt-txIN%7CtxNU%7CtxTR%7CtxTI---------0";
+    $url = "https://nupepa.org/?a=d&d=KNK18630606-01.1.1&e=-------en-20--1--txt-txIN%7CtxNU%7CtxTR%7CtxTI---------0";
+    $parser->initialize( $url );
+    $text = $parser->getRawText( $url );
+    echo "$text\n";
+}
+
+function testUlukauLocal() {
+    $parser = new UlukauLocal();
+    $url = (isset( $argv[1] ) ) ? $argv[1] : '';
+    if( $url ) {
+        echo "$url\n";
+        //url = $dir . "/ulukau/EBOOK-AIAIHEA.html";
+        $sentences = $parser->extractSentences( $url );
+        show( $sentences );
+    }
+}
+
+function testMultipleSources() {
+    $parser = new HtmlParse();
+    $pageList = [
+        'source1' => [ 'url' => 'https://example.com/source1' ],
+        'source2' => [ 'url' => 'https://example.com/source2' ],
+    ];
+    foreach( $pageList as $sourcename => $values ) {
+        echo "$sourcename\n";
+        $sentences = $parser->extractSentences( $values['url'] );
+        show( $sentences );
+    }
+}
+
+function testEBOOK() {
+    $parser = new TextParse();
+    $pageList = $parser->getDocumentList();
+    show( $pageList );
+    $filename = "/webapps/worldspot.com/worldspot/render-proxy/output/EBOOK-HOAKAKAOLELO.txt";
+    $sentences = $parser->extractSentences( $filename );
     show( $sentences );
 }
-return;
 
-$pageList = $parser->getDocumentList();
-show( $pageList );
-return;
-
-$parser = new TextParse();
-$filename = "/webapps/worldspot.com/worldspot/render-proxy/output/EBOOK-HOAKAKAOLELO.txt";
-$sentences = $parser->extractSentences( $filename );
-show( $sentences );
-return;
-
-$url = 'https://puke.ulukau.org/ulukau-books/?a=d&d=EBOOK-APLC04&e=-------en-20--1--txt-txPT-----------';
-$parser = new UlukauHTML();
-//$parser->initialize( $url );
-$contents = $parser->getRawText( $url );
-echo "$contents\n";
-$options = [];
-//$sentences = $parser->extractSentencesFromHTML( $contents, $options );
-//show( $sentences );
-return;
+function testUlukau() {
+    $url = 'https://puke.ulukau.org/ulukau-books/?a=d&d=EBOOK-APLC04&e=-------en-20--1--txt-txPT-----------';
+    $parser = new UlukauHTML();
+    //$parser->initialize( $url );
+    $contents = $parser->getRawText( $url );
+    echo "$contents\n";
+    $options = [];
+    //$sentences = $parser->extractSentencesFromHTML( $contents, $options );
+    //show( $sentences );
+}
 
 function getSentences( $source ) {
     global $parsermap;
