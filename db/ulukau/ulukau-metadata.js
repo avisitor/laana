@@ -1,5 +1,7 @@
 const cheerio = require('cheerio');
 const minimist = require('minimist');
+const fs = require('fs');
+const path = require('path');
 
 // Utility function to add delay between requests
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -192,6 +194,17 @@ async function fetchWithRetry(fetch, url, maxRetries = 3, initialDelay = 1000) {
     }
 
     log.info(`✅ Found ${metadataArray.length} Hawaiian language books`);
+
+    // Save to file if this was an unrestricted fetch (no --oid or --limit)
+    if (!targetOid && !limit) {
+      const outputPath = path.join(__dirname, 'output', 'ulukau.json');
+      try {
+        fs.writeFileSync(outputPath, JSON.stringify(metadataArray, null, 2));
+        log.info(`💾 Saved full metadata to ${outputPath}`);
+      } catch (err) {
+        log.warn(`⚠️ Could not save metadata to file: ${err.message}`);
+      }
+    }
   } catch (err) {
     log.error('💥 Metadata fetch failed:', err);
     process.exit(1);
