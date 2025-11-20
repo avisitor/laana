@@ -10,6 +10,7 @@ class SaveManager {
     private $options = [];
     private $parser = null;
     protected $logName = "SaveManager";
+    protected $funcName = "";
 
     public function __construct($options = []) {
         $this->funcName = "_construct";
@@ -168,24 +169,51 @@ class SaveManager {
         $msg .= ", force: " . (($force) ? "yes" : "no");
         $this->log($msg);
 
+        // Start processing log
+        $logID = $this->laana->startProcessingLog(
+            'save_contents',
+            $sourceID,
+            $source['groupname'] ?? null,
+            $parser->logName ?? null,
+            ['link' => $link, 'sourcename' => $sourceName, 'force' => $force, 'resplit' => $resplit]
+        );
+
         $didWork = 0;
         $text = "";
-        if (!$present || $force) {
-            $parser->initialize($link);
-            $text = $this->saveRaw($parser, $source);
-        } else {
-            if ($present) {
-                $this->log("$sourceName already has raw text");
-                if (!$sentenceCount || $resplit) {
-                    $text = $this->laana->getRawText($sourceID);
+        $finalSentenceCount = 0;
+        $error = null;
+        
+        try {
+            if (!$present || $force) {
+                $parser->initialize($link);
+                $text = $this->saveRaw($parser, $source);
+            } else {
+                if ($present) {
+                    $this->log("$sourceName already has raw text");
+                    if (!$sentenceCount || $resplit) {
+                        $text = $this->laana->getRawText($sourceID);
+                    }
                 }
             }
-        }
 
-        if ($text) {
-            $didWork = 1;
-            $this->addSentences($parser, $sourceID, $link, $text);
+            if ($text) {
+                $didWork = 1;
+                $finalSentenceCount = $this->addSentences($parser, $sourceID, $link, $text);
+            }
+            
+            // Complete processing log with success
+            if ($logID) {
+                $this->laana->completeProcessingLog($logID, 'completed', $finalSentenceCount);
+            }
+        } catch (Exception $e) {
+            $error = $e->getMessage();
+            $this->log("Error in saveContents: $error");
+            if ($logID) {
+                $this->laana->completeProcessingLog($logID, 'failed', $finalSentenceCount, $error);
+            }
+            throw $e;
         }
+        
         return $didWork;
     }
 
@@ -254,6 +282,15 @@ class SaveManager {
         $local = $this->options['local'] ?? false;
         $parserkey = $this->options['parserkey'] ?? '';
         $singleSourceID = $this->options['sourceid'] ?? 0;
+        
+        // Start processing log for the batch operation
+        $batchLogID = $this->laana->startProcessingLog(
+            'get_all_documents',
+            null,
+            null,
+            $parserkey,
+            ['options' => $this->options]
+        );
 
         $parser = null;
         if ($parserkey) {
@@ -375,8 +412,13 @@ class SaveManager {
                 break;
             }
         }
-        echo "$this->funcName: updated $updates source definitions and $docCount documents
-";
+        
+        // Complete batch processing log
+        if ($batchLogID) {
+            $this->laana->completeProcessingLog($batchLogID, 'completed', $docCount);
+        }
+        
+        echo "$this->funcName: updated $updates source definitions and $docCount documents\n";
     }
 }
 ?>
