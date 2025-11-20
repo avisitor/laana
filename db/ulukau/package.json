@@ -1,0 +1,28 @@
+{
+  "name": "ulukau-proxy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "batch-ulukau.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avisitor/ulukau-proxy.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/avisitor/ulukau-proxy/issues"
+  },
+  "homepage": "https://github.com/avisitor/ulukau-proxy#readme",
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "minimist": "^1.2.8",
+    "node-fetch": "^3.3.2",
+    "puppeteer": "^24.15.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}

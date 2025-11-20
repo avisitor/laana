@@ -13,7 +13,17 @@
   },
   "scripts": {
     "test": "phpunit --configuration tests/phpunit.xml",
-    "test-json": "phpunit --configuration tests/phpunit.xml --log-json tests/results.json"
+    "test-json": "phpunit --configuration tests/phpunit.xml --log-json tests/results.json",
+    "post-install-cmd": [
+      "@setup-ulukau"
+    ],
+    "post-update-cmd": [
+      "@setup-ulukau"
+    ],
+    "setup-ulukau": [
+      "cd db/ulukau && npm install",
+      "mkdir -p db/ulukau/output"
+    ]
   },
   "config": {
     "allow-plugins": {
