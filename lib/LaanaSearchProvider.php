@@ -20,6 +20,13 @@ class LaanaSearchProvider implements SearchProviderInterface
         return "Laana";
     }
     
+    /**
+     * Get the processing logger for tracking operations (delegates to Laana)
+     */
+    public function getProcessingLogger(): \Laana {
+        return $this->laana;
+    }
+    
     // Direct pass-through methods
     public function getLatestSourceDates() { return $this->laana->getLatestSourceDates(); }
     public function getSources($groupname = '') { return $this->laana->getSources($groupname); }

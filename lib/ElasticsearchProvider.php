@@ -2,10 +2,11 @@
 namespace Noiiolelo;
 
 require_once __DIR__ . '/SearchProviderInterface.php';
-require_once __DIR__ . '/../../elasticsearch/php/vendor/autoload.php';
+require_once __DIR__ . '/../../elasticsearch/vendor/autoload.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/ElasticsearchClient.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/EmbeddingClient.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/MetadataCache.php';
+require_once __DIR__ . '/ElasticsearchProcessingLogger.php';
 
 // For source metadata, for now
 require_once __DIR__ . '/../db/funcs.php';
@@ -17,6 +18,7 @@ use Dotenv\Dotenv;
 
 class ElasticsearchProvider implements SearchProviderInterface {
     private ElasticsearchClient $client;
+    private ElasticsearchProcessingLogger $processingLogger;
     public int $pageSize = 5;
     private bool $verbose;
     private bool $quiet = true;
@@ -31,6 +33,14 @@ class ElasticsearchProvider implements SearchProviderInterface {
             'verbose' => $this->verbose,
             'quiet' => true,
         ]);
+        $this->processingLogger = new ElasticsearchProcessingLogger($this->client);
+    }
+    
+    /**
+     * Get the processing logger for tracking operations
+     */
+    public function getProcessingLogger(): ElasticsearchProcessingLogger {
+        return $this->processingLogger;
     }
 
     public function getName(): string {

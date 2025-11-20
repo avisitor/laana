@@ -52,6 +52,26 @@ CREATE TABLE `contents` (
   UNIQUE KEY `sourceID` (`sourceID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_c;
 
+CREATE TABLE `processing_log` (
+  `log_id` int(11) NOT NULL AUTO_INCREMENT,
+  `operation_type` varchar(50) NOT NULL,
+  `source_id` int(11) DEFAULT NULL,
+  `groupname` varchar(50) DEFAULT NULL,
+  `parser_key` varchar(50) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'started',
+  `sentences_count` int(11) DEFAULT 0,
+  `started_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `completed_at` DATETIME DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
+  `metadata` text DEFAULT NULL,
+  PRIMARY KEY (`log_id`),
+  KEY `operation_type` (`operation_type`),
+  KEY `source_id` (`source_id`),
+  KEY `groupname` (`groupname`),
+  KEY `status` (`status`),
+  KEY `started_at` (`started_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 DELIMITER //
 CREATE TRIGGER insert_sentences AFTER INSERT ON sentences
 FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sentences';

@@ -269,7 +269,11 @@ function normalizeString( $term ) {
     return str_replace($a, $b, $term);
 }
 
+require_once __DIR__ . '/../lib/ProcessingLogger.php';
+
 class Laana extends DB {
+    use \Noiiolelo\ProcessingLogger;
+    
     private $pageNumber = 0;
     public $pageSize = 1000;
     
@@ -827,6 +831,64 @@ class Laana extends DB {
         $sql = "select min(created) first from " . SEARCHSTATS;
         $row = $this->getOneDBRow( $sql );
         return ($row['first']) ? $row['first'] : '';
+    }
+    
+    // Processing Log Methods - Implementation for ProcessingLogger trait
+    protected function startProcessingLogImpl($operationType, $sourceID = null, $groupname = null, $parserKey = null, $metadata = null) {
+        $sql = "INSERT INTO processing_log (operation_type, source_id, groupname, parser_key, status, metadata) 
+                VALUES (:operation_type, :source_id, :groupname, :parser_key, 'started', :metadata)";
+        $values = [
+            'operation_type' => $operationType,
+            'source_id' => $sourceID,
+            'groupname' => $groupname,
+            'parser_key' => $parserKey,
+            'metadata' => $metadata ? json_encode($metadata) : null,
+        ];
+        $result = $this->executePrepared($sql, $values);
+        if ($result) {
+            return $this->conn->lastInsertId();
+        }
+        return null;
+    }
+    
+    protected function completeProcessingLogImpl($logID, $status = 'completed', $sentencesCount = 0, $errorMessage = null) {
+        $sql = "UPDATE processing_log 
+                SET status = :status, 
+                    sentences_count = :sentences_count, 
+                    completed_at = NOW(), 
+                    error_message = :error_message 
+                WHERE log_id = :log_id";
+        $values = [
+            'log_id' => $logID,
+            'status' => $status,
+            'sentences_count' => $sentencesCount,
+            'error_message' => $errorMessage,
+        ];
+        return $this->executePrepared($sql, $values);
+    }
+    
+    protected function getProcessingLogsImpl($options = []) {
+        $where = [];
+        $values = [];
+        
+        if (isset($options['operation_type'])) {
+            $where[] = "operation_type = :operation_type";
+            $values['operation_type'] = $options['operation_type'];
+        }
+        if (isset($options['groupname'])) {
+            $where[] = "groupname = :groupname";
+            $values['groupname'] = $options['groupname'];
+        }
+        if (isset($options['status'])) {
+            $where[] = "status = :status";
+            $values['status'] = $options['status'];
+        }
+        
+        $whereClause = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
+        $limit = isset($options['limit']) ? " LIMIT " . intval($options['limit']) : "";
+        
+        $sql = "SELECT * FROM processing_log $whereClause ORDER BY started_at DESC $limit";
+        return $this->getDBRows($sql, $values);
     }
 }
 ?>
