@@ -48,7 +48,24 @@ class TextProcessor {
         ];
         $text = preg_replace(array_keys($replace), array_values($replace), $text);
         $text = trim($text);
-        return html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
+        // Convert Unicode curly quotes to ʻokina
+        // U+2018 and U+2019 are left/right single quotation marks
+        // Convert them to U+02BB which is the proper ʻokina
+        $text = str_replace(["\u{2018}", "\u{2019}", "'"], "\u{02BB}", $text);
+        
+        // Clean any invalid UTF-8 sequences that may have been introduced
+        // Use iconv to remove invalid sequences, or fall back to mb_convert_encoding
+        $cleaned = @iconv('UTF-8', 'UTF-8//IGNORE', $text);
+        if ($cleaned !== false) {
+            $text = $cleaned;
+        } else {
+            // Fallback: use mb_convert_encoding if iconv fails
+            $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        }
+        
+        return $text;
     }
 
     public function protectAbbreviations($text) {
