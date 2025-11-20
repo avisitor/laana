@@ -654,6 +654,7 @@ $sentence) {
             return [];
         }
         $this->resetMetadata();
+        $text = $this->preprocessHTML( $text );
         $dom = $this->getDOMFromString( $text );
         $this->extractMetadata( $dom );
         libxml_use_internal_errors(false);
@@ -747,9 +748,7 @@ class TextParse extends HTMLParse {
     }
 }
 
-class UlukauLocal extends HTMLParse {
-    protected $baseDir = __DIR__ . '/../ulukau';
-    protected $pageListFile = "ulukau-books.json";
+class UlukauHTML extends HTMLParse {
     protected $boilerplatePatterns = [];
     protected $publisherKeywords = [];
     
@@ -973,12 +972,14 @@ class UlukauLocal extends HTMLParse {
         $this->funcName = "getDocumentList";
         $this->print("");
         $pageList = json_decode( $this->getRaw(
-            "$this->baseDir/$this->pageListFile", false ), true );
+            "https://noiiolelo.worldspot.org/ulukaupages", false ), true );
+        /*
         for( $i = 0; $i < count($pageList); $i++ ) {
             $pageList[$i]['link'] =
                 $pageList[$i]['url'] =
                     "$this->urlBase/{$pageList[$i]['oid']}.html";
         }
+        */
         return $pageList;
     }
     public function preprocessHTML( $text ) {
@@ -1447,6 +1448,23 @@ class UlukauLocal extends HTMLParse {
     }
 }
 
+class UlukauLocal extends UlukauHTML {
+    protected $baseDir = __DIR__ . '/../ulukau';
+    protected $pageListFile = "ulukau-books.json";
+
+    public function getDocumentList() {
+        $this->funcName = "getDocumentList";
+        $this->print("");
+        $pageList = json_decode( $this->getRaw(
+            "$this->baseDir/$this->pageListFile", false ), true );
+        for( $i = 0; $i < count($pageList); $i++ ) {
+            $pageList[$i]['link'] =
+                $pageList[$i]['url'] =
+                    "$this->urlBase/{$pageList[$i]['oid']}.html";
+        }
+        return $pageList;
+    }
+}
 class CBHtml extends HtmlParse {
     private $basename = "Ka Ulana Pilina";
     private $documentListPatterns = [
@@ -1612,7 +1630,7 @@ class KauakukalahaleHTML extends HtmlParse {
         $this->logName = "KauakukalahaleHTML";
         $this->groupname = "kauakukalahale";
         $this->endMarkers = [
-            "This column",
+            "This column is coordinated",
             "Kā ka luna hoʻoponopono nota",
             "Click here",
             "nota: Unuhi ʻia na",
@@ -1621,7 +1639,7 @@ class KauakukalahaleHTML extends HtmlParse {
             "E hoouna ia mai na",
             "E ho‘ouna ‘ia mai na ā leka",
         ];
-        $this->toSkip[] = "Synopsis:";
+//         $this->toSkip[] = "Synopsis:";
         $this->ignoreMarkers = [
             "Correction:",
         ];
@@ -1697,6 +1715,13 @@ class KauakukalahaleHTML extends HtmlParse {
     public function getContents( $url, $options=[] ) {
         $text = parent::getContents( $url, $options );
         return $this->updateVisibility( $text );
+    }
+    
+    public function extractSentencesFromHTML( $text ) {
+        $this->funcName = "extractSentencesFromHTML";
+        // Apply visibility fixes before processing
+        $text = $this->updateVisibility( $text );
+        return parent::extractSentencesFromHTML( $text );
     }
 
     public function getAllBlurbs() {
@@ -2079,7 +2104,7 @@ class NupepaHTML extends HtmlParse {
 // real content
 // Instead, a node script runs puppeteer independently and then UlukauLocal
 // reads its output later on
-class UlukauHTML extends NupepaHTML {
+class UlukauOld extends NupepaHTML {
     protected $hostname = "";
     public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
