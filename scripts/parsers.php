@@ -2,7 +2,7 @@
 $parsermap = [
     'kaulanapilina' => new CBHtml(),
     //'ulukau' => new UlukauHTML(),
-    'ulukau' => new UlukauLocal(),
+    'ulukau' => new UlukauHTML(),
     'ulukaulocal' => new UlukauLocal(),
     'keaolama' => new AoLamaHTML(),
     'kauakukalahale' => new KauakukalahaleHTML(),
