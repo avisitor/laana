@@ -9,29 +9,44 @@ puppeteer.use(StealthPlugin());
 // Parse CLI options
 const args = minimist(process.argv.slice(2), {
   string: ['oid', 'output'],
-  boolean: ['recreate', 'verbose'],
+  boolean: ['recreate', 'verbose', 'quiet', 'print'],
   alias: { o: 'oid', d: 'output', r: 'recreate', v: 'verbose' },
 });
 
 const documentOID = args.oid;
-const outputDir = args.output ? path.resolve(args.output) : __dirname;
+global.quiet = args.quiet;
+global.print = args.print;
+const outputDir = args.output ? path.resolve(args.output) : __dirname + '/output';
+
+// Logging utilities - control all output in one place
+const log = {
+  info: (msg) => {
+    if (!global.quiet) console.log(msg);
+  },
+  warn: (msg) => {
+    console.warn(msg);
+  },
+  error: (msg, err) => {
+      if (err) console.error(msg, err);
+      else console.error(msg);
+  }
+};
+
+function print(text) {
+  if (global.print) {
+    console.error(text);
+  }
+}
 
 if (!documentOID) {
-  console.error('❌ Usage: node ulukau.js --oid <OID> [--output <dir>] [--recreate] [--verbose]');
+  log.error('❌ Usage: node ulukau.js --oid <OID> [--output <dir>] [--recreate] [--verbose] [-quiet]');
   process.exit(1);
 }
 
-const outputPath = path.join(outputDir, `${documentOID}.v2.txt`);
-const htmlOutputPath = path.join(outputDir, `${documentOID}.v2.html`);
+const outputPath = path.join(outputDir, `${documentOID}.txt`);
+const htmlOutputPath = path.join(outputDir, `${documentOID}.html`);
 
 fs.mkdirSync(outputDir, { recursive: true });
-
-if (args.recreate) {
-  if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-  if (fs.existsSync(htmlOutputPath)) fs.unlinkSync(htmlOutputPath);
-  if (fs.existsSync(path.join(outputDir, 'debug.html'))) fs.unlinkSync(path.join(outputDir, 'debug.html'));
-  console.log(`♻️ Recreated files by removing existing versions`);
-}
 
 fs.writeFileSync(outputPath, '');
 fs.writeFileSync(htmlOutputPath, '');
@@ -39,10 +54,50 @@ fs.writeFileSync(htmlOutputPath, '');
 (async () => {
   let browser;
   try {
+    /*
     browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        //executablePath: '/usr/bin/chromium-browser',
+        headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-crash-reporter',
+        '--disable-features=Crashpad',
+        '--disable-dev-shm-usage'
+        ],
     });
+    */
+const puppeteer = require('puppeteer');
+const puppeteerExtra = require('puppeteer-extra');
+
+// critical line: tell puppeteer-extra to use full puppeteer
+puppeteerExtra.puppeteer = puppeteer;
+//console.error('Executable path:', puppeteer.executablePath());
+
+const browser = await puppeteerExtra.launch({
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-crash-reporter',
+    '--disable-features=Crashpad',
+    '--disable-features=TranslateUI',
+    '--disable-logging',
+    '--disable-background-networking',
+    '--disable-default-apps',
+    '--disable-sync',
+    '--disable-extensions',
+    '--disable-component-update',
+    '--disable-client-side-phishing-detection',
+    '--disable-breakpad',
+    '--no-crash-upload',
+    '--disable-gpu',
+    '--single-process'
+    ],
+executablePath: '/usr/share/httpd/.cache/puppeteer/chrome/linux-144.0.7534.0/chrome-linux64/chrome'
+  //executablePath: puppeteer.executablePath()
+});
 
     const page = await browser.newPage();
     await page.setUserAgent(
@@ -65,7 +120,9 @@ fs.writeFileSync(htmlOutputPath, '');
       return clone.innerHTML;
     });
 
-    fs.appendFileSync(htmlOutputPath, '<!DOCTYPE html>\n<html lang="en">\n<head>\n' + headHTML + '\n</head>\n<body>\n');
+    let text = '<!DOCTYPE html>\n<html lang="en">\n<head>\n' + headHTML + '\n</head>\n<body>\n';
+    print( text );
+    fs.appendFileSync(htmlOutputPath, text);
 
     const pageIDs = await page.evaluate(() => {
       if (typeof pageImageSizes !== 'undefined') {
@@ -91,7 +148,7 @@ fs.writeFileSync(htmlOutputPath, '');
     for (let i = 0; i < pageIDs.length; i++) {
       const pageID = pageIDs[i];
       const pageNum = i + 1;
-      console.log(`🔍 Processing page ${pageNum} (pageID: ${pageID})`);
+      log.info(`🔍 Processing page ${pageNum} (pageID: ${pageID})`);
 
       await page.evaluate((pageID) => {
         selectSection(pageID, pageID);
@@ -145,6 +202,7 @@ fs.writeFileSync(htmlOutputPath, '');
       previousText = rawText;
 
       if (finalText.length > 0 && finalText.trim() !== '(No text)') {
+        print( finalText + '\n\n' );
         fs.appendFileSync(outputPath, finalText + '\n\n');
 
         const sectionHTML = await page.$eval('#ulukaupagetextview', el => {
@@ -153,17 +211,21 @@ fs.writeFileSync(htmlOutputPath, '');
           return html;
         });
 
-        fs.appendFileSync(htmlOutputPath, `<!-- Page ${pageNum} -->\n${sectionHTML}\n\n`);
-        console.log(`📝 Text appended for page ${pageNum}`);
+        text = `<!-- Page ${pageNum} -->\n${sectionHTML}\n\n`;
+        print( text );
+        fs.appendFileSync(htmlOutputPath, text);
+        log.info(`📝 Text appended for page ${pageNum}`);
       } else {
-        console.log(`⏭ Skipped empty or boilerplate page ${pageNum}`);
+        log.info(`⏭ Skipped empty or boilerplate page ${pageNum}`);
       }
     }
 
-    fs.appendFileSync(htmlOutputPath, '</body>\n</html>\n');
-    console.log(`✅ Saved to ${outputPath}`);
+    text = '</body>\n</html>\n';
+    print( text );
+    fs.appendFileSync(htmlOutputPath, text);
+    log.info(`✅ Saved to ${outputPath}`);
   } catch (err) {
-    console.error('💥 Fatal error:', err);
+    log.error('💥 Fatal error:', err);
   } finally {
     if (browser) {
       await browser.close();
