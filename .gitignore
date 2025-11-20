@@ -6,3 +6,6 @@ tests/reports
 tests/*.xml
 tests/*.html
 .env
+node_modules/
+db/ulukau/output/
+**/php_errorlog
