@@ -28,6 +28,7 @@ class ElasticsearchSaveManager {
     private $debug = false;
     private $maxrows = 20000;
     private $options = [];
+    private $integrityReport = null;
     private $parser = null;
     protected $logName = "ElasticsearchSaveManager";
     protected $funcName = "";
@@ -62,18 +63,59 @@ class ElasticsearchSaveManager {
         echo "Sentences index: {$this->client->getSentencesIndexName()}\n";
         echo "Processing logs: Elasticsearch (processing-logs index)\n";
         
-        // Run integrity check
-        $integrity = $this->client->checkSourceIntegrity();
-        if ($integrity['status'] === 'warning' || $integrity['status'] === 'error') {
+        // Only run integrity check if orphan check is requested
+        // Note: PHP converts hyphens to underscores in option names
+        $checkOrphans = (isset($options['check-orphans']) && $options['check-orphans']) || 
+                        (isset($options['check_orphans']) && $options['check_orphans']);
+        
+        $this->integrityReport = null;
+        if ($checkOrphans) {
+            $integrity = $this->client->checkSourceIntegrity(true);
+            $this->integrityReport = $integrity; // Store for later use
+        } else {
+            $integrity = null;
+        }
+        
+        if ($integrity && ($integrity['status'] === 'warning' || $integrity['status'] === 'error')) {
             echo "\n⚠️  SOURCE INTEGRITY CHECK:\n";
             echo "Status: {$integrity['status']}\n";
             echo "Counter: {$integrity['counter_value']}, ";
             echo "Max in metadata: {$integrity['max_in_metadata']}, ";
             echo "Max in documents: {$integrity['max_in_documents']}, ";
             echo "Max in sentences: {$integrity['max_in_sentences']}\n";
+            
             foreach ($integrity['warnings'] as $warning) {
                 echo "  - $warning\n";
             }
+            
+            // Display orphan details if any
+            if (!empty($integrity['orphaned_documents'])) {
+                echo "\n🔴 Orphaned documents (in documents index but not in metadata): " . count($integrity['orphaned_documents']) . "\n";
+                echo "   IDs: " . implode(', ', array_slice($integrity['orphaned_documents'], 0, 10));
+                if (count($integrity['orphaned_documents']) > 10) {
+                    echo " ... and " . (count($integrity['orphaned_documents']) - 10) . " more";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($integrity['orphaned_sentences'])) {
+                echo "🔴 Sources with orphaned sentences (in sentences index but not in metadata): " . count($integrity['orphaned_sentences']) . "\n";
+                echo "   Source IDs: " . implode(', ', array_slice($integrity['orphaned_sentences'], 0, 10));
+                if (count($integrity['orphaned_sentences']) > 10) {
+                    echo " ... and " . (count($integrity['orphaned_sentences']) - 10) . " more";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($integrity['empty_metadata'])) {
+                echo "🔴 Empty metadata records (in metadata but no documents or sentences): " . count($integrity['empty_metadata']) . "\n";
+                echo "   Source IDs: " . implode(', ', array_slice($integrity['empty_metadata'], 0, 10));
+                if (count($integrity['empty_metadata']) > 10) {
+                    echo " ... and " . (count($integrity['empty_metadata']) - 10) . " more";
+                }
+                echo "\n";
+            }
+            
             echo "\n";
         }
         echo "\n";
@@ -118,7 +160,39 @@ class ElasticsearchSaveManager {
         setDebug($debug);
     }
 
-
+    /**
+     * Get the stored integrity report
+     */
+    public function getIntegrityReport() {
+        return $this->integrityReport;
+    }
+    
+    /**
+     * Fix integrity issues found in the integrity check
+     */
+    public function fixIntegrityIssues(): array {
+        if (!$this->integrityReport) {
+            return ['error' => 'No integrity report available'];
+        }
+        
+        $hasIssues = !empty($this->integrityReport['orphaned_documents']) ||
+                     !empty($this->integrityReport['orphaned_sentences']) ||
+                     !empty($this->integrityReport['empty_metadata']);
+        
+        if (!$hasIssues) {
+            return ['message' => 'No integrity issues to fix'];
+        }
+        
+        echo "🔧 Fixing integrity issues...\n";
+        $results = $this->client->fixIntegrityIssues($this->integrityReport);
+        
+        echo "✅ Fixed:\n";
+        echo "   - Deleted {$results['orphaned_documents_deleted']} orphaned document(s)\n";
+        echo "   - Deleted {$results['orphaned_sentences_deleted']} orphaned sentence(s)\n";
+        echo "   - Deleted {$results['empty_metadata_deleted']} empty metadata record(s)\n";
+        
+        return $results;
+    }
 
     /**
      * Calculate Hawaiian word ratio using simple heuristics
@@ -202,12 +276,22 @@ class ElasticsearchSaveManager {
             return 0;
         }
 
-        // Verify all sentences are valid UTF-8 (should be handled by parser, but check anyway)
+        // Verify and fix any sentences with invalid UTF-8 (defense in depth)
         foreach ($sentences as $i => $sentence) {
             if (!mb_check_encoding($sentence, 'UTF-8')) {
-                $this->log("WARNING: Sentence $i has invalid UTF-8 encoding after extraction");
-                // This should not happen if TextProcessor.convertEncoding() is working correctly
-                error_log("Invalid UTF-8 in sentence $i from sourceID $sourceID: " . bin2hex(substr($sentence, 0, 50)));
+                $this->log("WARNING: Sentence $i has invalid UTF-8 encoding after extraction - fixing");
+                error_log("Invalid UTF-8 in sentence $i from sourceID $sourceID before fix: " . bin2hex(substr($sentence, 0, 50)));
+                
+                // Fix invalid UTF-8
+                $cleaned = @iconv('UTF-8', 'UTF-8//IGNORE', $sentence);
+                if ($cleaned !== false) {
+                    $sentences[$i] = $cleaned;
+                } else {
+                    // Fallback: use mb_convert_encoding
+                    $sentences[$i] = mb_convert_encoding($sentence, 'UTF-8', 'UTF-8');
+                }
+                
+                error_log("Fixed UTF-8 in sentence $i: " . substr($sentences[$i], 0, 50));
             }
         }
 
@@ -223,7 +307,7 @@ class ElasticsearchSaveManager {
             'sourcename' => $source['sourcename'] ?? '',
             'groupname' => $source['groupname'] ?? $parser->groupname ?? '',
             'authors' => $source['authors'] ?? $source['author'] ?? '',
-            'date' => $source['date'] ?? '',
+            'date' => !empty($source['date']) ? $source['date'] : null,
             'title' => $source['title'] ?? '',
             'link' => $link
         ];
@@ -300,9 +384,20 @@ class ElasticsearchSaveManager {
      */
     private function getSentenceCount($sourceID) {
         try {
-            $result = $this->client->getSentencesBySourceID($sourceID);
-            return $result && isset($result['sentences']) ? count($result['sentences']) : 0;
+            $result = $this->client->getSentencesBySourceID((string)$sourceID);
+            if (!$result) {
+                if ($this->debug) echo "  DEBUG: getSentenceCount: No result for sourceID $sourceID\n";
+                return 0;
+            }
+            if (!isset($result['sentences'])) {
+                if ($this->debug) echo "  DEBUG: getSentenceCount: No sentences key in result for sourceID $sourceID. Keys: " . implode(', ', array_keys($result)) . "\n";
+                return 0;
+            }
+            $count = count($result['sentences']);
+            if ($this->debug) echo "  DEBUG: getSentenceCount: Found $count sentences for sourceID $sourceID\n";
+            return $count;
         } catch (Exception $e) {
+            if ($this->debug) echo "  DEBUG: getSentenceCount: Exception for sourceID $sourceID: " . $e->getMessage() . "\n";
             return 0;
         }
     }
@@ -390,7 +485,15 @@ class ElasticsearchSaveManager {
 
                 // If --force is specified, always process sentences
                 // Otherwise, only process if not present or resplit requested
-                $this->log("About to index sentences: text=" . strlen($text) . " bytes, sentenceCount=$sentenceCount, force=$force");
+                $textLen = is_string($text) ? strlen($text) : 0;
+                $textType = gettype($text);
+                $textBool = $text ? 'truthy' : 'falsy';
+                $condition1 = !$sentenceCount ? 'true' : 'false';
+                $condition2 = $force ? 'true' : 'false';
+                $condition3 = $resplit ? 'true' : 'false';
+                $this->log("About to index sentences: text=$textLen bytes (type=$textType, bool=$textBool), sentenceCount=$sentenceCount, force=$force, resplit=$resplit");
+                $this->log("Condition breakdown: \$text=$textBool, !sentenceCount=$condition1, force=$condition2, resplit=$condition3");
+                
                 if ($text && (!$sentenceCount || $force || $resplit)) {
                     $this->log("Calling indexSentences");
                     $didWork = $this->indexSentences($parser, $sourceID, $source, $link, $text);
@@ -406,6 +509,7 @@ class ElasticsearchSaveManager {
                     $this->log("Skipping indexSentences (text is empty or conditions not met)");
                 }
                 
+                $this->log("saveContents returning: $didWork");
                 return $didWork;
             },
             [
@@ -536,7 +640,28 @@ class ElasticsearchSaveManager {
                     echo "Created ID: $sourceID... ";
                 } else {
                     echo "FAILED to create source\n";
-                    $this->log("Failed to add source");
+                    echo "  Link: $link\n";
+                    echo "  Groupname: {$parser->groupname}\n";
+                    echo "  Parser: " . get_class($parser) . "\n";
+                    
+                    // Get the actual error from the client
+                    $lastError = $this->client->getLastError();
+                    if ($lastError) {
+                        echo "  Error: " . $lastError->getMessage() . "\n";
+                        echo "  Exception: " . get_class($lastError) . "\n";
+                        if ($lastError->getCode()) {
+                            echo "  Code: " . $lastError->getCode() . "\n";
+                        }
+                    }
+                    
+                    // Check if source already exists by link
+                    $existingSource = $this->client->getSourceByLink($link);
+                    if ($existingSource) {
+                        echo "  Existing source ID: {$existingSource['sourceid']}\n";
+                        echo "  Existing source name: {$existingSource['sourcename']}\n";
+                    }
+                    
+                    $this->log("Failed to add source: $sourceName, link: $link, groupname: {$parser->groupname}");
                     $errors++;
                     continue;
                 }
@@ -554,7 +679,13 @@ class ElasticsearchSaveManager {
                     echo "SUCCESS ($count sentences)\n";
                     $indexed++;
                 } else {
-                    echo "SKIP (no sentences)\n";
+                    // Check if sentences already exist
+                    $sentenceCount = $this->getSentenceCount($sourceID);
+                    if ($sentenceCount > 0) {
+                        echo "SKIP (already indexed with $sentenceCount sentences)\n";
+                    } else {
+                        echo "SKIP (no sentences extracted)\n";
+                    }
                     $skipped++;
                 }
                 
