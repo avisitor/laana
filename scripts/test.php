@@ -19,6 +19,15 @@ function show( $var ) {
     echo( var_export( $var, true ) . "\n" );
 }
 
+testUlukauLocalFetch();
+return;
+
+function testUlukauLocalFetch() {
+    $url =" https://puke.ulukau.org/ulukau-books/?a=d&d=EBOOK-HAUWAHINE&e=-------en-20--1--txt-txPT-----------";
+    $contents = (new UlukauLocal())->getContents( $url );
+    echo "$contents\n";
+}
+
 function testGetPageHTML( $word, $pattern, $page, $order ) {
     global $HOST, $PROVIDER;
     $url = "https://$HOST/ops/getPageHtml.php?provider=$PROVIDER&word=$word&pattern=$pattern&page=$page&order=$order";

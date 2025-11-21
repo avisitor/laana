@@ -751,9 +751,14 @@ class TextParse extends HTMLParse {
 class UlukauHTML extends HTMLParse {
     protected $boilerplatePatterns = [];
     protected $publisherKeywords = [];
+    private $base = 'http://localhost:3000/';
+    private $docUrl;
+    private $metadataUrl;
     
     public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
+        $this->docUrl = $this->base . 'doc?url=';
+        $this->metadataUrl = $this->base . 'metadata';
         $this->semanticSplit = true;
         // Removed incorrect "No part of" end marker - copyright text should be filtered as boilerplate, not end processing
         
@@ -972,7 +977,7 @@ class UlukauHTML extends HTMLParse {
         $this->funcName = "getDocumentList";
         $this->print("");
         $pageList = json_decode( $this->getRaw(
-            "https://noiiolelo.worldspot.org/ulukaupages", false ), true );
+            $this->metadataUrl, false ), true );
         /*
         for( $i = 0; $i < count($pageList); $i++ ) {
             $pageList[$i]['link'] =
@@ -982,6 +987,11 @@ class UlukauHTML extends HTMLParse {
         */
         return $pageList;
     }
+    public function getContents( $url ) {
+        $url = $this->docUrl . urlencode( $url );
+        return $this->getContents( $url );
+    }
+
     public function preprocessHTML( $text ) {
         $this->funcName = "preprocessHTML";
         $this->print( (($text) ? strlen($text) : 0) . " characters)" );
@@ -1449,20 +1459,42 @@ class UlukauHTML extends HTMLParse {
 }
 
 class UlukauLocal extends UlukauHTML {
-    protected $baseDir = __DIR__ . '/../ulukau';
-    protected $pageListFile = "ulukau-books.json";
+    protected $baseDir = __DIR__ . '/ulukau';
+    protected $pageListFileName = "ulukau.json";
+    protected $pageListFile;
+    public function __construct( $options = ['preprocess' => false,] ) {
+        parent::__construct($options);
+        $this->pageListFile = "{$this->baseDir}/output/{$this->pageListFileName}";
+    }
 
     public function getDocumentList() {
         $this->funcName = "getDocumentList";
         $this->print("");
-        $pageList = json_decode( $this->getRaw(
-            "$this->baseDir/$this->pageListFile", false ), true );
+        $pageList = json_decode( file_get_contents($this->pageListFile), true );
         for( $i = 0; $i < count($pageList); $i++ ) {
             $pageList[$i]['link'] =
                 $pageList[$i]['url'] =
                     "$this->urlBase/{$pageList[$i]['oid']}.html";
         }
         return $pageList;
+    }
+
+    public function getContents( $url ) {
+        $this->funcName = "getContents";
+        $this->print("");
+        $oid = null;
+        $parsedUrl = parse_url($url);
+        if (isset($parsedUrl['query'])) {
+            parse_str($parsedUrl['query'], $params);
+            // Return the 'd' parameter which contains the OID
+            $oid = $params['d'] ?? null;
+        }
+        if( !$oid ) {
+            $this->print( "No OID found in URL: $url" );
+            return "";
+        }
+        $filename = "{$this->baseDir}/output/$oid.html";
+        return file_get_contents( $filename );
     }
 }
 class CBHtml extends HtmlParse {
