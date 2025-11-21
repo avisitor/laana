@@ -41,6 +41,7 @@ $options = getopt('', [
     'minsourceid:',
     'maxsourceid:',
     'delete-existing',
+    'check-orphans',
     'reindex-failed',
     'dryrun',
     'limit:',
@@ -58,6 +59,7 @@ if (isset($options['help'])) {
     echo "  --minsourceid=ID       Minimum source ID to process\n";
     echo "  --maxsourceid=ID       Maximum source ID to process\n";
     echo "  --delete-existing      Delete existing documents with this groupname first\n";
+    echo "  --check-orphans        Check for orphaned records (slow, can take minutes for large datasets)\n";
     echo "  --reindex-failed       Find and reindex failed documents (raw content but no sentences)\n";
     echo "  --dryrun               Show what would be done without actually doing it (for --reindex-failed)\n";
     echo "  --limit=N              Maximum number of failed sources to reindex (for --reindex-failed)\n";
@@ -107,12 +109,33 @@ function indexDocuments($options) {
         'sourceid' => isset($options['sourceid']) ? (int)$options['sourceid'] : 0,
         'minsourceid' => isset($options['minsourceid']) ? (int)$options['minsourceid'] : 0,
         'maxsourceid' => isset($options['maxsourceid']) ? (int)$options['maxsourceid'] : PHP_INT_MAX,
+        'check-orphans' => isset($options['check-orphans']),
         'sources' => [] // Will be populated as we process
     ];
 
     try {
         // Initialize manager
         $manager = new ElasticsearchSaveManager($managerOptions);
+        
+        // Check for integrity issues and prompt to fix
+        $integrityReport = $manager->getIntegrityReport();
+        if ($integrityReport && ($integrityReport['status'] === 'warning' || $integrityReport['status'] === 'error')) {
+            $hasOrphans = !empty($integrityReport['orphaned_documents']) ||
+                         !empty($integrityReport['orphaned_sentences']) ||
+                         !empty($integrityReport['empty_metadata']);
+            
+            if ($hasOrphans) {
+                echo "⚠️  Integrity issues detected. Fix these issues before proceeding? (y/n): ";
+                $handle = fopen("php://stdin", "r");
+                $line = fgets($handle);
+                fclose($handle);
+                
+                if (trim(strtolower($line)) === 'y') {
+                    $manager->fixIntegrityIssues();
+                    echo "\n";
+                }
+            }
+        }
         
         // Delete existing documents if requested
         if (isset($options['delete-existing'])) {
@@ -128,11 +151,15 @@ function indexDocuments($options) {
             echo "  Metadata: {$stats['metadata']}\n\n";
         }
         
-        // Process documents
-        echo "Starting document processing...\n\n";
-        $manager->getAllDocuments();
-        
-        echo "\n✓ Indexing complete!\n";
+        // Process documents (skip if maxrows is 0 and we only did integrity check)
+        $maxrows = $managerOptions['maxrows'];
+        if ($maxrows > 0 || !isset($options['check-orphans'])) {
+            echo "Starting document processing...\n\n";
+            $manager->getAllDocuments();
+            echo "\n✓ Indexing complete!\n";
+        } else {
+            echo "\n✓ Integrity check complete!\n";
+        }
         
     } catch (Exception $e) {
         echo "\n✗ Error: " . $e->getMessage() . "\n";
