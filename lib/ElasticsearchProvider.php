@@ -413,14 +413,38 @@ class ElasticsearchProvider implements SearchProviderInterface {
         return $this->client->getTotalSourceGroupCounts();
     }
 
-    public function getSources( $groupname ) {
+    public function getSources( $groupname = '', $properties = [] ) {
         $sources = $this->client->getAllRecords( $this->client->getSourceMetadataName() );
-        return array_column( $sources, "_source" );
+        $sources = array_column( $sources, "_source" );
+        
+        // Filter by groupname if specified
+        if ($groupname) {
+            $sources = array_filter($sources, function($source) use ($groupname) {
+                return isset($source['groupname']) && $source['groupname'] === $groupname;
+            });
+            // Re-index array after filtering
+            $sources = array_values($sources);
+        }
+        
+        // Filter properties if specified
+        if (!empty($properties)) {
+            $sources = array_map(function($source) use ($properties) {
+                $filtered = [];
+                foreach ($properties as $prop) {
+                    if (isset($source[$prop])) {
+                        $filtered[$prop] = $source[$prop];
+                    }
+                }
+                return $filtered;
+            }, $sources);
+        }
+        
+        return $sources;
     }
 
     public function getSourceIDs( $groupname = '' ) {
         $sources = $this->getSources( $groupname );
-        return array_column( $sources, 'sourceID' );
+        return array_column( $sources, 'sourceid' );
     }
 
     public function getSentencesBySourceID( $sourceid ) {
