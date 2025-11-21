@@ -15,6 +15,19 @@ class TextProcessor {
     public function cleanSentence($sentence) {
         $sentence = str_replace($this->placeholder, '.', $sentence);
         $sentence = preg_replace('/(\s+)(\?|\!)/', '$2', $sentence);
+        
+        // Ensure valid UTF-8 encoding
+        if (!mb_check_encoding($sentence, 'UTF-8')) {
+            // Use iconv to remove invalid sequences
+            $cleaned = @iconv('UTF-8', 'UTF-8//IGNORE', $sentence);
+            if ($cleaned !== false) {
+                $sentence = $cleaned;
+            } else {
+                // Fallback: use mb_convert_encoding
+                $sentence = mb_convert_encoding($sentence, 'UTF-8', 'UTF-8');
+            }
+        }
+        
         return $sentence;
     }
 
