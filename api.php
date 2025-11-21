@@ -5,6 +5,16 @@ require_once __DIR__ . '/lib/provider.php';
 
 header('Content-Type: application/json');
 
+// Parse query string properly to handle provider parameter
+// This handles cases where REQUEST_URI might have the query string embedded
+$queryString = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
+if ($queryString) {
+    parse_str($queryString, $queryParams);
+    // Merge with existing REQUEST parameters, with parsed params taking precedence
+    $_REQUEST = array_merge($_REQUEST, $queryParams);
+    $_GET = array_merge($_GET, $queryParams);
+}
+
 // Get provider from URL parameter, default to 'Laana'
 $providerName = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'Laana';
 if (!in_array($providerName, ['Laana', 'Elasticsearch'])) {
@@ -74,6 +84,17 @@ if ($parts[0] === 'source' && isset($parts[1])) {
     } else {
         error_response('Unknown endpoint', 404);
     }
+}
+if ($parts[0] === 'search') {
+    $query = $_REQUEST['query'] ?? '';
+    $mode = $_REQUEST['mode'] ?? '';
+    $limit = $_REQUEST['limit'] ?? 10;
+    $offset = $_REQUEST['offset'] ?? 0;
+    //echo "query=$query, mode=$mode, limit=$limit, offset=$offset, provider=$providerName\n";
+
+    $result = ['sources' => $provider->search($query, $mode, $limit, $offset)];
+    echo json_encode($result);
+    exit;
 }
 error_response('Unknown endpoint', 404);
 ?>
