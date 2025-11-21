@@ -754,10 +754,43 @@ class UlukauHTML extends HTMLParse {
     private $base = 'http://localhost:3000/';
     private $docUrl;
     private $metadataUrl;
+    private static $hawaiianWords = null;
+    
+    /**
+     * Normalize Hawaiian diacritics for comparison
+     * Removes macrons (ā→a) and ʻokina (ʻ→empty)
+     * Input should already be lowercased
+     */
+    private static function normalizeDiacritics($text) {
+        $replacements = [
+            'ā' => 'a', 'ē' => 'e', 'ī' => 'i', 'ō' => 'o', 'ū' => 'u',
+            'ʻ' => '', '`' => ''
+        ];
+        return str_replace(array_keys($replacements), array_values($replacements), $text);
+    }
     
     public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
         $this->docUrl = $this->base . 'doc?url=';
+        
+        // Load Hawaiian word list once
+        if (self::$hawaiianWords === null) {
+            $wordFile = __DIR__ . '/../../elasticsearch/hawaiian_words.txt';
+            if (file_exists($wordFile)) {
+                $words = file($wordFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                // Create a set for fast lookup, normalize to lowercase and remove diacritics
+                self::$hawaiianWords = [];
+                foreach ($words as $w) {
+                    $w = trim($w);
+                    if (!empty($w) && substr($w, 0, 1) !== '-' && substr($w, 0, 9) !== 'raw_head') {
+                        $normalized = self::normalizeDiacritics(strtolower($w));
+                        self::$hawaiianWords[$normalized] = true;
+                    }
+                }
+            } else {
+                self::$hawaiianWords = [];
+            }
+        }
         $this->metadataUrl = $this->base . 'metadata';
         $this->semanticSplit = true;
         // Removed incorrect "No part of" end marker - copyright text should be filtered as boilerplate, not end processing
@@ -807,9 +840,6 @@ class UlukauHTML extends HTMLParse {
             '/What happens after.*\?/u', // Study questions
             '/Why does.*\?/u', // Study questions
             '/How can.*\?/u', // Study questions
-            '/He aha.*\?/u', // Hawaiian study questions
-            '/Pehea.*\?/u', // Hawaiian study questions
-            '/No ke aha.*\?/u', // Hawaiian study questions
             '/FIVE TIPS|FIve tIPs/u', // Educational sections
             '/kaMehaMeha PUblIshIng/u', // Publisher names
             '/Amplifying Hawaiian Perspectives/u', // Publisher taglines
@@ -989,7 +1019,7 @@ class UlukauHTML extends HTMLParse {
     }
     public function getContents( $url ) {
         $url = $this->docUrl . urlencode( $url );
-        return $this->getContents( $url );
+        return parent::getContents( $url );
     }
 
     public function preprocessHTML( $text ) {
@@ -1050,77 +1080,117 @@ class UlukauHTML extends HTMLParse {
      * Check if a sentence appears to be boilerplate/publisher content
      */
     protected function isBoilerplate($sentence) {
+        $result = $this->checkBoilerplate($sentence);
+        return $result['is_boilerplate'];
+    }
+    
+    protected function checkBoilerplate($sentence) {
         $sentence = trim($sentence);
         
         // Skip very short sentences that are likely not meaningful content
         // But be more lenient for Hawaiian content - allow shorter meaningful phrases
         if (strlen($sentence) < 8) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'too_short (<8 chars)'];
         }
         
         // Allow short Hawaiian phrases but filter out obvious fragments
         if (strlen($sentence) < 20) {
+            // Check Hawaiian word list for short phrases
+            if (!empty(self::$hawaiianWords)) {
+                $words = preg_split('/\s+/u', strtolower($sentence));
+                $hawaiianWordCount = 0;
+                foreach ($words as $word) {
+                    $word = preg_replace('/[^\w]/u', '', $word);
+                    $normalized = self::normalizeDiacritics($word);
+                    if (strlen($word) > 1 && isset(self::$hawaiianWords[$normalized])) {
+                        $hawaiianWordCount++;
+                    }
+                }
+                // If at least 2 Hawaiian words or 50% of words are Hawaiian, allow it
+                if ($hawaiianWordCount >= 2 || ($hawaiianWordCount / max(1, count($words))) >= 0.5) {
+                    return ['is_boilerplate' => false, 'reason' => 'Hawaiian words found'];
+                }
+            }
+            
             // Allow if it contains Hawaiian content indicators
-            if (preg_match('/[ʻāēīōū]|\\b(ka|ke|o|a|i|ma|no|me|lā)\\b/u', $sentence)) {
+            if (preg_match('/[ʻāēīōū]|\\b(ka|ke|o|a|i|ma|no|me|lā|na|ia|eia|oia)\\b/u', $sentence)) {
                 // But still filter out obvious English fragments
                 if (preg_match('/^(written by|illustrated by|edited by|translated by|and|by)$/i', $sentence)) {
-                    return true;
+                    return ['is_boilerplate' => true, 'reason' => 'English fragment'];
                 }
-                return false; // Allow Hawaiian content
+                return ['is_boilerplate' => false, 'reason' => 'Hawaiian content']; // Allow Hawaiian content
             }
-            return true; // Filter out other short content
+            return ['is_boilerplate' => true, 'reason' => 'short non-Hawaiian (<20 chars)']; // Filter out other short content
         }
         
         // Check against boilerplate patterns
         foreach ($this->boilerplatePatterns as $pattern) {
             if (preg_match($pattern, $sentence)) {
-                return true;
+                // Special handling for all-caps pattern - check if it contains Hawaiian words
+                if ($pattern === '/^[A-Z][A-Z ]+\.$/') {
+                    if (!empty(self::$hawaiianWords)) {
+                        $words = preg_split('/\s+/u', strtolower($sentence));
+                        $hawaiianWordCount = 0;
+                        foreach ($words as $word) {
+                            $word = preg_replace('/[^\w]/u', '', $word);
+                            $normalized = self::normalizeDiacritics($word);
+                            if (strlen($word) > 1 && isset(self::$hawaiianWords[$normalized])) {
+                                $hawaiianWordCount++;
+                            }
+                        }
+                        // If contains Hawaiian words, don't reject it
+                        if ($hawaiianWordCount >= 2) {
+                            continue; // Skip this pattern, check others
+                        }
+                    }
+                }
+                return ['is_boilerplate' => true, 'reason' => 'pattern: ' . substr($pattern, 0, 50)];
             }
         }
         
         // Check for addresses and street patterns more broadly
         if (preg_match('/\d+\s+[A-Z][a-z]+.*Street/u', $sentence)) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'street address'];
         }
         
         // Check for institutional organization names
         if (preg_match('/Hawaiian Historical Society/u', $sentence)) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'Hawaiian Historical Society'];
         }
         
         // Check for geographic/institutional descriptions
         if (preg_match('/Hawaiʻi and the Pacific Islands/u', $sentence)) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'Pacific Islands description'];
         }
         
         // Check for committee/organization fragment patterns
         if (preg_match('/Committee.*Hawaiian.*Historical/u', $sentence)) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'Committee pattern'];
         }
         
         // Check for acknowledgment patterns
         if (preg_match('/For this assistance.*thank|We are grateful.*Dr\./u', $sentence)) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'acknowledgment'];
         }
         
         // Check for funding/research patterns
         if (preg_match('/Hawaiian language newspapers.*carried out|funding.*University/u', $sentence)) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'funding/research'];
         }
         
         // Check for sentences that are primarily or entirely institutional metadata
         if (preg_match('/^\s*[A-Z][a-z]*\s*(Historical\s*)?Society.*[A-Z][a-z]+.*Street\s*$/u', $sentence)) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'institutional metadata'];
         }
         
         // Check for incomplete sentences ending with academic titles
         if (preg_match('/teacher at t$|Associate$|Curator.*Collection$/u', $sentence)) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'incomplete academic title'];
         }
         
         // Check for dedication patterns more specifically
         if (preg_match('/^For .+? and .+? in our lives/u', $sentence)) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'dedication'];
         }
         
         // Check for high concentration of publisher keywords
@@ -1137,21 +1207,62 @@ class UlukauHTML extends HTMLParse {
         // If more than 20% of the words are publisher-related, likely boilerplate
         // Increased threshold to be less aggressive for mixed content
         if ($wordCount > 5 && ($keywordCount / $wordCount) > 0.20) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'publisher keywords (' . round(($keywordCount / $wordCount) * 100) . '%)'];
         }
         
         // Check for sentences that are primarily English or mixed with lots of English
         if ($this->isPrimarilyEnglish($sentence)) {
-            return true;
+            return ['is_boilerplate' => true, 'reason' => 'primarily English'];
         }
         
-        return false;
+        return ['is_boilerplate' => false, 'reason' => 'passed all checks'];
     }
     
     /**
      * Check if a sentence is primarily English rather than Hawaiian
      */
     protected function isPrimarilyEnglish($sentence) {
+        // First check for Hawaiian diacriticals - if present, it's Hawaiian
+        if (preg_match('/[ʻāēīōū]/u', $sentence)) {
+            return false;
+        }
+        
+        // Use the Hawaiian word list to check if sentence contains Hawaiian words
+        if (!empty(self::$hawaiianWords)) {
+            $words = preg_split('/\s+/u', strtolower($sentence));
+            $hawaiianWordCount = 0;
+            $totalWords = 0;
+            
+            foreach ($words as $word) {
+                $word = preg_replace('/[^\w]/u', '', $word); // Remove punctuation
+                if (strlen($word) > 1) { // Count substantial words
+                    $totalWords++;
+                    $normalized = self::normalizeDiacritics($word);
+                    if (isset(self::$hawaiianWords[$normalized])) {
+                        $hawaiianWordCount++;
+                    }
+                }
+            }
+            
+            // If 30% or more words are in Hawaiian dictionary, it's Hawaiian
+            if ($totalWords > 0 && ($hawaiianWordCount / $totalWords) >= 0.3) {
+                return false;
+            }
+        }
+        
+        // Check for common Hawaiian particle patterns that wouldn't appear in English
+        // Multiple Hawaiian particles in sequence is a strong indicator
+        if (preg_match('/\\b(o|i|a|e|ka|ke|na|he|mai|aku|ana|ia)\\s+(o|i|a|e|ka|ke|na|he|mai|aku|ana|ia)\\b/ui', $sentence)) {
+            return false;
+        }
+        
+        // Check for Hawaiian verb forms with repeated patterns (oia, eia, ua ... ana, etc.)
+        if (preg_match('/\\b(oia|eia|pela|penei|pela\\s+no|oia\\s+no)\\b/ui', $sentence) ||
+            preg_match('/\\bua\\s+\\w+ia\\b/ui', $sentence) ||  // ua + word + ia (passive)
+            preg_match('/\\be\\s+\\w+(ana|ia|ina)\\b/ui', $sentence)) {  // e + word + ana/ia/ina
+            return false;
+        }
+        
         // Common English words that shouldn't appear in Hawaiian text
         $englishWords = [
             'copyright', 'university', 'foundation', 'published', 'printed',
@@ -1279,7 +1390,8 @@ class UlukauHTML extends HTMLParse {
                     $rejectedCount++;
                     // Show first few rejected sentences to understand the pattern
                     if($rejectedCount <= 5) {
-                        $reason = $this->isBoilerplate($line) ? "boilerplate" : "page_number";
+                        $checkResult = $this->checkBoilerplate($line);
+                        $reason = $checkResult['is_boilerplate'] ? $checkResult['reason'] : "page_number";
                         echo "REJECTED #$rejectedCount ($reason): " . substr($line, 0, 100) . "..." . PHP_EOL;
                     }
                     $this->debugPrint("Discarded boilerplate: " . substr($line, 0, 100) . "...");
