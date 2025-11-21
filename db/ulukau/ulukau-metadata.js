@@ -1,217 +1,143 @@
+const express = require('express');
 const cheerio = require('cheerio');
-const minimist = require('minimist');
 const fs = require('fs');
 const path = require('path');
+const minimist = require('minimist');
+const { fetchWithRetry, delay } = require('./http-utils');
 
-// Utility function to add delay between requests
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const router = express.Router();
 
-// Logging utilities - control all output in one place
-const log = {
-  info: (msg) => {
-    if (!global.quietMode) console.error(msg);
-  },
-  warn: (msg) => {
-    if (!global.quietMode) console.warn(msg);
-  },
-  error: (msg, err) => {
-    if (!global.quietMode) {
-      if (err) console.error(msg, err);
-      else console.error(msg);
-    }
-  }
-};
+// Core function: scrape metadata
+async function fetchMetadata({ oid, limit }) {
+  const fetch = (await import('node-fetch')).default;
+  const baseURL = 'https://puke.ulukau.org/ulukau-books/';
+  const response = await fetchWithRetry(fetch, baseURL);
+  const html = await response.text();
+  const $ = cheerio.load(html);
 
-// Retry fetch with exponential backoff
-async function fetchWithRetry(fetch, url, maxRetries = 3, initialDelay = 1000) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  const rows = $('.ulukaubooks-book-browser-row');
+  const metadataArray = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const el = rows[i];
+    const lang = $(el).attr('data-language')?.trim().toLowerCase();
+    if (lang !== 'haw') continue;
+
+    const title = $(el).attr('data-title')?.trim() || '';
+    const author = $(el).attr('data-author')?.trim() || '';
+    const oidMatch = $(el).find('a[href*="d="]').attr('href')?.match(/d=([A-Z0-9\-]+)/);
+    const oidVal = oidMatch?.[1];
+
+    if (!oidVal || oidVal === 'EBOOK-' || oidVal.length <= 7) continue;
+    if (oid && oidVal !== oid) continue;
+    if (!oid && limit && metadataArray.length >= limit) break;
+
+    const full_url = `https://puke.ulukau.org/ulukau-books/?a=d&d=${oidVal}&e=-------en-20--1--txt-txPT-----------`;
+    const full_image = `https://puke.ulukau.org/ulukau-books/cgi-bin/imageserver.pl?oid=${oidVal}&getcover=true`;
+
+    let date = '';
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Connection': 'keep-alive',
+      await delay(100);
+      const bookPageRes = await fetchWithRetry(fetch, full_url);
+      const bookHTML = await bookPageRes.text();
+      const $$ = cheerio.load(bookHTML);
+
+      const pubKeywords = /(Published|Publication Date|Date Published|Year)/i;
+      let dateMatch;
+
+      $$('td, div, span, label').each((i, el) => {
+        const text = $$(el).text();
+        if (pubKeywords.test(text)) {
+          const match = text.match(/\b(19|20)\d{2}\b/);
+          if (match) {
+            dateMatch = match[0];
+            return false;
+          }
         }
       });
-      
-      clearTimeout(timeout);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      return response;
-    } catch (err) {
-      const isLastAttempt = attempt === maxRetries - 1;
-      
-      if (isLastAttempt) {
-        throw err;
-      }
-      
-      const backoffDelay = initialDelay * Math.pow(2, attempt);
-      log.info(`⏳ Retry ${attempt + 1}/${maxRetries} for ${url} after ${backoffDelay}ms (${err.message})`);
-      await delay(backoffDelay);
-    }
-  }
-}
 
-(async () => {
-  const fetch = (await import('node-fetch')).default;
-  const args = minimist(process.argv.slice(2), {
-    boolean: ['quiet'],
-    string: ['limit', 'oid'],
-    alias: { q: 'quiet', l: 'limit' },
-  });
-
-  const baseURL = 'https://puke.ulukau.org/ulukau-books/';
-  const quiet = args.quiet;
-  const limit = args.limit ? parseInt(args.limit) : null;
-  const targetOid = args.oid || null;
-  global.quietMode = quiet;
-
-  try {
-    const res = await fetchWithRetry(fetch, baseURL);
-    const html = await res.text();
-    const $ = cheerio.load(html);
-
-    const rows = $('.ulukaubooks-book-browser-row');
-    log.info(`🔍 Scanning ${rows.length} book entries${targetOid ? ` (filtering for: ${targetOid})` : limit ? ` (limit: ${limit})` : ''}`);
-    const metadataArray = [];
-    
-    // Start JSON array output for streaming mode
-    if (quiet) {
-      console.log('[');
-    }
-    let firstEntry = true;
-
-    for (let i = 0; i < rows.length; i++) {
-      const el = rows[i];
-      const lang = $(el).attr('data-language')?.trim().toLowerCase();
-      if (lang !== 'haw') continue;
-      
-      const title = $(el).attr('data-title')?.trim() || '';
-      const author = $(el).attr('data-author')?.trim() || '';
-      const oidMatch = $(el).find('a[href*="d="]').attr('href')?.match(/d=([A-Z0-9\-]+)/);
-      const oid = oidMatch?.[1];
-      
-      // Skip entries with no OID or invalid OIDs (e.g., just "EBOOK-")
-      if (!oid || oid === 'EBOOK-' || oid.length <= 7) continue;
-      
-      // If filtering by OID, skip non-matching entries
-      if (targetOid && oid !== targetOid) continue;
-      
-      // Stop if we've reached the limit (only when not filtering by OID)
-      if (!targetOid && limit && metadataArray.length >= limit) {
-        log.info(`✋ Reached limit of ${limit} entries`);
-        break;
-      }
-
-      const full_url = `https://puke.ulukau.org/ulukau-books/?a=d&d=${oid}&e=-------en-20--1--txt-txPT-----------`;
-      const full_image = `https://puke.ulukau.org/ulukau-books/cgi-bin/imageserver.pl?oid=${oid}&getcover=true`;
-
-      let date = '';
-      try {
-        // Add small delay between requests to avoid overwhelming the server
-        await delay(100);
-        
-        const bookPageRes = await fetchWithRetry(fetch, full_url);
-        const bookHTML = await bookPageRes.text();
-        const $$ = cheerio.load(bookHTML);
-
-        const pubKeywords = /(Published|Publication Date|Date Published|Year)/i;
-        let dateMatch;
-
-        $$('td, div, span, label').each((i, el) => {
-          const text = $$(el).text();
-          if (pubKeywords.test(text)) {
-            const match = text.match(/\b(19|20)\d{2}\b/);
-            if (match) {
-              dateMatch = match[0];
+      if (!dateMatch) {
+        $$('div').each((i, el) => {
+          const label = $$(el).find('.label').text();
+          const content = $$(el).find('.content').text();
+          if (/Copyright/i.test(label) || /Copyright/i.test(content)) {
+            const allYears = content.match(/\b(19|20)\d{2}\b/g);
+            if (allYears && allYears.length > 0) {
+              dateMatch = allYears.sort()[0];
               return false;
             }
           }
         });
-
-        if (!dateMatch) {
-          $$('div').each((i, el) => {
-            const label = $$(el).find('.label').text();
-            const content = $$(el).find('.content').text();
-            if (/Copyright/i.test(label) || /Copyright/i.test(content)) {
-              const allYears = content.match(/\b(19|20)\d{2}\b/g);
-              if (allYears && allYears.length > 0) {
-                dateMatch = allYears.sort()[0];
-                return false;
-              }
-            }
-          });
-        }
-
-        date = dateMatch || '';
-      } catch (err) {
-        log.warn(`⚠️ Could not extract date for ${oid}: ${err.message}`);
       }
 
-      const entry = {
-        sourcename: 'Ulukau: ' + oid,
-        oid,
-        url: full_url,
-        image: full_image,
-        title,
-        groupname: 'ulukau',
-        author,
-        date,
-      };
-      
-      metadataArray.push(entry);
-      
-      // Stream output in quiet mode
-      if (quiet) {
-        if (!firstEntry) {
-          console.log(',');
-        }
-        console.log(JSON.stringify(entry, null, 2));
-        firstEntry = false;
-      }
-      
-      // If filtering by OID and found it, we're done
-      if (targetOid && oid === targetOid) {
-        log.info(`✅ Found OID: ${targetOid}`);
-        break;
-      }
+      date = dateMatch || '';
+    } catch {
+      // ignore date extraction errors
     }
 
-    // Close JSON array in streaming mode
-    if (quiet) {
-      console.log(']');
-    }
+    const entry = {
+      sourcename: 'Ulukau: ' + oidVal,
+      oid: oidVal,
+      url: full_url,
+      image: full_image,
+      title,
+      groupname: 'ulukau',
+      author,
+      date,
+    };
 
-    // Output full array in non-quiet mode
-    if (!quiet) {
-      console.log(JSON.stringify(metadataArray, null, 2));
-    }
+    metadataArray.push(entry);
 
-    log.info(`✅ Found ${metadataArray.length} Hawaiian language books`);
+    if (oid && oidVal === oid) break;
+  }
 
-    // Save to file if this was an unrestricted fetch (no --oid or --limit)
-    if (!targetOid && !limit) {
+  return metadataArray;
+}
+
+// Express route
+router.get('/', async (req, res) => {
+  try {
+    const data = await fetchMetadata({ oid: req.query.oid, limit: req.query.limit });
+    res.json(data);
+
+    // Optionally save to file if no filters
+    if (!req.query.oid && !req.query.limit) {
       const outputPath = path.join(__dirname, 'output', 'ulukau.json');
       try {
-        fs.writeFileSync(outputPath, JSON.stringify(metadataArray, null, 2));
-        log.info(`💾 Saved full metadata to ${outputPath}`);
+        fs.writeFileSync(outputPath, JSON.stringify(data, null, 2));
       } catch (err) {
-        log.warn(`⚠️ Could not save metadata to file: ${err.message}`);
+        console.warn(`⚠️ Could not save metadata to file: ${err.message}`);
       }
     }
   } catch (err) {
-    log.error('💥 Metadata fetch failed:', err);
-    process.exit(1);
+    res.status(500).json({ error: err.message });
   }
-})().then(() => {
-  process.exit(0);
-}).catch(err => {
-  log.error('💥 Unhandled error:', err);
-  process.exit(1);
 });
+
+module.exports = router;
+
+// CLI mode
+if (require.main === module) {
+  const args = minimist(process.argv.slice(2), {
+    string: ['oid', 'limit'],
+    alias: { o: 'oid', l: 'limit' },
+  });
+
+  fetchMetadata({ oid: args.oid, limit: args.limit ? parseInt(args.limit) : null })
+    .then(data => {
+      console.log(JSON.stringify(data, null, 2));
+      if (!args.oid && !args.limit) {
+        const outputPath = path.join(__dirname, 'output', 'ulukau.json');
+        try {
+          fs.writeFileSync(outputPath, JSON.stringify(data, null, 2));
+          console.error(`💾 Saved full metadata to ${outputPath}`);
+        } catch (err) {
+          console.error(`⚠️ Could not save metadata to file: ${err.message}`);
+        }
+      }
+    })
+    .catch(err => {
+      console.error('💥 Metadata fetch failed:', err);
+      process.exit(1);
+    });
+}
