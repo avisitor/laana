@@ -67,8 +67,8 @@ class LaanaSearchProvider implements SearchProviderInterface
         ];
     }
     public function search(string $query, string $mode, int $limit, int $offset): array {
-        $pageNumber = floor($offset / $this->pageSize);
-        $hits = $this->getSentences($query, $mode, $pageNumber, []);
+        $pageNumber = floor($offset / $limit);
+        $hits = $this->getSentences($query, $mode, $pageNumber, ['limit' => $limit]);
         return ['hits' => $hits, 'total' => count($hits)];
     }
     public function getDocument(string $docId, string $format = 'text'): ?array {
