@@ -191,6 +191,7 @@ class HtmlParse {
         $date =
             isset($matches[1], $matches[2], $matches[3]) ?
             "{$matches[1]}-{$matches[2]}-{$matches[3]}" : '';
+        $this->log( "getDateFromUrl($url) = $date" );
         return $date;
     }
     public function getRaw($url, $trackMetadata = true) {
@@ -320,25 +321,28 @@ class HtmlParse {
             return true;
         }
         if( str_word_count($sentence) < $this->minWords ) {
+            printObject("Rejected [too few words: " . str_word_count($sentence) . "]: " . substr($sentence, 0, 200), $this->formatLog(""));
             return false;
         }
         if (preg_match_all('/[^\d\s]/u', $sentence, $matches) < 3) {
         }
-        if (preg_match('/^No\.?[
-\d[:punct:]]*$/u', trim($sentence))) {
+        if (preg_match('/^No\.?[\d[:punct:]]*$/u', trim($sentence))) {
+            printObject("Rejected [matches 'No.' pattern]: " . substr($sentence, 0, 200), $this->formatLog(""));
             return false;
         }
-        if (preg_match('/^P\.?[
-\d[:punct:]]*$/u', trim($sentence))) {
+        if (preg_match('/^P\.?[\d[:punct:]]*$/u', trim($sentence))) {
+            printObject("Rejected [matches 'P.' pattern]: " . substr($sentence, 0, 200), $this->formatLog(""));
             return false;
         }
         foreach( $this->toSkip as $pattern ) {
             if( strpos( $sentence, $pattern ) !== false ) {
+                printObject("Rejected [toSkip pattern '$pattern']: " . substr($sentence, 0, 200), $this->formatLog(""));
                 return false;
             }
         }
         foreach( $this->skipMatches as $pattern ) {
             if( $sentence === $pattern ) {
+                printObject("Rejected [skipMatches exact match]: " . substr($sentence, 0, 200), $this->formatLog(""));
                 return false;
             }
         }
@@ -482,8 +486,7 @@ class HtmlParse {
         $lines = $this->mergeLines($lines);
         $this->debugPrint( count($lines) . " lines after mergeLines" );
 
-        foreach ($lines as &
-$sentence) {
+        foreach ($lines as &$sentence) {
             $sentence = $this->cleanSentence( $sentence );
         }
         unset($sentence);
@@ -496,6 +499,7 @@ $sentence) {
                 $this->discarded[] = $sentence;
             }
         }
+        $this->debugPrint( count($lines) . " lines after checkSentence" );
         return $lines;
     }
     
@@ -606,6 +610,7 @@ $sentence) {
                     }
                 }
             }
+            error_log("DEBUG process(): About to filter " . count($lines) . " lines");
             foreach ($lines as $line) {
                 if ($this->checkSentence($line)) {
                     $line = preg_replace('/
@@ -618,8 +623,10 @@ $sentence) {
                         break;
                     }
                     $finalLines[] = $line;
+                    error_log("ACCEPTED: " . substr($line, 0, 100));
                 } else {
                     $this->discarded[] = $line;
+                    error_log("REJECTED by checkSentence: " . substr($line, 0, 100));
                 }
             }
         }
@@ -771,6 +778,7 @@ class UlukauHTML extends HTMLParse {
     
     public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
+        $this->logName = "UlukauHtml";
         $this->docUrl = $this->base . 'doc?url=';
         
         // Load Hawaiian word list once
@@ -1353,7 +1361,7 @@ class UlukauHTML extends HTMLParse {
         
         $paragraphs = $this->DOMToStringArray( $contents );
         $sentences = $this->splitSentences( $paragraphs );
-        echo "Processing " . count($sentences) . " sentences" . PHP_EOL;
+        // Removed verbose debug output - processing happens silently
         $finalLines = [];
         
         $acceptedCount = 0;
@@ -1375,38 +1383,32 @@ class UlukauHTML extends HTMLParse {
                 // Apply boilerplate filtering - but be more lenient for page number patterns
                 $isPageNumber = preg_match('/^\d+$/', $line) || preg_match('/^Page \d+$/', $line);
 
-                if (!$this->isBoilerplate($line) && !$isPageNumber) {
+                $boilerplateCheck = $this->isBoilerplate($line);
+                if (!$boilerplateCheck['is_boilerplate'] && !$isPageNumber) {
                     $line = preg_replace('/[\s\n\r]+/u', ' ', $line);
                     $line = preg_replace('/\n+([\'ʻ])\n+/u', '$1', $line);
                     $line = substr($line, 0, self::MAX_SENTENCE_LENGTH);
                     $finalLines[] = $line;
                     $acceptedCount++;
-                    // Show first few accepted sentences
-                    if($acceptedCount <= 3) {
-                        echo "ACCEPTED #$acceptedCount: " . substr($line, 0, 100) . "..." . PHP_EOL;
-                    }
                 } else {
                     $this->discarded[] = $line;
                     $rejectedCount++;
-                    // Show first few rejected sentences to understand the pattern
-                    if($rejectedCount <= 5) {
-                        $checkResult = $this->checkBoilerplate($line);
-                        $reason = $checkResult['is_boilerplate'] ? $checkResult['reason'] : "page_number";
-                        echo "REJECTED #$rejectedCount ($reason): " . substr($line, 0, 100) . "..." . PHP_EOL;
+                    if ($boilerplateCheck['is_boilerplate']) {
+                        $reason = $boilerplateCheck['reason'] ?? 'unknown';
+                        $this->debugPrint("Rejected [$reason]: " . substr($line, 0, 100) . "...");
+                    } else {
+                        $this->debugPrint("Discarded page number: " . substr($line, 0, 100) . "...");
                     }
-                    $this->debugPrint("Discarded boilerplate: " . substr($line, 0, 100) . "...");
                 }
             } else {
                 $emptyCount++;
                 $this->discarded[] = $line;
-                // Show what's making sentences empty
-                if($emptyCount <= 3) {
-                    echo "EMPTY #$emptyCount - original: " . substr($originalLine, 0, 100) . "..." . PHP_EOL;
-                }
             }
         }
         
-        echo "FINAL RESULT: $acceptedCount accepted, $rejectedCount rejected, $emptyCount empty, $endMarkerCount end-marker" . PHP_EOL;        $this->metadata['sentence_count'] = count($finalLines);
+        $this->debugPrint(count($finalLines) . " sentences remain after filtering.");
+
+        // Debug output removed - results tracked in metadata        $this->metadata['sentence_count'] = count($finalLines);
         $this->metadata['final_text_char_count'] = strlen(implode("\n", $finalLines));
         
         // If we have very few sentences left, this might be a document with no real content
@@ -1576,6 +1578,7 @@ class UlukauLocal extends UlukauHTML {
     protected $pageListFile;
     public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
+        $this->logName = "UlukauLocal";
         $this->pageListFile = "{$this->baseDir}/output/{$this->pageListFileName}";
     }
 
@@ -2000,6 +2003,14 @@ HTML;
                     $dateObj = DateTime::createFromFormat('M j, Y', $rawDate); // fallback if no dot
                 }
                 $date = $dateObj ? $dateObj->format('Y-m-d') : $rawDate;
+            }
+            
+            // If date not found, extract from URL as fallback
+            if (empty($date) && !empty($url)) {
+                // URL format: https://www.staradvertiser.com/2025/05/10/editorial/kauakukalahale/...
+                if (preg_match('#/(\d{4})/(\d{2})/(\d{2})/#', $url, $matches)) {
+                    $date = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
+                }
             }
 
             $sourcename = "Kauakukalahale: " . $date;
