@@ -10,17 +10,18 @@ $debug = isset( $args['debug'] ) ? true : false;
 $parserkey = isset( $args['parser'] ) ? $args['parser'] : '';
 $options = [
     'debug' => $debug,
+    'verbose' => true,
 ];
 
 $saveManager = new SaveManager( $options );
 $parser = $saveManager->getParser($parserkey);
 if( !$parser ) {
     $values = $saveManager->getParserKeys();
-    echo "Specify a parser: $values\n";
-    echo "testList [--debug] --parser=parsername\n";
+    $saveManager->output( "Specify a parser: $values" );
+    $saveManager->output( "testList [--debug] --parser=parsername" );
 } else {
     setDebug( $debug );
     $docs = $parser->getDocumentList();
-    echo( var_export( $docs, true ) . "\n" );
+    $saveManager->output( var_export( $docs, true ) );
 }
 ?>
