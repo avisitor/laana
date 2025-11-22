@@ -1,6 +1,10 @@
 <?php
 require_once( __DIR__ . '/config.php' );
 
+// Configure error_log to write to file in current directory, not stderr
+// This prevents debug logs from appearing in console output
+ini_set('error_log', __DIR__ . '/../scripts/php_errorlog');
+
 function formatLogMessage( $msg, $intro = "" ) {
     if( is_object( $msg ) || is_array( $msg ) ) {
         $msg = var_export( $msg, true );
@@ -805,6 +809,52 @@ class Laana extends DB {
         $result = $this->executePrepared( $sql, $values );
         return $result;
     }
+    
+    /**
+     * Remove all records for a given groupname
+     * Deletes from sentences, contents, and sources tables
+     * Uses efficient SQL subqueries to avoid PHP loops and ensure atomicity
+     * 
+     * @param string $groupname The groupname to delete
+     * @return array Statistics about what was deleted
+     */
+    public function removeByGroupname($groupname) {
+        $values = ['groupname' => $groupname];
+        $stats = [
+            'sentences' => 0,
+            'contents' => 0,
+            'sources' => 0
+        ];
+        
+        // Count how many records will be affected (for statistics)
+        $sql = "SELECT 
+                    (SELECT COUNT(*) FROM " . SENTENCES . " WHERE sourceid IN (SELECT sourceid FROM " . SOURCES . " WHERE groupname = :groupname)) as sentence_count,
+                    (SELECT COUNT(*) FROM " . CONTENTS . " WHERE sourceid IN (SELECT sourceid FROM " . SOURCES . " WHERE groupname = :groupname)) as content_count,
+                    (SELECT COUNT(*) FROM " . SOURCES . " WHERE groupname = :groupname) as source_count";
+        $row = $this->getOneDBRow($sql, $values);
+        
+        if ($row['source_count'] == 0) {
+            return $stats;
+        }
+        
+        // Delete sentences using subquery
+        $sql = "DELETE FROM " . SENTENCES . " WHERE sourceid IN (SELECT sourceid FROM " . SOURCES . " WHERE groupname = :groupname)";
+        $this->executePrepared($sql, $values);
+        $stats['sentences'] = $row['sentence_count'];
+        
+        // Delete contents using subquery
+        $sql = "DELETE FROM " . CONTENTS . " WHERE sourceid IN (SELECT sourceid FROM " . SOURCES . " WHERE groupname = :groupname)";
+        $this->executePrepared($sql, $values);
+        $stats['contents'] = $row['content_count'];
+        
+        // Delete sources
+        $sql = "DELETE FROM " . SOURCES . " WHERE groupname = :groupname";
+        $this->executePrepared($sql, $values);
+        $stats['sources'] = $row['source_count'];
+        
+        return $stats;
+    }
+    
     public function addSearchStat( $searchterm, $pattern, $results, $order,$elapsed ) {
         $sql = "insert into " . SEARCHSTATS . "(searchterm,pattern,results,sort,elapsed) values(:searchterm,:pattern,:results,:sort,:elapsed)";
         $values = [
@@ -844,7 +894,10 @@ class Laana extends DB {
             'parser_key' => $parserKey,
             'metadata' => $metadata ? json_encode($metadata) : null,
         ];
+        // Temporarily disable output during processing log
+        ob_start();
         $result = $this->executePrepared($sql, $values);
+        ob_end_clean();
         if ($result) {
             return $this->conn->lastInsertId();
         }
@@ -864,7 +917,11 @@ class Laana extends DB {
             'sentences_count' => $sentencesCount,
             'error_message' => $errorMessage,
         ];
-        return $this->executePrepared($sql, $values);
+        // Suppress debug output during processing log
+        ob_start();
+        $result = $this->executePrepared($sql, $values);
+        ob_end_clean();
+        return $result;
     }
     
     protected function getProcessingLogsImpl($options = []) {
