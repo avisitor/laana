@@ -19,13 +19,17 @@ require_once __DIR__ . '/../../elasticsearch/vendor/autoload.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/ElasticsearchClient.php';
 require_once __DIR__ . '/../../elasticsearch/php/src/EmbeddingClient.php';
 require_once __DIR__ . '/../db/parsehtml.php';
+require_once __DIR__ . '/../db/LoggingTrait.php';
 require_once __DIR__ . '/parsers.php';
 use HawaiianSearch\ElasticsearchClient;
 
 class ElasticsearchSaveManager {
+    use LoggingTrait;
+    
     private $client;
     private $parsers;
     private $debug = false;
+    private $verbose = true;
     private $maxrows = 20000;
     private $options = [];
     private $integrityReport = null;
@@ -47,6 +51,11 @@ class ElasticsearchSaveManager {
         
         if (isset($options['debug'])) {
             $this->setDebug($options['debug']);
+            // Set global debug flag for parsehtml.php
+            setDebug($options['debug']);
+        }
+        if (isset($options['verbose'])) {
+            $this->verbose = $options['verbose'];
         }
         if (isset($options['maxrows'])) {
             $this->maxrows = $options['maxrows'];
@@ -58,10 +67,11 @@ class ElasticsearchSaveManager {
         $this->options = $options;
         $this->log($this->options, "options");
         
-        echo "ElasticsearchSaveManager initialized\n";
-        echo "Documents index: {$this->client->getDocumentsIndexName()}\n";
-        echo "Sentences index: {$this->client->getSentencesIndexName()}\n";
-        echo "Processing logs: Elasticsearch (processing-logs index)\n";
+        $this->outputLine("ElasticsearchSaveManager initialized");
+        $this->outputLine("Documents index: {$this->client->getDocumentsIndexName()}");
+        $this->outputLine("Sentences index: {$this->client->getSentencesIndexName()}");
+        $this->outputLine("Processing logs: Elasticsearch (processing-logs index)");
+        
         
         // Only run integrity check if orphan check is requested
         // Note: PHP converts hyphens to underscores in option names
@@ -77,48 +87,48 @@ class ElasticsearchSaveManager {
         }
         
         if ($integrity && ($integrity['status'] === 'warning' || $integrity['status'] === 'error')) {
-            echo "\n⚠️  SOURCE INTEGRITY CHECK:\n";
-            echo "Status: {$integrity['status']}\n";
-            echo "Counter: {$integrity['counter_value']}, ";
-            echo "Max in metadata: {$integrity['max_in_metadata']}, ";
-            echo "Max in documents: {$integrity['max_in_documents']}, ";
-            echo "Max in sentences: {$integrity['max_in_sentences']}\n";
+            $this->outputLine("\n⚠️  SOURCE INTEGRITY CHECK:");
+            $this->outputLine("Status: {$integrity['status']}");
+            $this->output("Counter: {$integrity['counter_value']}, ");
+            $this->output("Max in metadata: {$integrity['max_in_metadata']}, ");
+            $this->output("Max in documents: {$integrity['max_in_documents']}, ");
+            $this->outputLine("Max in sentences: {$integrity['max_in_sentences']}");
             
             foreach ($integrity['warnings'] as $warning) {
-                echo "  - $warning\n";
+                $this->outputLine("  - $warning");
             }
             
             // Display orphan details if any
             if (!empty($integrity['orphaned_documents'])) {
-                echo "\n🔴 Orphaned documents (in documents index but not in metadata): " . count($integrity['orphaned_documents']) . "\n";
-                echo "   IDs: " . implode(', ', array_slice($integrity['orphaned_documents'], 0, 10));
+                $this->outputLine("\n🔴 Orphaned documents (in documents index but not in metadata): " . count($integrity['orphaned_documents']));
+                $this->output("   IDs: " . implode(', ', array_slice($integrity['orphaned_documents'], 0, 10)));
                 if (count($integrity['orphaned_documents']) > 10) {
-                    echo " ... and " . (count($integrity['orphaned_documents']) - 10) . " more";
+                    $this->output(" ... and " . (count($integrity['orphaned_documents']) - 10) . " more");
                 }
-                echo "\n";
+                $this->outputLine("");
             }
             
             if (!empty($integrity['orphaned_sentences'])) {
-                echo "🔴 Sources with orphaned sentences (in sentences index but not in metadata): " . count($integrity['orphaned_sentences']) . "\n";
-                echo "   Source IDs: " . implode(', ', array_slice($integrity['orphaned_sentences'], 0, 10));
+                $this->outputLine("🔴 Sources with orphaned sentences (in sentences index but not in metadata): " . count($integrity['orphaned_sentences']));
+                $this->output("   Source IDs: " . implode(', ', array_slice($integrity['orphaned_sentences'], 0, 10)));
                 if (count($integrity['orphaned_sentences']) > 10) {
-                    echo " ... and " . (count($integrity['orphaned_sentences']) - 10) . " more";
+                    $this->output(" ... and " . (count($integrity['orphaned_sentences']) - 10) . " more");
                 }
-                echo "\n";
+                $this->outputLine("");
             }
             
             if (!empty($integrity['empty_metadata'])) {
-                echo "🔴 Empty metadata records (in metadata but no documents or sentences): " . count($integrity['empty_metadata']) . "\n";
-                echo "   Source IDs: " . implode(', ', array_slice($integrity['empty_metadata'], 0, 10));
+                $this->outputLine("🔴 Empty metadata records (in metadata but no documents or sentences): " . count($integrity['empty_metadata']));
+                $this->output("   Source IDs: " . implode(', ', array_slice($integrity['empty_metadata'], 0, 10)));
                 if (count($integrity['empty_metadata']) > 10) {
-                    echo " ... and " . (count($integrity['empty_metadata']) - 10) . " more";
+                    $this->output(" ... and " . (count($integrity['empty_metadata']) - 10) . " more");
                 }
-                echo "\n";
+                $this->outputLine("");
             }
             
-            echo "\n";
+            $this->outputLine("");
         }
-        echo "\n";
+        $this->outputLine("");
     }
 
     public function getParserKeys() {
@@ -127,37 +137,14 @@ class ElasticsearchSaveManager {
     
     public function getParser($key) {
         if (isset($this->parsers[$key])) {
-            return $this->parsers[$key];
+            $parser = $this->parsers[$key];
+            // Set debug flag on parser if manager has it enabled
+            if ($this->debug && method_exists($parser, 'setDebug')) {
+                $parser->setDebug($this->debug);
+            }
+            return $parser;
         }
         return null;
-    }
-
-    protected function formatLog($obj, $prefix = "") {
-        if ($prefix && !is_string($prefix)) {
-            $prefix = json_encode($prefix);
-        }
-        if ($this->funcName) {
-            $func = $this->logName . ":" . $this->funcName;
-            $prefix = ($prefix) ? "$func:$prefix" : $func;
-        }
-        return $prefix;
-    }
-    
-    public function log($obj, $prefix = "") {
-        $prefix = $this->formatLog($obj, $prefix);
-        debuglog($obj, $prefix);
-    }
-    
-    public function debugPrint($obj, $prefix = "") {
-        if ($this->debug) {
-            $text = $this->formatLog($obj, $prefix);
-            printObject($obj, $text);
-        }
-    }
-    
-    private function setDebug($debug) {
-        $this->debug = $debug;
-        setDebug($debug);
     }
 
     /**
@@ -165,6 +152,34 @@ class ElasticsearchSaveManager {
      */
     public function getIntegrityReport() {
         return $this->integrityReport;
+    }
+
+    /**
+     * Get the maxrows setting
+     */
+    public function getMaxrows() {
+        return $this->maxrows;
+    }
+
+    /**
+     * Get the Elasticsearch client
+     */
+    public function getClient() {
+        return $this->client;
+    }
+
+    /**
+     * Public method to output a message
+     */
+    public function out($message) {
+        $this->output($message);
+    }
+
+    /**
+     * Public method to output a message with newline
+     */
+    public function outLine($message) {
+        $this->outputLine($message);
     }
     
     /**
@@ -183,13 +198,13 @@ class ElasticsearchSaveManager {
             return ['message' => 'No integrity issues to fix'];
         }
         
-        echo "🔧 Fixing integrity issues...\n";
+        $this->outputLine("🔧 Fixing integrity issues...");
         $results = $this->client->fixIntegrityIssues($this->integrityReport);
         
-        echo "✅ Fixed:\n";
-        echo "   - Deleted {$results['orphaned_documents_deleted']} orphaned document(s)\n";
-        echo "   - Deleted {$results['orphaned_sentences_deleted']} orphaned sentence(s)\n";
-        echo "   - Deleted {$results['empty_metadata_deleted']} empty metadata record(s)\n";
+        $this->outputLine("✅ Fixed:");
+        $this->outputLine("   - Deleted {$results['orphaned_documents_deleted']} orphaned document(s)");
+        $this->outputLine("   - Deleted {$results['orphaned_sentences_deleted']} orphaned sentence(s)");
+        $this->outputLine("   - Deleted {$results['empty_metadata_deleted']} empty metadata record(s)");
         
         return $results;
     }
@@ -262,6 +277,7 @@ class ElasticsearchSaveManager {
     private function indexSentences($parser, $sourceID, $source, $link, $text) {
         $this->funcName = "indexSentences";
         $this->log("({$parser->logName},$link," . strlen($text) . " characters)");
+        $this->outputLine("Fetched HTML: " . strlen($text) . " characters");
         
         if ($text) {
             $sentences = $parser->extractSentencesFromHTML($text);
@@ -272,7 +288,27 @@ class ElasticsearchSaveManager {
         $this->log(sizeof($sentences) . " sentences");
 
         if (empty($sentences)) {
-            $this->log("No sentences extracted");
+            $this->log("No sentences extracted - creating document record with 0 sentences");
+            
+            // Even with no sentences, create a document record to avoid orphaned metadata
+            $sourceData = [
+                'sourceid' => $sourceID,
+                'sourcename' => $source['sourcename'] ?? '',
+                'groupname' => $source['groupname'] ?? $parser->groupname ?? '',
+                'authors' => $source['authors'] ?? $source['author'] ?? '',
+                'date' => !empty($source['date']) ? $source['date'] : null,
+                'title' => $source['title'] ?? '',
+                'link' => $link
+            ];
+            
+            try {
+                // Create document with empty text and 0 sentences
+                $this->client->indexDocumentToIndex($sourceID, $sourceData, '', 0.0, 0);
+                $this->log("Created document record for sourceID $sourceID with 0 sentences");
+            } catch (Exception $e) {
+                $this->log("Error creating document record: " . $e->getMessage());
+            }
+            
             return 0;
         }
 
@@ -386,18 +422,18 @@ class ElasticsearchSaveManager {
         try {
             $result = $this->client->getSentencesBySourceID((string)$sourceID);
             if (!$result) {
-                if ($this->debug) echo "  DEBUG: getSentenceCount: No result for sourceID $sourceID\n";
+                $this->debugPrint("  DEBUG: getSentenceCount: No result for sourceID $sourceID");
                 return 0;
             }
             if (!isset($result['sentences'])) {
-                if ($this->debug) echo "  DEBUG: getSentenceCount: No sentences key in result for sourceID $sourceID. Keys: " . implode(', ', array_keys($result)) . "\n";
+                $this->debugPrint("  DEBUG: getSentenceCount: No sentences key in result for sourceID $sourceID. Keys: " . implode(', ', array_keys($result)));
                 return 0;
             }
             $count = count($result['sentences']);
-            if ($this->debug) echo "  DEBUG: getSentenceCount: Found $count sentences for sourceID $sourceID\n";
+            $this->debugPrint("  DEBUG: getSentenceCount: Found $count sentences for sourceID $sourceID");
             return $count;
         } catch (Exception $e) {
-            if ($this->debug) echo "  DEBUG: getSentenceCount: Exception for sourceID $sourceID: " . $e->getMessage() . "\n";
+            $this->output("  DEBUG: getSentenceCount: Exception for sourceID $sourceID: " . $e->getMessage() );
             return 0;
         }
     }
@@ -549,7 +585,11 @@ class ElasticsearchSaveManager {
         }
 
         if (!$parser) {
-            $this->log("No parser specified or found");
+            $this->log("No parser specified or found - skipping document processing");
+            // If only checking orphans, that's fine - no actual indexing needed
+            if (empty($this->options['check-orphans'])) {
+                $this->outputLine("ERROR: Parser is required for document indexing");
+            }
             return;
         }
 
@@ -561,20 +601,21 @@ class ElasticsearchSaveManager {
             
             if (!$sourceMetadata) {
                 $this->log("No source metadata found for sourceID $singleSourceID");
-                echo "ERROR: Source $singleSourceID not found in Elasticsearch\n";
+                $this->outputLine("ERROR: Source $singleSourceID not found in Elasticsearch");
                 return;
             }
             
             // Add to sources array for processing
             $this->options['sources'][$singleSourceID] = $sourceMetadata;
             $docs = [$sourceMetadata];
-            echo "Processing single source: {$sourceMetadata['sourcename']} (ID: $singleSourceID)\n";
+            $this->outputLine("Processing single source: {$sourceMetadata['sourcename']} (ID: $singleSourceID)");
         } else {
             // Get all documents from parser
+            $this->outputLine("Fetching document list from parser {$parser->logName}...");
             $docs = $parser->getDocumentList();
         }
 
-        echo sizeof($docs) . " documents found\n";
+        $this->outputLine(sizeof($docs) . " documents found");
         $this->debugPrint($docs);
 
         $indexed = 0;
@@ -584,7 +625,7 @@ class ElasticsearchSaveManager {
 
         foreach ($docs as $source) {
             if ($i >= $this->maxrows) {
-                echo "Ending because reached maxrows {$this->maxrows}\n";
+                $this->outputLine("Ending because reached maxrows {$this->maxrows}");
                 break;
             }
 
@@ -620,7 +661,7 @@ class ElasticsearchSaveManager {
             
             if (!$sourceID) {
                 // New source - need to create it
-                echo "[" . ($i + 1) . "/" . sizeof($docs) . "] New source: $sourceName... ";
+                $this->output("[" . ($i + 1) . "/" . sizeof($docs) . "] New source: $sourceName... ");
                 
                 $params = [
                     'link' => $link,
@@ -637,28 +678,28 @@ class ElasticsearchSaveManager {
                     $this->log("Added sourceID $sourceID");
                     $source['sourceid'] = $sourceID;
                     $source['_newly_created'] = true; // Mark as newly created to force processing
-                    echo "Created ID: $sourceID... ";
+                    $this->output("Created ID: $sourceID... ");
                 } else {
-                    echo "FAILED to create source\n";
-                    echo "  Link: $link\n";
-                    echo "  Groupname: {$parser->groupname}\n";
-                    echo "  Parser: " . get_class($parser) . "\n";
+                    $this->outputLine("FAILED to create source");
+                    $this->outputLine("  Link: $link");
+                    $this->outputLine("  Groupname: {$parser->groupname}");
+                    $this->outputLine("  Parser: " . get_class($parser));
                     
                     // Get the actual error from the client
                     $lastError = $this->client->getLastError();
                     if ($lastError) {
-                        echo "  Error: " . $lastError->getMessage() . "\n";
-                        echo "  Exception: " . get_class($lastError) . "\n";
+                        $this->outputLine("  Error: " . $lastError->getMessage());
+                        $this->outputLine("  Exception: " . get_class($lastError));
                         if ($lastError->getCode()) {
-                            echo "  Code: " . $lastError->getCode() . "\n";
+                            $this->outputLine("  Code: " . $lastError->getCode());
                         }
                     }
                     
                     // Check if source already exists by link
                     $existingSource = $this->client->getSourceByLink($link);
                     if ($existingSource) {
-                        echo "  Existing source ID: {$existingSource['sourceid']}\n";
-                        echo "  Existing source name: {$existingSource['sourcename']}\n";
+                        $this->outputLine("  Existing source ID: {$existingSource['sourceid']}");
+                        $this->outputLine("  Existing source name: {$existingSource['sourcename']}");
                     }
                     
                     $this->log("Failed to add source: $sourceName, link: $link, groupname: {$parser->groupname}");
@@ -666,32 +707,73 @@ class ElasticsearchSaveManager {
                     continue;
                 }
             } else {
-                echo "[" . ($i + 1) . "/" . sizeof($docs) . "] Processing: $sourceName (ID: $sourceID)... ";
+                $this->output("[" . ($i + 1) . "/" . sizeof($docs) . "] Processing: $sourceName (ID: $sourceID)... ");
             }
             
             // Store source info for later use
             $this->options['sources'][$sourceID] = $source;
             
+            // Wrap all processing in try-catch to clean up newly created sources if anything fails
             try {
                 $count = $this->saveContents($parser, $sourceID);
                 
                 if ($count > 0) {
-                    echo "SUCCESS ($count sentences)\n";
+                    $this->outputLine("SUCCESS ($count sentences)");
                     $indexed++;
                 } else {
                     // Check if sentences already exist
                     $sentenceCount = $this->getSentenceCount($sourceID);
                     if ($sentenceCount > 0) {
-                        echo "SKIP (already indexed with $sentenceCount sentences)\n";
+                        $this->outputLine("SKIP (already indexed with $sentenceCount sentences)");
                     } else {
-                        echo "SKIP (no sentences extracted)\n";
+                        $this->output("SKIP (no sentences extracted)");
+                        
+                        // Only delete metadata for newly created sources if processing completely failed
+                        // (i.e., no document/raw content was created). If retrieval was attempted (even if 
+                        // result was empty), it means we successfully processed the source but found no 
+                        // Hawaiian content, so we should keep the metadata to avoid reprocessing it repeatedly.
+                        if (!empty($source['_newly_created'])) {
+                            $hasDocument = $this->documentExists($sourceID);
+                            $wasAttempted = $this->wasRetrievalAttempted($sourceID);
+                            
+                            if (!$hasDocument && !$wasAttempted) {
+                                // Complete failure - no document was created and retrieval was never attempted
+                                try {
+                                    $this->client->deleteSourceMetadata($sourceID);
+                                    $this->outputLine(" - cleaned up empty metadata");
+                                    $this->log("Deleted empty metadata for failed newly created source $sourceID");
+                                } catch (Exception $e) {
+                                    $this->outputLine(" - WARNING: failed to clean up metadata");
+                                    $this->log("Failed to delete empty metadata for $sourceID: " . $e->getMessage());
+                                }
+                            } else {
+                                // Successfully processed but no sentences found (empty marker stored)
+                                $this->outputLine(" - source processed but has no Hawaiian sentences");
+                                $this->log("Source $sourceID was successfully processed but contains no Hawaiian sentences");
+                            }
+                        } else {
+                            $this->outputLine("");
+                        }
                     }
                     $skipped++;
                 }
                 
             } catch (Exception $e) {
-                echo "ERROR: " . $e->getMessage() . "\n";
+                $this->outputLine("ERROR: " . $e->getMessage());
                 $this->log("Error processing $sourceID: " . $e->getMessage());
+                
+                // If this was a newly created source that failed, delete the metadata
+                if (!empty($source['_newly_created'])) {
+                    try {
+                        $this->client->deleteSourceMetadata($sourceID);
+                        $this->outputLine("  Cleaned up metadata for failed source");
+                        $this->log("Deleted metadata for failed newly created source $sourceID");
+                    } catch (Exception $cleanupError) {
+                        $this->outputLine("  WARNING: Failed to clean up metadata");
+                        $this->log("Failed to delete metadata after error for $sourceID: " . $cleanupError->getMessage());
+                    }
+                }
+                
                 $errors++;
             }
 
@@ -704,11 +786,11 @@ class ElasticsearchSaveManager {
             $this->client->completeProcessingLog($batchLogID, 'completed', $indexed);
         }
 
-        echo "\n=== Indexing Summary ===\n";
-        echo "Total sources: " . sizeof($docs) . "\n";
-        echo "Indexed: $indexed\n";
-        echo "Skipped: $skipped\n";
-        echo "Errors: $errors\n";
+        $this->outputLine("\n=== Indexing Summary ===");
+        $this->outputLine("Total sources: " . sizeof($docs));
+        $this->outputLine("Indexed: $indexed");
+        $this->outputLine("Skipped: $skipped");
+        $this->outputLine("Errors: $errors");
     }
 
     /**
