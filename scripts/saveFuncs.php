@@ -1,11 +1,15 @@
 <?php
 include_once __DIR__ . '/../db/parsehtml.php';
 include_once __DIR__ . '/../scripts/parsers.php';
+include_once __DIR__ . '/../db/LoggingTrait.php';
 
 class SaveManager {
+    use LoggingTrait;
+    
     private $laana;
     private $parsers;
     private $debug = false;
+    private $verbose = true;
     private $maxrows = 20000;
     private $options = [];
     private $parser = null;
@@ -19,6 +23,11 @@ class SaveManager {
         $this->parsers = $parsermap;
         if (isset($options['debug'])) {
             $this->setDebug($options['debug']);
+            // Set global debug flag for parsehtml.php
+            setDebug($options['debug']);
+        }
+        if (isset($options['verbose'])) {
+            $this->verbose = $options['verbose'];
         }
         if (isset($options['maxrows'])) {
             $this->maxrows = $options['maxrows'];
@@ -26,10 +35,15 @@ class SaveManager {
         if (isset($options['parserkey'])) {
             $this->parser = $this->getParser( $options['parserkey'] );
             $this->log( $this->parser, "parser" );
-            //echo( "_construct {$options['parserkey']}: " . var_export( $this->parser, true ) . "\n" );
         }
         $this->options = $options;
         $this->log( $this->options, "options" );
+        
+        // Output initialization info
+        $this->outputLine("SaveManager initialized");
+        $this->outputLine("Database: laana");
+        $this->outputLine("Processing logs: Database (processing_log table)");
+        $this->outputLine("");
     }
 
     public function getParserKeys() {
@@ -44,31 +58,36 @@ class SaveManager {
         return null;
     }
 
-    protected function formatLog( $obj, $prefix="" ) {
-        if($prefix && !is_string($prefix)) {
-            $prefix = json_encode( $prefix );
-        }
-        if( $this->funcName ) {
-            $func = $this->logName . ":" . $this->funcName;
-            $prefix = ($prefix) ? "$func:$prefix" : $func;
-        }
-        return $prefix;
+    /**
+     * Get the maxrows setting
+     */
+    public function getMaxrows() {
+        return $this->maxrows;
     }
-    
-    public function log( $obj, $prefix="") {
-        $prefix = $this->formatLog( $obj, $prefix );
-        debuglog( $obj, $prefix );
+
+    /**
+     * Get the Laana instance
+     */
+    public function getLaana() {
+        return $this->laana;
     }
-    public function debugPrint( $obj, $prefix="" ) {
-        if( $this->debug ) {
-            $text = $this->formatLog( $obj, $prefix );
-            printObject( $obj, $text );
-        }
+
+    /**
+     * Public method to output a message
+     */
+    public function out($message) {
+        $this->output($message);
     }
-    private function setDebug($debug) {
-        $this->debug = $debug;
-        setDebug($debug);
+
+    /**
+     * Public method to output a message with newline
+     */
+    public function outLine($message) {
+        $this->outputLine($message);
     }
+
+    // Logging methods now provided by LoggingTrait
+    // (formatLog, log, debugPrint, setDebug, output, outputLine, etc.)
 
     private function saveRaw($parser, $source) {
         $this->funcName = "saveRaw";
@@ -169,7 +188,7 @@ class SaveManager {
         $msg .= ", force: " . (($force) ? "yes" : "no");
         $this->log($msg);
 
-        // Start processing log
+        // Start processing log (debug output suppressed)
         $logID = $this->laana->startProcessingLog(
             'save_contents',
             $sourceID,
@@ -178,27 +197,30 @@ class SaveManager {
             ['link' => $link, 'sourcename' => $sourceName, 'force' => $force, 'resplit' => $resplit]
         );
 
-        $didWork = 0;
         $text = "";
         $finalSentenceCount = 0;
         $error = null;
         
         try {
+            // Fetch HTML if: no HTML exists OR force flag is set
             if (!$present || $force) {
                 $parser->initialize($link);
                 $text = $this->saveRaw($parser, $source);
             } else {
-                if ($present) {
-                    $this->log("$sourceName already has raw text");
-                    if (!$sentenceCount || $resplit) {
-                        $text = $this->laana->getRawText($sourceID);
-                    }
-                }
+                // HTML exists - load it from database
+                $text = $this->laana->getRawText($sourceID);
+                $this->log("Loaded " . strlen($text) . " characters of raw HTML from database");
+                $this->log("DEBUG: \$text type=" . gettype($text) . ", empty=" . (empty($text) ? "YES" : "NO") . ", bool=" . ($text ? "TRUE" : "FALSE"));
             }
 
-            if ($text) {
-                $didWork = 1;
+            // Extract sentences if: we have HTML AND (no sentences exist OR resplit flag OR force flag)
+            $this->log("DEBUG: Checking if should extract: \$text=" . ($text ? "TRUE" : "FALSE") . ", \$sentenceCount=$sentenceCount, \$resplit=$resplit, \$force=$force");
+            if ($text && (!$sentenceCount || $resplit || $force)) {
                 $finalSentenceCount = $this->addSentences($parser, $sourceID, $link, $text);
+            } else {
+                // Sentences already exist and not forcing re-extraction
+                $finalSentenceCount = $sentenceCount;
+                $this->log("$sourceName already has $sentenceCount sentences");
             }
             
             // Complete processing log with success
@@ -214,7 +236,7 @@ class SaveManager {
             throw $e;
         }
         
-        return $didWork;
+        return $finalSentenceCount;
     }
 
     private function updateSource($parser, $source) {
@@ -283,7 +305,7 @@ class SaveManager {
         $parserkey = $this->options['parserkey'] ?? '';
         $singleSourceID = $this->options['sourceid'] ?? 0;
         
-        // Start processing log for the batch operation
+        // Start processing log for the batch operation (debug output suppressed)
         $batchLogID = $this->laana->startProcessingLog(
             'get_all_documents',
             null,
@@ -297,10 +319,66 @@ class SaveManager {
             $parser = $this->getParser($parserkey);
         }
 
+        // If processing a single source, handle it directly without bulk operations
+        if ($singleSourceID) {
+            $source = $this->laana->getSource($singleSourceID);
+            if (!$source || !isset($source['sourceid'])) {
+                $this->outputLine("Error: Source $singleSourceID not found");
+                if ($batchLogID) {
+                    $this->laana->completeProcessingLog($batchLogID, 'failed', 0, 'Source not found');
+                }
+                return;
+            }
+            
+            $sourceID = $source['sourceid'];
+            $sourceName = $source['sourcename'];
+            $parser = $this->getParser($source['groupname']);
+            
+            if (!$parser) {
+                $this->outputLine("Error: No parser found for groupname '{$source['groupname']}'");
+                if ($batchLogID) {
+                    $this->laana->completeProcessingLog($batchLogID, 'failed', 0, 'Parser not found');
+                }
+                return;
+            }
+            
+            $this->outputLine("Processing single source: $sourceName (ID: $sourceID)");
+            $this->outputLine("");
+            
+            $this->out("[0] Processing $sourceName (ID: $sourceID)... ");
+            $count = 0;
+            try {
+                $count = $this->saveContents($parser, $sourceID);
+                if ($count > 0) {
+                    $this->outputLine("SUCCESS ($count sentences)");
+                } else {
+                    $this->outputLine("SKIP (no sentences)");
+                }
+            } catch (Exception $e) {
+                $this->outputLine("ERROR: " . $e->getMessage());
+            }
+            
+            if ($batchLogID) {
+                $this->laana->completeProcessingLog($batchLogID, 'completed', $count);
+            }
+            
+            $this->outputLine("");
+            $this->outputLine("getAllDocuments: processed 1 document with $count sentences");
+            return;
+        }
+
+        $this->outputLine("Starting document processing...");
+        $this->outputLine("");
+        
+        if ($parser) {
+            $this->outputLine("Fetching document list from parser {$parser->logName}...");
+        } else {
+            $this->outputLine("Fetching document list from database...");
+        }
+
         $docs = []; // Sources in the wild
         $items = []; // Sources in the DB
-        if ($singleSourceID) {
-            $items = [$this->laana->getSource($singleSourceID)];
+        if ($parserkey && $local) {
         } else if ($parserkey && $local) {
             $items = $this->laana->getSources($parserkey);
         } else if ($parser) {
@@ -328,10 +406,13 @@ class SaveManager {
                 return $a['sourceid'] <=> $b['sourceid'];
             });
         }
-        echo sizeof($docs) . " documents found\n...\n";
+        $nDocs = sizeof($docs);
+        $this->outputLine($nDocs . " documents found");
+        $this->outputLine("...");
         $this->debugPrint($docs);
 
         $updates = 0;
+        $sentenceCount = 0;
         $docCount = 0;
         $i = 0;
         foreach ($docs as $source) {
@@ -382,10 +463,24 @@ class SaveManager {
                 $sourceID = isset($row['sourceid']) ? $row['sourceid'] : '';
                 if ($sourceID) {
                     $this->log("Added sourceID $sourceID");
-                    $docCount += $this->saveContents($parser, $sourceID);
+                    $index = $i + 1;
+                    $this->out("[$index/$nDocs] Processing $sourceName (ID: $sourceID)... ");
+                    try {
+                        $count = $this->saveContents($parser, $sourceID);
+                        if ($count > 0) {
+                            $this->outputLine("SUCCESS ($count sentences)");
+                            $sentenceCount += $count;
+                            $docCount++;
+                        } else {
+                            $this->outputLine("SKIP (no sentences)");
+                        }
+                    } catch (Exception $e) {
+                        $this->outputLine("ERROR: " . $e->getMessage());
+                    }
                     $updates++;
                 } else {
                     $this->log("Failed to add source");
+                    $this->outputLine("[$i] Failed to add source $sourceName");
                 }
             } else {
                 // Known source
@@ -399,7 +494,19 @@ class SaveManager {
                             $this->log("No change to source record");
                         }
                     }
-                    $docCount += $this->saveContents($parser, $sourceID);
+                    $index = $i + 1;
+                    $this->out("[$index/$nDocs] Processing $sourceName (ID: $sourceID)... ");
+                    try {
+                        $count = $this->saveContents($parser, $sourceID);
+                        if ($count > 0) {
+                            $this->outputLine("SUCCESS ($count sentences)");
+                            $sentenceCount += $count;
+                        } else {
+                            $this->outputLine("SKIP (no sentences)");
+                        }
+                    } catch (Exception $e) {
+                        $this->outputLine("ERROR: " . $e->getMessage());
+                    }
                     $this->log($sourceID, "Updated contents for sourceID");
                 } else {
                     $this->log($sourceID, "Out of range");
@@ -408,17 +515,34 @@ class SaveManager {
 
             $i++;
             if ($i >= $this->maxrows) {
-                echo "Ending because reached maxrows {$this->maxrows}\n";
+                $this->outputLine("Ending because reached maxrows {$this->maxrows}");
                 break;
             }
         }
         
         // Complete batch processing log
         if ($batchLogID) {
-            $this->laana->completeProcessingLog($batchLogID, 'completed', $docCount);
+            $this->laana->completeProcessingLog($batchLogID, 'completed', $sentenceCount);
         }
         
-        echo "$this->funcName: updated $updates source definitions and $docCount documents\n";
+        $this->outputLine("$this->funcName: updated $updates source definitions, $docCount documents and $sentenceCount sentences");
+    }
+
+    /**
+     * Delete all records for a given groupname
+     * 
+     * @param string $groupname The groupname to delete
+     * @return array Statistics about what was deleted
+     */
+    public function deleteByGroupname($groupname) {
+        $this->funcName = "deleteByGroupname";
+        $this->log("Deleting all records for groupname: $groupname");
+        
+        $stats = $this->laana->removeByGroupname($groupname);
+        
+        $this->log("Deleted {$stats['sentences']} sentence records, {$stats['contents']} content records, {$stats['sources']} source records");
+        
+        return $stats;
     }
 }
 ?>
