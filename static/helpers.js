@@ -39,6 +39,61 @@ function changeid() {
     }
 }
 
+function providerSelected(object) {
+    let providerName = object.value;
+    console.log('Provider selected:', providerName);
+    
+    // Update hidden field
+    document.getElementById('provider').value = providerName;
+    
+    // Update the help data-provider attribute
+    let helpDiv = document.getElementById('fade-help');
+    if (helpDiv) {
+        helpDiv.setAttribute('data-provider', providerName);
+    }
+    
+    // Fetch available search modes for this provider
+    fetch('ops/getProviderModes.php?provider=' + encodeURIComponent(providerName))
+        .then(response => response.json())
+        .then(modes => {
+            console.log('Received modes:', modes);
+            
+            // Update the search type dropdown
+            let searchTypeSelect = document.getElementById('searchtype');
+            searchTypeSelect.innerHTML = '';
+            
+            // Define explicit order for modes based on provider
+            let modeOrder;
+            if (providerName === 'Elasticsearch') {
+                modeOrder = ['match', 'matchall', 'phrase', 'regex', 'hybrid'];
+            } else {
+                modeOrder = ['exact', 'any', 'all', 'regex'];
+            }
+            
+            for (let mode of modeOrder) {
+                if (modes[mode]) {
+                    let option = document.createElement('option');
+                    option.value = mode;
+                    option.textContent = modes[mode];
+                    searchTypeSelect.appendChild(option);
+                }
+            }
+            
+            // Select the first option and update hidden field
+            if (searchTypeSelect.options.length > 0) {
+                let firstMode = searchTypeSelect.options[0].value;
+                searchTypeSelect.value = firstMode;
+                setPattern(firstMode);
+                console.log('Set pattern to:', firstMode);
+                console.log('Hidden field value:', document.getElementById('search-pattern').value);
+                
+                // Trigger change event on the select to ensure any listeners are notified
+                searchTypeSelect.dispatchEvent(new Event('change'));
+            }
+        })
+        .catch(error => console.error('Error fetching provider modes:', error));
+}
+
 function patternSelected(object) {
     let value = object.value;  
     console.log(value);
@@ -121,23 +176,47 @@ function dragElement(elmnt) {
 }
 
 $(document).ready(function() {
-    $('.slide').on('click', function(){
-        $('#fade-help').toggleClass('show');
-        $('#help-div').toggleClass('show');
+    $('.slide').on('click', function(e){
+        e.stopPropagation();
+        let slider = document.getElementById('fade-help');
+        if (slider) {
+            // Load provider-specific help every time
+            let providerName = slider.getAttribute('data-provider') || 'Laana';
+            let providerHelpUrl = 'ops/getProviderHelp.php?provider=' + encodeURIComponent(providerName);
+            
+            fetch(providerHelpUrl)
+                .then(r => r.text())
+                .then(providerHelp => {
+                    slider.innerHTML = "<div id='help-div'>" + providerHelp + "</div>";
+                    $('#fade-help').toggleClass('show');
+                    $('#help-div').toggleClass('show');
+                })
+                .catch(error => {
+                    console.error('Error fetching help content:', error);
+                    slider.innerHTML = "<div id='help-div'><p>Error loading help content</p></div>";
+                    $('#fade-help').toggleClass('show');
+                    $('#help-div').toggleClass('show');
+                });
+        }
     });
-    let url = 'overview.html';
-    let slider = document.getElementById('fade-help');
-    if( slider ) {
-        fetch( url )
-            .then(response => response.text())
-            .then(pageContents => {
-                let parser = new DOMParser();
-                const doc = parser.parseFromString(pageContents, 'text/html');
-                let helpdiv = doc.getElementById('search-option-help');
-                slider.innerHTML = "<div id='help-div'>" +  helpdiv.innerHTML + "</div>";
-            })
-            .catch(error => console.error('Error fetching content:', error));
-    }
+    
+    // Close help when clicking outside of it
+    $(document).on('click', function(e) {
+        let fadeHelp = $('#fade-help');
+        if (fadeHelp.hasClass('show') && !$(e.target).closest('#fade-help').length && !$(e.target).hasClass('slide')) {
+            fadeHelp.removeClass('show');
+            $('#help-div').removeClass('show');
+        }
+        
+        // Close search options when clicking outside of it
+        let searchOptions = document.getElementById('search-options');
+        if (optionsDisplayed && searchOptions && 
+            !$(e.target).closest('#search-options').length && 
+            !$(e.target).closest('.dd-button').length) {
+            searchOptions.style.display = 'none';
+            optionsDisplayed = false;
+        }
+    });
     
     el = document.getElementById( 'searchtype' );
     if( el ) {
