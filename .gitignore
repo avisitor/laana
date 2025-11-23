@@ -9,3 +9,8 @@ tests/*.html
 node_modules/
 db/ulukau/output/
 **/php_errorlog
+.well-known/
+**/phpinfo.php
+save/
+**/*.log
+
