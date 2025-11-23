@@ -413,7 +413,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
         return $this->client->getTotalSourceGroupCounts();
     }
 
-    public function getSources( $groupname = '', $properties = [] ) {
+    public function getSources( $groupname = '', $properties = [], $sortBy = '', $sortDir = 'asc' ) {
         $sources = $this->client->getAllRecords( $this->client->getSourceMetadataName() );
         $sources = array_column( $sources, "_source" );
         
@@ -424,6 +424,51 @@ class ElasticsearchProvider implements SearchProviderInterface {
             });
             // Re-index array after filtering
             $sources = array_values($sources);
+        }
+        
+        // Apply sorting if specified
+        if ($sortBy) {
+            usort($sources, function($a, $b) use ($sortBy, $sortDir) {
+                $aVal = null;
+                $bVal = null;
+                $isNumeric = false;
+                
+                switch($sortBy) {
+                    case 'group':
+                        $aVal = strtolower($a['groupname'] ?? '');
+                        $bVal = strtolower($b['groupname'] ?? '');
+                        break;
+                    case 'name':
+                        $aVal = strtolower($a['sourcename'] ?? '');
+                        $bVal = strtolower($b['sourcename'] ?? '');
+                        break;
+                    case 'date':
+                        $aVal = $a['date'] ?? '';
+                        $bVal = $b['date'] ?? '';
+                        break;
+                    case 'authors':
+                        $aVal = strtolower($a['authors'] ?? '');
+                        $bVal = strtolower($b['authors'] ?? '');
+                        break;
+                    case 'sentences':
+                        $aVal = intval($a['sentencecount'] ?? 0);
+                        $bVal = intval($b['sentencecount'] ?? 0);
+                        $isNumeric = true;
+                        break;
+                }
+                
+                // Handle empty values - put them at end for asc, beginning for desc
+                // For numeric fields, don't treat 0 as empty
+                $aEmpty = isset($isNumeric) ? false : empty($aVal);
+                $bEmpty = isset($isNumeric) ? false : empty($bVal);
+                
+                if ($aEmpty && !$bEmpty) return $sortDir === 'asc' ? 1 : -1;
+                if (!$aEmpty && $bEmpty) return $sortDir === 'asc' ? -1 : 1;
+                if ($aEmpty && $bEmpty) return 0;
+                
+                $cmp = $aVal <=> $bVal;
+                return $sortDir === 'asc' ? $cmp : -$cmp;
+            });
         }
         
         // Filter properties if specified

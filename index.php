@@ -150,24 +150,6 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
     <?php if( $doSources ) { ?>
 
          <script>
-	     $(document).ready(function () {
-             //$("#<?=$pattern?>").prop( "checked", true );
-             $('#table').DataTable({
-                 paging: false,
-                 order: [[ 1, "asc" ]],
-                 ordering: true,
-                 /*
-                    responsive: {
-                    details: {
-                    display: $.fn.dataTable.Responsive.display.childRow,
-                    type: ''
-                    }
-                    },
-                  */
-             }
-             );
-	      });
-          
           const delay = 1000;
           $(document).ready(function() {
               $(".context").each( function( i, obj ) {
@@ -177,8 +159,9 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                       }
                       let sourceid = $(obj).attr('sourceid');
                       let simplified = parseInt( $(obj).attr('simplified') );
+                      let provider = $(obj).attr('provider');
                       $(obj).prop('hovertimeout', setTimeout( function() {
-                          showHoverBox( sourceid, simplified );
+                          showHoverBox( sourceid, simplified, provider );
                       }, delay ) );
                   });
                   $(obj).on('mouseleave', function () {
@@ -190,10 +173,13 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
               });
           });
           
-          function showHoverBox( sourceid, s ) {
+          function showHoverBox( sourceid, s, provider ) {
               let url = "rawpage.php?id=" + sourceid;
               if( s ) {
                   url += "&simplified";
+              }
+              if( provider ) {
+                  url += "&provider=" + provider;
               }
               hoverBox.src = url;
               hoverBox.style.display = 'block';
@@ -211,43 +197,167 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 
          <iframe id="hoverBox" class="draggable" width="70%" height="70%" style="left: 28%;top: 5%;">
          </iframe>
-         <table id="table" class="sourcetable"><thead>
-             <tr><th class="source-group">Group (ID)</th><th class="source-name">Name</th><th class="source-date">Date</th><th class="source-html">HTML</th><th class="source-plain">Plain</th><th class="source-authors">Authors</th><th class="source-sentences text-end text-xs-right text-right">Sentences</th></tr>
-         </thead><tbody>
-
-<?php
-             $rows = $provider->getSources( $groupname );
-             //var_export( $rows );
-             foreach( $rows as $row ) {
-                 $source = $row['sourcename'];
-                 $short = substr( $source, 0, 20 );
-                 $sourceid = $row['sourceid'];
-                 $plainlink = "<a class='context fancy' sourceid='$sourceid' simplified='1' href='rawpage.php?simplified&id=$sourceid' target='_blank'>Plain</a>";
-                 $htmllink = "<a class='context fancy' sourceid='$sourceid' simplified='0' href='rawpage.php?id=$sourceid' target='_blank'>HTML</a>";
-                 $authors = $row['authors'];
-                 $link = $row['link'];
-                 $date = $row['date'];
-                 $group = $row['groupname'] . " ($sourceid)";
-                 $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
-                 $count = $row['sentencecount'];
-?>
-
-        <tr>
-            <td class="hawaiiansentence"><?=$group?></td>
-            <td class="hawaiiansentence"><?=$sourcelink?></td>
-            <td class="hawaiiansentence"><?=$date?></td>
-            <td class="hawaiiansentence"><?=$htmllink?></td>
-            <td class="hawaiiansentence"><?=$plainlink?></td>
-            <td class='authors'><?=$authors?></td>
-            <td class="hawaiiansentence" style="text-align:right;"><?=$count?></td>
-        </tr>
-
-    <?php } // if doSources ?>
+         
+         <div style="margin-bottom: 1em;">
+             <input type="text" id="source-search" placeholder="Filter sources..." style="width: 300px; padding: 0.5em;" />
+         </div>
+         
+         <table id="table" class="sourcetable" style="width: 100%; table-layout: fixed;"><thead>
+             <tr>
+                 <th class="source-group sortable" data-sort="group" style="cursor: pointer;">Group (ID) <span class="sort-indicator"></span></th>
+                 <th class="source-name sortable" data-sort="name" style="cursor: pointer;">Name <span class="sort-indicator"></span></th>
+                 <th class="source-date sortable" data-sort="date" style="cursor: pointer;">Date <span class="sort-indicator"></span></th>
+                 <th class="source-html">HTML</th>
+                 <th class="source-plain">Plain</th>
+                 <th class="source-authors sortable" data-sort="authors" style="cursor: pointer !important;">Authors <span class="sort-indicator"></span></th>
+                 <th class="source-sentences text-end text-xs-right text-right sortable" data-sort="sentences" style="cursor: pointer;">Sentences <span class="sort-indicator"></span></th>
+             </tr>
+         </thead><tbody id="sources-tbody">
 
       </tbody></table>
+      
+      <script>
+      $(document).ready(function() {
+          let searchTerm = '';
+          let pageNum = 1;
+          let isLoading = false;
+          let hasMore = true;
+          let sortColumn = '';
+          let sortDirection = 'asc';
+          
+          function loadSources() {
+              if (isLoading || !hasMore) return;
+              isLoading = true;
+              $('.preloader').show();
+              
+              let url = 'ops/getSourcesHtml.php?page=' + pageNum + '&group=<?=$groupname?>&provider=<?=$provider->getName()?>&search=' + encodeURIComponent(searchTerm);
+              if (sortColumn) {
+                  url += '&sort=' + sortColumn + '&dir=' + sortDirection;
+              }
+              
+              fetch(url)
+                  .then(response => response.text())
+                  .then(html => {
+                      console.log('Loaded HTML length:', html.length);
+                      
+                      // Parse HTML and extract tr elements
+                      let $temp = $('<div>').html(html);
+                      let $rows = $temp.find('tr.source-row');
+                      
+                      console.log('Found', $rows.length, 'rows');
+                      
+                      if ($rows.length > 0) {
+                          $('#sources-tbody').append($rows);
+                          
+                          // Attach hover handlers to new rows
+                          $rows.find('.context').each(function(i, obj) {
+                              $(obj).on('mouseenter', function() {
+                                  if($(obj).prop('hovertimeout') != null) {
+                                      clearTimeout($(obj).prop('hovertimeout'));
+                                  }
+                                  let sourceid = $(obj).attr('sourceid');
+                                  let simplified = parseInt($(obj).attr('simplified'));
+                                  let provider = $(obj).attr('provider');
+                                  $(obj).prop('hovertimeout', setTimeout(function() {
+                                      showHoverBox(sourceid, simplified, provider);
+                                  }, delay));
+                              });
+                              $(obj).on('mouseleave', function() {
+                                  if($(obj).prop('hovertimeout') != null) {
+                                      clearTimeout($(obj).prop('hovertimeout'));
+                                      $(obj).prop('hovertimeout', null);
+                                  }
+                              });
+                          });
+                          
+                          pageNum++;
+                          if ($rows.length < 50) {
+                              hasMore = false;
+                          }
+                      } else {
+                          hasMore = false;
+                      }
+                      
+                      isLoading = false;
+                      $('.preloader').hide();
+                  })
+                  .catch(error => {
+                      console.error('Error loading sources:', error);
+                      isLoading = false;
+                      $('.preloader').hide();
+                  });
+          }
+          
+          function sortTable(column) {
+              if (sortColumn === column) {
+                  // Toggle direction if same column
+                  sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+              } else {
+                  sortColumn = column;
+                  sortDirection = 'asc';
+              }
+              
+              // Update sort indicators
+              $('.sort-indicator').text('');
+              $('th[data-sort="' + column + '"] .sort-indicator').text(sortDirection === 'asc' ? ' ▲' : ' ▼');
+              
+              // Reload data from server with new sort
+              $('#sources-tbody').empty();
+              pageNum = 1;
+              hasMore = true;
+              loadSources();
+          }
+          
+          // Handle column header clicks
+          $('.sortable').on('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              let column = $(this).data('sort');
+              console.log('Sorting by column:', column);
+              sortTable(column);
+          });
+          
+          // Load initial page
+          loadSources();
+          
+          // Load more on scroll
+          $(window).on('scroll', function() {
+              if ($(window).scrollTop() + $(window).height() > $(document).height() - 400) {
+                  loadSources();
+              }
+          });
+          
+          // Handle search filter
+          let searchTimeout;
+          $('#source-search').on('input', function() {
+              clearTimeout(searchTimeout);
+              searchTimeout = setTimeout(function() {
+                  searchTerm = $('#source-search').val();
+                  console.log('Filtering sources by: ' + searchTerm);
+                  
+                  // Reset and reload
+                  $('#sources-tbody').empty();
+                  pageNum = 1;
+                  hasMore = true;
+                  sortColumn = '';
+                  sortDirection = 'asc';
+                  $('.sort-indicator').text('');
+                  loadSources();
+              }, 300); // Debounce
+          });
+      });
+      </script>
+      
+      <div class="preloader">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+      </div>
 
-<?php
-    } else if( $doResources ) {
+<?php 
+    } else if( $doResources ) { 
         include 'resources.html';
     } else {
         // No word, not sources, not resources

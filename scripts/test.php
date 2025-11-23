@@ -19,9 +19,16 @@ function show( $var ) {
     echo( var_export( $var, true ) . "\n" );
 }
 
-testUlukauLocalFetch();
+
+//testUlukauLocalFetch();
+kauakukalahaleBlurbs();
 return;
 
+function kauakukalahaleBlurbs() {
+    $parser = new KauakukalahaleHTML();
+    $html = $parser->getAllBlurbs();
+    echo "$html\n";
+}
 function testUlukauLocalFetch() {
     $url =" https://puke.ulukau.org/ulukau-books/?a=d&d=EBOOK-HAUWAHINE&e=-------en-20--1--txt-txPT-----------";
     $contents = (new UlukauLocal())->getContents( $url );

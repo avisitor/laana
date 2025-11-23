@@ -29,7 +29,56 @@ class LaanaSearchProvider implements SearchProviderInterface
     
     // Direct pass-through methods
     public function getLatestSourceDates() { return $this->laana->getLatestSourceDates(); }
-    public function getSources($groupname = '') { return $this->laana->getSources($groupname); }
+    public function getSources($groupname = '', $properties = [], $sortBy = '', $sortDir = 'asc') { 
+        $sources = $this->laana->getSources($groupname);
+        
+        // Apply sorting if specified
+        if ($sortBy) {
+            usort($sources, function($a, $b) use ($sortBy, $sortDir) {
+                $aVal = null;
+                $bVal = null;
+                $isNumeric = false;
+                
+                switch($sortBy) {
+                    case 'group':
+                        $aVal = strtolower($a['groupname'] ?? '');
+                        $bVal = strtolower($b['groupname'] ?? '');
+                        break;
+                    case 'name':
+                        $aVal = strtolower($a['sourcename'] ?? '');
+                        $bVal = strtolower($b['sourcename'] ?? '');
+                        break;
+                    case 'date':
+                        $aVal = $a['date'] ?? '';
+                        $bVal = $b['date'] ?? '';
+                        break;
+                    case 'authors':
+                        $aVal = strtolower($a['authors'] ?? '');
+                        $bVal = strtolower($b['authors'] ?? '');
+                        break;
+                    case 'sentences':
+                        $aVal = intval($a['sentencecount'] ?? 0);
+                        $bVal = intval($b['sentencecount'] ?? 0);
+                        $isNumeric = true;
+                        break;
+                }
+                
+                // Handle empty values - put them at end for asc, beginning for desc
+                // For numeric fields, don't treat 0 as empty
+                $aEmpty = isset($isNumeric) && $isNumeric ? false : empty($aVal);
+                $bEmpty = isset($isNumeric) && $isNumeric ? false : empty($bVal);
+                
+                if ($aEmpty && !$bEmpty) return $sortDir === 'asc' ? 1 : -1;
+                if (!$aEmpty && $bEmpty) return $sortDir === 'asc' ? -1 : 1;
+                if ($aEmpty && $bEmpty) return 0;
+                
+                $cmp = $aVal <=> $bVal;
+                return $sortDir === 'asc' ? $cmp : -$cmp;
+            });
+        }
+        
+        return $sources;
+    }
     public function getTotalSourceGroupCounts() { return $this->laana->getTotalSourceGroupCounts(); }
     public function getSource( $sourceid ) { return $this->laana->getSource( $sourceid ); }    
     public function getSourceIDs( $groupname ) { return $this->laana->getSourceIDs( $groupname ); }    
@@ -72,10 +121,15 @@ class LaanaSearchProvider implements SearchProviderInterface
         return ['hits' => $hits, 'total' => count($hits)];
     }
     public function getDocument(string $docId, string $format = 'text'): ?array {
+        error_log("LaanaSearchProvider::getDocument called with docId=$docId, format=$format");
         if ($format === 'html') {
-            return ['content' => $this->getRawText($docId)];
+            $content = $this->getRawText($docId);
+            error_log("LaanaSearchProvider::getDocument getRawText returned " . strlen($content) . " chars");
+            return ['content' => $content];
         }
-        return ['content' => $this->getText($docId)];
+        $content = $this->getText($docId);
+        error_log("LaanaSearchProvider::getDocument getText returned " . strlen($content) . " chars");
+        return ['content' => $content];
     }
     public function logQuery(array $params): void {
         $this->addSearchStat(

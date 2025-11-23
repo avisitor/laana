@@ -782,7 +782,9 @@ class Laana extends DB {
         $values = [
             'sourceid' => $sourceid,
         ];
+        debuglog("getRawText called with sourceid: $sourceid");
         $row = $this->getOneDBRow( $sql, $values );
+        debuglog("getRawText result: " . (isset($row['html']) ? strlen($row['html']) . " chars" : "NULL"));
         return $row['html'] ?? '';
     }
     public function getText( $sourceid ) {
@@ -790,7 +792,9 @@ class Laana extends DB {
         $values = [
             'sourceid' => $sourceid,
         ];
+        debuglog("getText called with sourceid: $sourceid");
         $row = $this->getOneDBRow( $sql, $values );
+        debuglog("getText result: " . (isset($row['text']) ? strlen($row['text']) . " chars" : "NULL"));
         return $row['text'] ?? '';
     }
     public function removeContents( $sourceid ) {
