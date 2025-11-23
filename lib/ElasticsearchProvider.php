@@ -335,12 +335,12 @@ class ElasticsearchProvider implements SearchProviderInterface {
     public function getAvailableSearchModes(): array
     {
         return [
-            'match' => 'Match any of the words anywhere', 
-            'matchall' => 'Match all words anywhere in sentences', 
-            'phrase' => 'Match exact phrase in sentences',
+            'phrase' => 'Match exact phrase',
+            'match' => 'Match any of the words', 
+            'matchall' => 'Match all words in any order', 
             'regex' => 'Regular expression search',
-            'hybrid' => 'Hybrid keyword + semantic search on sentences',
-        ];
+            'hybrid' => 'Hybrid keyword + semantic search',
+       ];
     }
 
     public function getLatestSourceDates(): array

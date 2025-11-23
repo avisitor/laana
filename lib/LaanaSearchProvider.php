@@ -143,10 +143,11 @@ class LaanaSearchProvider implements SearchProviderInterface
 
     public function getAvailableSearchModes(): array
     {
-        return ['exact' => 'Exact match of one or more words',
-                'any' => 'Match any of the words',
-                'all' => 'Match all of the words in any order',
-                'regex' => 'Regular expression match',
+        return [
+            'exact' => 'Match exact phrase',
+            'any' => 'Match any of the words',
+            'all' => 'Match all words in any order',
+            'regex' => 'Regular expression search',
         ];
     }
 
