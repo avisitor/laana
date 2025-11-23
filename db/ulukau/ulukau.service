@@ -3,7 +3,8 @@ Description=Ulukau Puppeteer Service
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/node /var/www/html/noiiolelo/db/ulukau/service.js
+WorkingDirectory=/var/www/html/noiiolelo/db/ulukau
+ExecStart=/usr/bin/node service.js
 Restart=always
 RestartSec=5
 StandardOutput=syslog

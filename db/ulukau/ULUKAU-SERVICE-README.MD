@@ -24,12 +24,17 @@ project/
 ## Running as a web service
 
 Install the service:
+  sudo mkdir -p /var/www/html/noiiolelo/db
+  sudo cp -r ulukau /var/www/html/noiiolelo/db
+  cd /var/www/html/noiiolelo/db
+  sudo npm install express
   sudo cp ulukau.service /etc/systemd/system
 
 Start the service:
   node service.js
 or:
   sudo systemctl start ulukau
+  sudo journalctl -u ulukau -f
 
 By default it listens on http://localhost:3000.
 
