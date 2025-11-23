@@ -112,6 +112,10 @@ class ElasticsearchProvider implements SearchProviderInterface {
             case 'hybrid':
                 $mode = 'hybridsentence';
                 break;
+            case 'hybriddoc':
+                // Keep as 'hybrid' for document-level search
+                $mode = 'hybrid';
+                break;
             case 'match':
                 $mode = 'matchsentence';
                 break;
@@ -154,56 +158,63 @@ class ElasticsearchProvider implements SearchProviderInterface {
 
         $sortOptions = [];
         $orderByString = "";
-        $this->debuglog('ElasticsearchProvider getSentences: options[orderby]=' . json_encode($options['orderby'] ?? null));
-        if (isset($options['orderby'])) {
-            $orderByString = $options['orderby'];
-            $sortParts = explode(',', $orderByString);
-            foreach ($sortParts as $part) {
-                $part = strtolower(trim($part));
-                $direction = 'asc';
-                if ($part === '') continue;
-                if (str_ends_with($part, ' desc')) {
-                    $direction = 'desc';
-                    $part = strtolower(trim(str_replace(' desc', '', $part)));
-                }
-                $this->debuglog('ElasticsearchProvider sort parsing: part=' . json_encode($part) . ', direction=' . json_encode($direction));
+        
+        // For hybrid document search, always sort by relevance (score)
+        if ($pattern === 'hybriddoc') {
+            $sortOptions['_special'] = 'score';
+            $this->debuglog('ElasticsearchProvider getSentences: forcing score sort for hybriddoc mode');
+        } else {
+            $this->debuglog('ElasticsearchProvider getSentences: options[orderby]=' . json_encode($options['orderby'] ?? null));
+            if (isset($options['orderby'])) {
+                $orderByString = $options['orderby'];
+                $sortParts = explode(',', $orderByString);
+                foreach ($sortParts as $part) {
+                    $part = strtolower(trim($part));
+                    $direction = 'asc';
+                    if ($part === '') continue;
+                    if (str_ends_with($part, ' desc')) {
+                        $direction = 'desc';
+                        $part = strtolower(trim(str_replace(' desc', '', $part)));
+                    }
+                    $this->debuglog('ElasticsearchProvider sort parsing: part=' . json_encode($part) . ', direction=' . json_encode($direction));
 
-                // Map provider field names to Elasticsearch field names and special sorts
-                switch ($part) {
-                    case 'hawaiiantext':
-                    case 'alpha':
-                        // For sentence-level queries, use 'text.keyword' and respect direction
-                        $sortOptions['text.keyword'] = $direction;
-                        break;
-                    case 'sourcename':
-                    case 'source':
-                        $sortOptions['sourcename'] = $direction;
-                        break;
-                    case 'date':
-                        $sortOptions['date'] = $direction;
-                        break;
-                    case 'length':
-                        $sortOptions['length'] = $direction;
-                        break;
-                    case 'rand':
-                    case 'rand()':
-                        $sortOptions['_special'] = 'random';
-                        break;
-                    case 'none':
-                        $sortOptions['_special'] = 'none';
-                        break;
-                    case 'score':
-                        $sortOptions['_special'] = 'score';
-                        break;
-                    default:
-                        if (strpos($part, 'length(hawaiiantext)') !== false) {
+                    // Map provider field names to Elasticsearch field names and special sorts
+                    switch ($part) {
+                        case 'hawaiiantext':
+                        case 'alpha':
+                            // For sentence-level queries, use 'text.keyword' and respect direction
+                            $sortOptions['text.keyword'] = $direction;
+                            break;
+                        case 'sourcename':
+                        case 'source':
+                            $sortOptions['sourcename'] = $direction;
+                            break;
+                        case 'date':
+                            $sortOptions['date'] = $direction;
+                            break;
+                        case 'length':
                             $sortOptions['length'] = $direction;
-                        }
-                        break;
+                            break;
+                        case 'rand':
+                        case 'rand()':
+                            $sortOptions['_special'] = 'random';
+                            break;
+                        case 'none':
+                            $sortOptions['_special'] = 'none';
+                            break;
+                        case 'score':
+                            $sortOptions['_special'] = 'score';
+                            break;
+                        default:
+                            if (strpos($part, 'length(hawaiiantext)') !== false) {
+                                $sortOptions['length'] = $direction;
+                            }
+                            break;
+                    }
                 }
+                // Debug: print sortOptions to error log
+                $this->debuglog('ElasticsearchProvider getSentences sortOptions: ' . json_encode($sortOptions));
             }
-            // Debug: print sortOptions to error log
-            $this->debuglog('ElasticsearchProvider getSentences sortOptions: ' . json_encode($sortOptions));
         }
 
         $searchOptions = [
@@ -335,11 +346,12 @@ class ElasticsearchProvider implements SearchProviderInterface {
     public function getAvailableSearchModes(): array
     {
         return [
-            'phrase' => 'Match exact phrase',
             'match' => 'Match any of the words', 
             'matchall' => 'Match all words in any order', 
+            'phrase' => 'Match exact phrase',
             'regex' => 'Regular expression search',
-            'hybrid' => 'Hybrid keyword + semantic search',
+            'hybrid' => 'Hybrid semantic search on sentences',
+            'hybriddoc' => 'Hybrid semantic search on documents',
        ];
     }
 

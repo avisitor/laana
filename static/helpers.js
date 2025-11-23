@@ -37,6 +37,11 @@ function changeid() {
     else {
         theBody.id='nofadein'
     }
+    
+    // Initialize sort options based on current search pattern
+    if (typeof pattern !== 'undefined') {
+        updateSortOptions(pattern);
+    }
 }
 
 function providerSelected(object) {
@@ -98,6 +103,39 @@ function patternSelected(object) {
     let value = object.value;  
     console.log(value);
     setPattern( value );
+    
+    // Update sort dropdown based on search mode
+    updateSortOptions(value);
+}
+
+function updateSortOptions(pattern) {
+    const selectOrder = document.getElementById('select-order');
+    if (!selectOrder) return;
+    
+    const currentValue = selectOrder.value;
+    
+    if (pattern === 'hybriddoc') {
+        // For hybrid document search, only show Relevance option
+        selectOrder.innerHTML = '<option value="score">Relevance</option>';
+        selectOrder.value = 'score';
+        setOrder('score');
+    } else {
+        // Restore full set of sort options
+        selectOrder.innerHTML = `
+            <option value="rand">Random</option>
+            <option value="alpha">Alpha</option>
+            <option value="alpha desc">Alpha desc</option>
+            <option value="date">Date</option>
+            <option value="date desc">Date desc</option>
+            <option value="source">Source</option>
+            <option value="source desc">Source desc</option>
+            <option value="length">Length</option>
+            <option value="length desc">Length desc</option>
+            <option value="none">None</option>
+        `;
+        // Restore previous value if it was a valid option
+        selectOrder.value = currentValue;
+    }
 }
 function orderSelected(object) {
     let value = object.value;  

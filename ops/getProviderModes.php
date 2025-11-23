@@ -21,11 +21,12 @@ $modes = [];
 if ($providerName === 'Elasticsearch') {
     // From ElasticsearchProvider::getAvailableSearchModes()
     $modes = [
-        'phrase' => 'Match exact phrase',
         'match' => 'Match any of the words', 
         'matchall' => 'Match all words in any order', 
+        'phrase' => 'Match exact phrase',
         'regex' => 'Regular expression search',
-        'hybrid' => 'Hybrid keyword + semantic search',
+        'hybrid' => 'Hybrid semantic search on sentences',
+        'hybriddoc' => 'Hybrid semantic search on documents',
     ];
 } else if ($providerName === 'Laana') {
     // From LaanaSearchProvider::getAvailableSearchModes()

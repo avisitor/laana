@@ -23,11 +23,12 @@ if ($providerName === 'Elasticsearch') {
 <h3>Search options (Elasticsearch Provider)</h3>
 <p>All searches except for "Regex" are case-insensitive. These are the choices:</p>
 <ul>
-  <li><span class="searchtype">Match exact phrase</span>: matches your search expression exactly as entered, e.g. <span class="searchterm">hale kuai</span> returns sentences containing <span class="searchterm">hale kuai</span> in that exact order</li>
   <li><span class="searchtype">Match any of the words</span>: matches sentences with any of the words in your search expression, e.g. <span class="searchterm">hale kuai</span> returns sentences containing <span class="searchterm">hale</span>, <span class="searchterm">kuai</span> or both</li>
   <li><span class="searchtype">Match all words in any order</span>: matches sentences that includes all the words in your search expression in any order, e.g. <span class="searchterm">hale kuai</span> returns sentences like <span class="searchterm">Ua koha oia i ka hale no ke kuai ana</span> as well as <span class="searchterm">Ua kuai oia i ka hale</span></li>
+  <li><span class="searchtype">Match exact phrase</span>: matches your search expression exactly as entered, e.g. <span class="searchterm">hale kuai</span> returns sentences containing <span class="searchterm">hale kuai</span> in that exact order</li>
   <li><span class="searchtype">Regular expression search</span>: matches your <a class="fancy" target="_blank" href="https://www.guru99.com/regular-expressions.html">regular expression</a>, e.g. <span class="searchterm">ho\w{5}\skaua</span> to find sentences containing a 7-letter word starting with ho and followed by a space and kaua</li>
-  <li><span class="searchtype">Hybrid keyword + semantic search on sentences</span>: combines keyword matching with semantic similarity search using AI embeddings to find conceptually related sentences</li>
+  <li><span class="searchtype">Hybrid semantic search on sentences</span>: combines keyword matching with semantic similarity search using AI embeddings to find conceptually related sentences within documents</li>
+  <li><span class="searchtype">Hybrid semantic search on documents</span>: uses AI semantic search to find entire documents conceptually related to your query, returning relevant excerpts from matching documents</li>
 </ul>
 <p><span class="searchtype">No Diacriticals</span>: diacritical marks and 'okina are ignored. For example, searching for <span class="searchterm">ho'okipa</span> matches <span class="searchterm">hookipa</span> as well as <span class="searchterm">ho'okipa</span>; searching for <span class="searchterm">hookipa</span> returns the same results. Without No Diacriticals, searching for <span class="searchterm">ho'okipa</span> returns only results with <span class="searchterm">ho'okipa</span> while searching for <span class="searchterm">hookipa</span> matches only on <span class="searchterm">hookipa</span></p>
 HTML;
