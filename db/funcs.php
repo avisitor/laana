@@ -318,15 +318,15 @@ class Laana extends DB {
         }
         if( $countOnly ) {
             $targets = "count(*) count";
-        } else {
-            $targets = "authors,date,sourceName,s.sourceID,link,hawaiianText,sentenceid";
         }
-        $quoted = preg_match( '/^".*"$/', $term );
+        // Strip quotes if present - user wants exact match either way
+        $term = trim($term, '"');
         $booleanMode = "";
         if( $pattern == 'regex' ) {
             if( $countOnly ) {
                 $sql = "select $targets from " . SENTENCES . " s where $search REGEXP :term";
             } else {
+                $targets = "o.authors,o.date,o.sourceName,o.sourceID,o.link,s.hawaiianText,s.sentenceid";
                 $sql = "select $targets from " . SENTENCES . " s, " . SOURCES . " o where $search REGEXP :term and s.sourceID = o.sourceID";
             }
             $term = preg_replace( '/\\\/', '\\\\', $term );
@@ -334,30 +334,54 @@ class Laana extends DB {
                 'term' => $term,
             ];
         } else {
-            if( !$quoted ) {
-                if( $pattern == 'exact' ) {
-                    $term = '"' . $term . '"';
-                } else if( $pattern == 'all' ) {
-                    $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
-                    $term = "";
-                    foreach( $words as $word ) {
-                        $term .= "+$word ";
-                    }
-                    $term = trim( $term );
-                    $booleanMode = "IN BOOLEAN MODE";
+            // Use REGEXP for exact pattern instead of fulltext for better performance
+            if( $pattern == 'exact' ) {
+                // Use simple regex with escaped spaces - faster than word boundaries
+                $regexTerm = preg_quote($term, '/');
+                $values = [
+                    'term' => $regexTerm,
+                ];
+                if( $countOnly ) {
+                    $sql = "select $targets from " . SENTENCES . " o where o.$search REGEXP :term";
+                } else {
+                    $targets = "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid";
+                    $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where o.$search REGEXP :term";
                 }
-            }
-            $values = [
-                'term' => $term,
-            ];
-            if( $countOnly ) {
-                $sql = "select $targets from " . SENTENCES . " o where match(o.$search) against (:term $booleanMode)";
+            } else if( $pattern == 'all' ) {
+                // Boolean mode: all words required
+                $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $term );
+                $term = "";
+                foreach( $words as $word ) {
+                    $term .= "+$word ";
+                }
+                $term = trim( $term );
+                $booleanMode = "IN BOOLEAN MODE";
+                $values = [
+                    'term' => $term,
+                ];
+                if( $countOnly ) {
+                    $sql = "select $targets from " . SENTENCES . " o where match(o.$search) against (:term $booleanMode)";
+                } else {
+                    $targets = "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid";
+                    $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where match(o.$search) against (:term $booleanMode)";
+                }
             } else if( $pattern == 'clause' ) {
+                // Direct SQL clause
+                $targets = "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid";
                 $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where $term";
-            $values = [
-            ];
+                $values = [
+                ];
             } else {
-                $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where match(o.$search) against (:term $booleanMode)";
+                // Default: natural language fulltext search (any words)
+                $values = [
+                    'term' => $term,
+                ];
+                if( $countOnly ) {
+                    $sql = "select $targets from " . SENTENCES . " o where match(o.$search) against (:term)";
+                } else {
+                    $targets = "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid";
+                    $sql = "select $targets from " . SENTENCES . " o inner join " . SOURCES . " s on s.sourceID = o.sourceID where match(o.$search) against (:term)";
+                }
             }
         }
         // NUll dates show up as first
@@ -370,7 +394,14 @@ class Laana extends DB {
         if( isset( $options['to'] ) && $options['to'] ) {
             $sql .= " and date <= '" . $options['to'] . "-12-31'";
         }
-        $sql .= " $orderBy";
+        if( isset( $options['authors'] ) && $options['authors'] ) {
+            $sql .= " and authors = '" . $options['authors'] . "'";
+        }
+        $orderBy = "";
+        if( !$countOnly && isset( $options['orderby'] ) ) {
+            $orderBy = ' order by ' . $options['orderby'];
+        }
+        $sql .= $orderBy;
         if( $pageNumber >= 0 && !$countOnly ) {
             $sql .= " limit " . $pageNumber * $pageSize . "," . $pageSize;
         }
@@ -782,9 +813,7 @@ class Laana extends DB {
         $values = [
             'sourceid' => $sourceid,
         ];
-        debuglog("getRawText called with sourceid: $sourceid");
         $row = $this->getOneDBRow( $sql, $values );
-        debuglog("getRawText result: " . (isset($row['html']) ? strlen($row['html']) . " chars" : "NULL"));
         return $row['html'] ?? '';
     }
     public function getText( $sourceid ) {
@@ -792,9 +821,7 @@ class Laana extends DB {
         $values = [
             'sourceid' => $sourceid,
         ];
-        debuglog("getText called with sourceid: $sourceid");
         $row = $this->getOneDBRow( $sql, $values );
-        debuglog("getText result: " . (isset($row['text']) ? strlen($row['text']) . " chars" : "NULL"));
         return $row['text'] ?? '';
     }
     public function removeContents( $sourceid ) {
