@@ -53,21 +53,22 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 
 <?php if( $word ) {  ?>
        <a class="slide" href="#">Help</a>
-       <div id="fade-help" class="box"></div>
+       <div id="fade-help" class="box" data-provider="<?=$provider->getName()?>"></div>
 <?php } ?>
 
 
 <?php if( !($doSources || $doResources) ) { ?>
        
-       <center>
-         <form method="get">
+       <center style="max-width:100vw; overflow-x:hidden;">
+         <form method="get" style="max-width:100%; overflow-x:hidden;">
           <input type="hidden" id="search-pattern" name="searchpattern" value="<?=$pattern?>" />
+          <input type="hidden" id="provider" name="provider" value="<?=$provider->getName()?>" />
           <input type="hidden" id="nodiacriticals" name="nodiacriticals" value="<?=$nodiacriticals?>" />
           <input type="hidden" id="order" name="order" value="<?=$order?>" />
           <input type="hidden" id="from" name="from" value="<?=$from?>" />
           <input type="hidden" id="to" name="to" value="<?=$to?>" />
-          <div class="search-bar">
-              <input name="search" id="searchbar" type="text" size="40" style="width:40em;" placeholder="Type a word or pattern in Hawaiian" value='<?=urldecode( $word )?>' required />
+          <div class="search-bar" style="max-width:95vw;">
+              <input name="search" id="searchbar" type="text" size="40" style="width:100%; max-width:40em; box-sizing:border-box; border-radius:6px;" placeholder="Type a word or pattern in Hawaiian" value='<?=urldecode( $word )?>' required />
                 <button type="submit" class="search-button">
                     <i>Go!</i>
                 </button>
@@ -82,46 +83,51 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         <button class="character-insert-button" type="button" onclick="insertcharacter('ū')">ū</button>
         <button class="character-insert-button" type="button" onclick="insertcharacter('‘')">‘</button>
         
-        <div id="search-options" style="display:none;">
-            <table>
-                <tbody>
-                <tr>
-                    <td>
-            <label for="searchtype">Search type:</label>
-			<select id="searchtype" class="dd-menu" onchange="patternSelected(this)">
-                <?php foreach ($provider->getAvailableSearchModes() as $mode => $description) { ?>
-                    <option value="<?=$mode?>" <?=($pattern == $mode) ? 'selected' : ''?>><?=$description?></option>
-                <?php } ?>
-			</select>
-                    </td>
-                    <td>
-          <label for="nodiacriticals" style="padding-left:1em;">No diacriticals</label>
-          <input id="checkbox-nodiacriticals" type="checkbox" name="checkbox-nodiacriticals" <?=($nodiacriticals)?'checked':''?> onclick="setNoDiacriticals()"/>
-                    </td>
-                    <td style="padding-left:1em;"><label for="frombox" style="width:5em;">From year:</label>
-                        <input type="text" cols="4" name="frombox" id="frombox" style="width:3em;" onchange="fromChanged(this)" value="<?=$from?>" /></td>
-                </tr>
-                <tr>
-                    <td colspan="2">
-            <label for="select-order">Sort by:</label>
-			<select id="select-order" class="dd-menu" value ="<?=$order?>" onchange="orderSelected(this)">
-                <option value="rand">Random</option>
-                <option value="alpha">Alphabetical</option>
-                <option value="alpha desc">Alphabetical descending</option>
-                <option value="date">By date</option>
-                <option value="date desc">By date descending</option>
-                <option value="source">By source</option>
-                <option value="source desc">By source descending</option>
-                <option value="length">By length</option>
-                <option value="length desc">By length descending</option>
-                <option value="none">None</option>
-			</select>
-                    </td>
-                    <td style="padding-left:1em;"><label for="tobox" style="width:5em;">To year:</label>
-                        <input type="text" cols="4" name="tobox" id="tobox" style="width:3em;" onchange="toChanged(this)" value="<?=$to?>" /></td>
-                </tr>
-                </tbody>
-            </table>
+        <div id="search-options" style="display:none; font-size:0.8em; max-width:100%; padding:0.5em;">
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.5em; max-width:600px; margin:0 auto;">
+                <div>
+                    <label for="searchtype" style="font-size:0.85em; display:block;">Search type:</label>
+                    <select id="searchtype" class="dd-menu" onchange="patternSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
+                        <?php foreach ($provider->getAvailableSearchModes() as $mode => $description) { ?>
+                            <option value="<?=$mode?>" <?=($pattern == $mode) ? 'selected' : ''?>><?=$description?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="frombox" style="font-size:0.85em; display:block;">From year:</label>
+                    <input type="text" name="frombox" id="frombox" style="width:100%; font-size:0.85em; box-sizing:border-box;" onchange="fromChanged(this)" value="<?=$from?>" />
+                </div>
+                <div>
+                    <label for="tobox" style="font-size:0.85em; display:block;">To year:</label>
+                    <input type="text" name="tobox" id="tobox" style="width:100%; font-size:0.85em; box-sizing:border-box;" onchange="toChanged(this)" value="<?=$to?>" />
+                </div>
+                <div>
+                    <label for="select-order" style="font-size:0.85em; display:block;">Sort by:</label>
+                    <select id="select-order" class="dd-menu" value="<?=$order?>" onchange="orderSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
+                        <option value="rand">Random</option>
+                        <option value="alpha">Alpha</option>
+                        <option value="alpha desc">Alpha desc</option>
+                        <option value="date">Date</option>
+                        <option value="date desc">Date desc</option>
+                        <option value="source">Source</option>
+                        <option value="source desc">Source desc</option>
+                        <option value="length">Length</option>
+                        <option value="length desc">Length desc</option>
+                        <option value="none">None</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="nodiacriticals" style="font-size:0.85em; display:block;">No diacriticals</label>
+                    <input id="checkbox-nodiacriticals" type="checkbox" name="checkbox-nodiacriticals" <?=($nodiacriticals)?'checked':''?> onclick="setNoDiacriticals()"/>
+                </div>
+                <div>
+                    <label for="provider-select" style="font-size:0.85em; display:block;">Provider:</label>
+                    <select id="provider-select" class="dd-menu" onchange="providerSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
+                        <option value="Elasticsearch" <?=($provider->getName() == 'Elasticsearch') ? 'selected' : ''?>>Elasticsearch</option>
+                        <option value="Laana" <?=($provider->getName() == 'Laana') ? 'selected' : ''?>>Laana</option>
+                    </select>
+                </div>
+            </div>
 		</div>
        </center>
 
@@ -202,6 +208,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
              <input type="text" id="source-search" placeholder="Filter sources..." style="width: 300px; padding: 0.5em;" />
          </div>
          
+         <div style="overflow-x: auto; max-width: 100%;">
          <table id="table" class="sourcetable" style="width: 100%; table-layout: fixed;"><thead>
              <tr>
                  <th class="source-group sortable" data-sort="group" style="cursor: pointer;">Group (ID) <span class="sort-indicator"></span></th>
@@ -215,6 +222,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
          </thead><tbody id="sources-tbody">
 
       </tbody></table>
+      </div>
       
       <script>
       $(document).ready(function() {
@@ -455,7 +463,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                      console.log('Infinite Scroll append body:%o path:%o items:%o response:%o', body, path, items, response)
                      count = items.length;
                      console.log( count + " items returned" );
-                     if( count < <?=$provider->pageSize?> ) { // Less than a page
+                     if( count < 20 ) { // Less than a page
                          console.log( 'Turning off loadOnScroll' );
                          this.option( {
                              //loadOnScroll : false,
@@ -468,7 +476,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                          const elapsedTime = new Date() - startTime;
                          startTime = new Date();
                          recordSearch( term, "<?=$pattern?>", count, "<?=$order?>", elapsedTime );
-                         if( count < <?=$provider->pageSize?> ) { // Less than a page
+                         if( count < 20 ) { // Less than a page
                              reportCount( count );
                              return;
                          }
