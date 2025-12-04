@@ -1,0 +1,98 @@
+sudo /usr/bin/postgresql-setup --initdb
+sudo systemctl start postgresql
+sudo -u postgres psql
+
+
+ALTER USER postgres WITH PASSWORD 'TeY9JuzY';
+\q
+
+psql -U postgres -d postgres
+This will prompt you for the password you just set.
+
+Add to /var/lib/pgsql/data/pg_hba.conf:
+# TYPE  DATABASE  USER    ADDRESS             METHOD
+host    laana_pg  pg_user 172.17.0.0/16       md5
+
+Add to /var/lib/pgsql/data/postgresql.conf
+listen_addresses = '*'
+
+sudo systemctl restart postgresql
+
+create user laana with encrypted password 'WmC2UPRz';
+
+sudo dnf install -y postgresql-contrib
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS sentences_hawaiiantext_trgm_gin ON sentences USING gin (hawaiianText gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS sentences_simplified_trgm_gin ON sentences USING gin (simplified gin_trgm_ops);
+
+Could not use pgloader to migrate tables from mysql to postgres because its heap limit is frozen at 1GB.
+
+Instead used custom python script
+/home/rweltman/code/migrate-to-pg/migrate_table.py
+
+
+Hybrid search:
+Had to build the vector extension manually
+git clone --branch v0.6.0 https://github.com/pgvector/pgvector.git
+cd pgvector
+PATH_TO_PG_CONFIG="/usr/bin/pg_config" # Your located path
+sudo make clean
+sudo make PG_CONFIG=$PATH_TO_PG_CONFIG
+TARGET_LIB_DIR="/usr/lib64/pgsql"
+TARGET_SHARE_DIR="/usr/share/pgsql/extension"
+sudo cp vector.so $TARGET_LIB_DIR/
+sudo cp vector.control $TARGET_SHARE_DIR/
+sudo cp sql/vector--0.6.0.sql $TARGET_SHARE_DIR/
+sudo systemctl restart postgresql-13
+
+sudo -u postgres psql
+CREATE EXTENSION vector;
+
+
+SELECT 
+    s."sentenceID",
+    s."hawaiianText",
+    s."englishText",
+    src."title",
+    -- Calculate relevance score
+    ts_rank(s.search_vector, query) AS rank,
+    -- Generate a highlighted snippet (optional)
+    ts_headline('simple', s."hawaiianText", query) AS snippet
+FROM 
+    sentences s
+    JOIN sources src ON s."sourceID" = src."sourceID",
+    -- Parse user input into a query object
+    websearch_to_tsquery('simple', 'aloha aina') query
+WHERE 
+    s.search_vector @@ query
+ORDER BY 
+    rank DESC
+LIMIT 20;
+
+
+
+
+ALTER TABLE contents ADD COLUMN embedding vector(1536); -- 1536 is for OpenAI ada-002
+
+SELECT sourceID, text
+FROM contents
+WHERE 
+  -- Keyword Match (FTS)
+  to_tsvector('simple', text) @@ websearch_to_tsquery('simple', 'user query')
+ORDER BY 
+  -- Semantic Match (Cosine Distance)
+  embedding <=> '[0.012, 0.45, ... vector array ...]'
+LIMIT 10;
+
+
+
+
+Currently running:
+php /var/www/html/noiiolelo/ops/pg_index_sentences.php --write --limit 100 --verbose --out-json /var/www/html/noiiolelo/ops/last_run.json
+to add embeddings and metrics data for the sentences table
+Started about 11am on December 4 and anticipated to take about a week
+After that:
+- Consolidate the indexing scripts so they can be called from a new savepostgres.php similar to savedocument.php and saveelastic.php
+- Improve the postgres hybrid search so it returns results very similar to those from elasticsearch
+
+
