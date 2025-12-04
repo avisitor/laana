@@ -43,10 +43,27 @@
             ],
             "env": {
                 "XDEBUG_MODE": "debug,develop",
-                "XDEBUG_CONFIG": "client_port=${port}"
+                "XDEBUG_CONFIG": "client_port=${port}",
+                "XDEBUG_SESSION": "1"
             }
         },
-
+       {
+        "name": "Debug savedocument.php",
+        "type": "php",
+        "request": "launch",
+        "program": "${workspaceFolder}/scripts/savedocument.php",
+        "args": [
+                "--parser",
+                "kaulanapilina",
+            ],
+        "cwd": "${workspaceFolder}",
+        "port": 9003,
+        "runtimeExecutable": "/opt/plesk/php/8.3/bin/php",
+        "env": {
+              // Simply set the mode, Xdebug will read client_host/port from php.ini
+              "XDEBUG_MODE": "debug" 
+            }
+        },
         {
             "name": "Launch currently open script",
             "type": "php",
