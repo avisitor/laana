@@ -110,6 +110,10 @@ class DB extends Common\DB\DBBase {
     public function getOneDBRow( $sql, $values = [] ) {
         return $this->getOne( $sql, $values );
     }
+
+    public function getDBRows( $sql, $values = [] ) {
+        return $this->query( $sql, $values );
+    }
 }
 
 $a = array( 'ō', 'ī', 'ē', 'ū', 'ā', 'Ō', 'Ī', 'Ē', 'Ū', 'Ā', '‘', 'ʻ' );
