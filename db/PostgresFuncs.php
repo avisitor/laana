@@ -4,17 +4,10 @@ require_once __DIR__ . '/../env-loader.php';
 
 class PostgresLaana extends Laana {
     public function __construct() {
-        // Override connection before parent methods rely on it
-        $this->connect();
-        if ($this->conn == null) {
-            debuglog("Unable to connect to Postgres DB");
-            exit;
-        }
-        // Initialize parent properties
-        parent::__construct();
+        $this->conn = $this->connect();
     }
 
-    public function connect() {
+    public function connect($dsn = null, $options = false) {
         // Load env and read PG_* variables
         $env = loadEnv(__DIR__ . '/../.env');
         $host = $env['PG_HOST'] ?? getenv('PG_HOST') ?? 'localhost';
@@ -25,14 +18,15 @@ class PostgresLaana extends Laana {
         $dsnOverride = $env['PG_DSN'] ?? getenv('PG_DSN') ?? null;
 
         $dsn = $dsnOverride ?: "pgsql:host=$host;port=$port;dbname=$db";
-        $this->conn = null;
         try {
-            $this->conn = new PDO($dsn, $user, $pass, [
+            $conn = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
             // Ensure UTF-8
-            $this->conn->exec("SET client_encoding TO 'UTF8'");
+            $conn->exec("SET client_encoding TO 'UTF8'");
+            debuglog([ 'dsn' => $dsn, 'user' => $user, 'db' => $db, 'host' => $host, 'port' => $port ], 'PostgresLaana::connect');
+            return $conn;
         } catch (PDOException $e) {
             echo "Postgres connection failed: " . $e->getMessage();
             debuglog("Postgres connection failed: " . $e->getMessage());
@@ -139,6 +133,19 @@ class PostgresLaana extends Laana {
                 $preferScoreOrder = true;
                 $secondaryOrder = isset($options['orderby']) ? $options['orderby'] : null;
             }
+        } else if ($pattern === 'vector') {
+            // Vector-only search: order by cosine similarity, require embedding
+            $values = ['query_vec' => $options['query_vec'] ?? null];
+            if (empty($values['query_vec'])) {
+                // Without a query vector, return empty result set quickly
+                return [];
+            }
+            $targets = $countOnly ? "count(*) count" : "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid, (1 - (o.embedding <=> (:query_vec)::vector)) as score";
+            if ($countOnly) {
+                $sql = "select $targets from sentences o where o.embedding is not null";
+            } else {
+                $sql = "select $targets from sentences o inner join sources s on s.sourceID = o.sourceID where o.embedding is not null order by score desc";
+            }
         } else if ($pattern === 'hybrid') {
             // Hybrid: combine keyword ranking, vector similarity, and quality metrics
             // Requires laana.sentences.embedding populated via pgvector ingestion
@@ -147,22 +154,68 @@ class PostgresLaana extends Laana {
             $wText = isset($options['w_text']) ? floatval($options['w_text']) : 1.0;
             $wVec = isset($options['w_vec']) ? floatval($options['w_vec']) : 1.5;
             $wQual = isset($options['w_qual']) ? floatval($options['w_qual']) : 0.5;
-            $textExpr = ($useUnaccent ? "immutable_unaccent(o.$search)" : "o.$search");
-            $tsRank = "ts_rank_cd(to_tsvector('simple', $textExpr), plainto_tsquery('simple', immutable_unaccent(:term)))";
+            $textExpr = ($useUnaccent ? "unaccent(o.$search)" : "o.$search");
+            $tsRank = "ts_rank_cd(to_tsvector('simple', $textExpr), plainto_tsquery('simple', unaccent(:term)))";
             // Vector similarity: 1 - cosine distance; if embedding is null, treat as 0
-            $vecSim = "CASE WHEN o.embedding IS NULL THEN 0 ELSE (1 - (o.embedding <=> :query_vec)) END";
-            // Quality metrics: hawaiian_word_ratio plus normalized length/entity_count if present
-            $qual = "COALESCE(o.hawaiian_word_ratio, 0)";
+            $vecSim = "CASE WHEN o.embedding IS NULL THEN 0 ELSE (1 - (o.embedding <=> (:query_vec)::vector)) END";
+            // Quality metrics: hawaiian_word_ratio
+            // Quality metric column may not exist in Postgres; default to 0 in SQL path
+            $qual = "0";
+            // Default combined score
             $score = "$wText * $tsRank + $wVec * $vecSim + $wQual * $qual";
             // Build a CTE computing query vector once
-            $values['query_vec'] = $options['query_vec'] ?? null; // Expect caller to pass array literal
+            // Expect caller to pass pgvector array literal string in options['query_vec'] (e.g., "[0.01,0.02,...]")
+            $values['query_vec'] = $options['query_vec'] ?? null;
             if (!$values['query_vec']) {
-                // If not provided, we cannot compute hybrid; return empty
-                return [];
+                // No vector provided; proceed with text + quality only
+                // This keeps hybrid usable when provider cannot fetch a vector.
+                $vecSim = "0";
+                $score = "$wText * $tsRank + $wQual * $qual";
+            } else {
+                // Vector present: compute explicit vec_score and qual, then score
+                $vecScore = "(1 - (o.embedding <=> (:query_vec)::vector))";
+                $score = "$wVec * $vecScore + $wQual * $qual";
             }
             $targets = $countOnly ? "count(*) count" : "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid, $score as score";
-            $tsFilter = "to_tsvector('simple', $textExpr) @@ plainto_tsquery('simple', immutable_unaccent(:term))";
-            $sql = "select $targets from sentences o inner join sources s on s.sourceID = o.sourceID where ($tsFilter) order by score desc";
+            $tsFilter = "to_tsvector('simple', $textExpr) @@ plainto_tsquery('simple', unaccent(:term))";
+            if ($countOnly) {
+                // Count rows matching text filter (hybrid count only)
+                $sql = "select $targets from sentences o where ($tsFilter)";
+            } else {
+                // For full results: if we have a query vector, delegate to vector-only SQL then compute hybrid score in PHP
+                if (!empty($values['query_vec'])) {
+                    $vectorTargets = "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid, (1 - (o.embedding <=> (:query_vec)::vector)) as vec_score";
+                    $sql = "select $vectorTargets from sentences o inner join sources s on s.sourceID = o.sourceID where o.embedding is not null order by vec_score desc";
+                    // Execute vector query, then compute hybrid score in PHP and sort
+                    debuglog(['sql' => $sql, 'values' => $values], "$funcName hybrid->vector SQL");
+                    // Bind only query_vec to avoid extraneous params
+                    $vecValues = ['query_vec' => $values['query_vec']];
+                    $rows = $this->getDBRows($sql, $vecValues);
+                    foreach ($rows as &$r) {
+                        $vec = isset($r['vec_score']) ? floatval($r['vec_score']) : 0.0;
+                        $r['score'] = $wVec * $vec; // no qual available in Postgres schema
+                    }
+                    // Sort by score desc
+                    usort($rows, function($a, $b) {
+                        $sa = $a['score'] ?? 0;
+                        $sb = $b['score'] ?? 0;
+                        if ($sa == $sb) return 0;
+                        return ($sa > $sb) ? -1 : 1;
+                    });
+                    // Apply limit/offset for paging after sort
+                    if ($pageNumber >= 0) {
+                        $offset = $pageNumber * $pageSize;
+                        $rows = array_slice($rows, $offset, $pageSize);
+                    } else if (isset($options['limit'])) {
+                        $rows = array_slice($rows, 0, intval($options['limit']));
+                    }
+                    debuglog($rows, "$funcName hybrid vector-present result");
+                    return $rows;
+                } else {
+                    // No vector: require text match
+                    $sql = "select $targets from sentences o inner join sources s on s.sourceID = o.sourceID where ($tsFilter) order by score desc";
+                }
+            }
         } else { // 'any' default natural language
             $values = ['term' => $term];
             $tsExpr = "to_tsvector('simple', " . ($useUnaccent ? "unaccent(o.$search)" : "o.$search") . ") @@ plainto_tsquery('simple', :term)";
@@ -206,8 +259,17 @@ class PostgresLaana extends Laana {
         if ($pageNumber >= 0 && !$countOnly) {
             $offset = $pageNumber * $pageSize;
             $sql .= " limit $pageSize offset $offset";
+        } else if (!$countOnly && isset($options['limit'])) {
+            // Ensure a limit is applied for predictable performance
+            $sql .= " limit " . intval($options['limit']);
         }
 
+        // Debug SQL and bound values to diagnose hybrid path
+        debuglog(['sql' => $sql, 'values' => $values], "$funcName SQL");
+        if (!empty($options['debug_sql'])) {
+            echo "SQL: " . $sql . "\n";
+            echo "VALUES: " . json_encode($values) . "\n";
+        }
         $rows = $this->getDBRows($sql, $values);
         debuglog($rows, "$funcName result");
         return $rows;
