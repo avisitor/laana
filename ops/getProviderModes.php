@@ -9,7 +9,8 @@ if ($providerName === null) {
     exit;
 }
 
-if (!in_array($providerName, ['Elasticsearch', 'Laana'])) {
+require_once __DIR__ . '/../lib/provider.php';
+if (!isValidProvider($providerName)) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid provider']);
     exit;
@@ -30,6 +31,14 @@ if ($providerName === 'Elasticsearch') {
     ];
 } else if ($providerName === 'Laana') {
     // From LaanaSearchProvider::getAvailableSearchModes()
+    $modes = [
+        'exact' => 'Match exact phrase',
+        'any' => 'Match any of the words',
+        'all' => 'Match all words in any order',
+        'regex' => 'Regular expression search',
+    ];
+} else if ($providerName === 'Postgres') {
+    // From PostgresSearchProvider::getAvailableSearchModes()
     $modes = [
         'exact' => 'Match exact phrase',
         'any' => 'Match any of the words',
