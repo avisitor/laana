@@ -1706,6 +1706,7 @@ class CBHtml extends HtmlParse {
                         'title' => $this->metadata['title'],
                         'groupname' => $this->groupname,
                         'author' => $this->metadata['author'],
+                        'date' => $this->metadata['date'],
                     ];
                 }
             }
@@ -1753,7 +1754,7 @@ class AoLamaHTML extends HtmlParse {
                     'sourcename' => $this->basename . ": $date",
                     'url' => $u,
                     'image' => '',
-                    'title' => $this->basename . ": $date",
+                    'title' => $this->basename . " $date",
                     'date' => $date,
                     'groupname' => $this->groupname,
                     'author' => $this->authors,
