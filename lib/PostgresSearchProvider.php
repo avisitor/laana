@@ -29,6 +29,44 @@ class PostgresSearchProvider extends LaanaSearchProvider implements SearchProvid
             'hybrid' => 'Hybrid: keyword + vector + quality',
         ];
     }
+
+    public function search(string $query, string $mode, int $limit, int $offset): array {
+        $pattern = strtolower($mode);
+        if ($pattern === 'hybrid') {
+            $url = getenv('EMBED_SERVICE_URL');
+            if (!$url) {
+                throw new \RuntimeException('EMBED_SERVICE_URL not configured for hybrid search');
+            }
+            $payload = json_encode(['inputs' => [$query], 'normalize' => true]);
+            $opts = [
+                'http' => [
+                    'method' => 'POST',
+                    'header' => "Content-Type: application/json\r\n",
+                    'content' => $payload,
+                    'timeout' => 20
+                ]
+            ];
+            $ctx = stream_context_create($opts);
+            $resp = @file_get_contents($url, false, $ctx);
+            if ($resp === false) {
+                throw new \RuntimeException('Failed to contact embedding service');
+            }
+            $data = json_decode($resp, true);
+            $embedding = null;
+            if (isset($data[0]) && is_array($data[0])) $embedding = $data[0];
+            if (!$embedding && isset($data['embeddings'][0])) $embedding = $data['embeddings'][0];
+            if (!$embedding) {
+                throw new \RuntimeException('No embedding returned for hybrid search');
+            }
+            $parts = array_map(function($x){ return sprintf('%.6f', (float)$x); }, $embedding);
+            $opts = ['query_vec' => '[' . implode(',', $parts) . ']'];
+        } else {
+            $opts = [];
+        }
+        // Map limit/offset to pageNumber using provider page size
+        $pageNumber = ($this->pageSize > 0) ? intdiv($offset, $this->pageSize) : 0;
+        return $this->laana->getSentences($query, $pattern, $pageNumber, $opts);
+    }
 }
 
 ?>
