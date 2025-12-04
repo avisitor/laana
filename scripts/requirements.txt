@@ -1,0 +1,6 @@
+psycopg2-binary>=2.9.9
+python-dotenv>=1.0.1
+# sentence-transformers and torch are already present in elasticsearch/requirements.txt.
+# If running outside that venv, uncomment the two lines below:
+# sentence-transformers>=2.7.0
+# torch>=2.3.0

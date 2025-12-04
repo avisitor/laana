@@ -62,7 +62,7 @@ function getParameters() {
     return $params;
 }
 
-function getOrderBy( $order ) {
+function getOrderBy( $order, $providerName = '' ) {
     $orders = [
         'alpha' => "hawaiianText",
         'alpha desc' => "hawaiianText desc",
@@ -75,6 +75,10 @@ function getOrderBy( $order ) {
         'date desc' => 'date desc,hawaiianText',
     ];
     $orderBy = $orders[$order] ?? '';
+    // Adjust function names for Postgres
+    if ($providerName === 'Postgres' && $orderBy === 'rand()') {
+        $orderBy = 'random()';
+    }
     return $orderBy;
 }
 
@@ -87,7 +91,7 @@ function getPage( $params, $provider ) {
     if( $page >= 2 ) {
         $page -= 2;
     }
-    $orderBy = getOrderBy( $params['order'] );
+    $orderBy = getOrderBy( $params['order'], $provider->getName() );
     $output = "";
     if( $word ) {
         $options = [
@@ -164,8 +168,9 @@ $params = getParameters();
 if( $params ) {
     print_r( $params );
     $providerName = $params['provider'] ?? 'Elasticsearch';
-    if( !in_array( $providerName, ['Elasticsearch', 'Laana'] ) ) {
-        echo "Invalid provider name; must be Elasticsearch or Laana\n";
+    if( !isValidProvider( $providerName ) ) {
+        $valid = implode(', ', array_keys( getKnownProviders() ) );
+        echo "Invalid provider name; must be one of $valid\n";
     } else {
         $provider = getProvider( $providerName );
         if( $_REQUEST && sizeof($_REQUEST) > 0 ) {

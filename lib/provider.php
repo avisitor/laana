@@ -2,6 +2,27 @@
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../env-loader.php';
 
+function getKnownProviders(): array {
+    return [
+        'Laana' => [
+            'file' => __DIR__ . '/LaanaSearchProvider.php',
+            'class' => 'Noiiolelo\\LaanaSearchProvider',
+        ],
+        'Elasticsearch' => [
+            'file' => __DIR__ . '/ElasticsearchProvider.php',
+            'class' => 'Noiiolelo\\ElasticsearchProvider',
+        ],
+        'Postgres' => [
+            'file' => __DIR__ . '/PostgresSearchProvider.php',
+            'class' => 'Noiiolelo\\PostgresSearchProvider',
+        ],
+    ];
+}
+
+function isValidProvider(string $name): bool {
+    return array_key_exists($name, getKnownProviders());
+}
+
 function getProvider($searchProvider = null) {
     // Priority: parameter > $_REQUEST > .env
     if ($searchProvider === null) {
@@ -17,19 +38,17 @@ function getProvider($searchProvider = null) {
         throw new \Exception('No search provider specified in parameter, request, or .env file');
     }
     
-    $options = [
-        'verbose' => true,
-    ];
-    
-    if ($searchProvider === 'Laana') {
-        require_once __DIR__ . '/LaanaSearchProvider.php';
-        $provider = new Noiiolelo\LaanaSearchProvider( $options );
-    } else if ($searchProvider === 'Elasticsearch') {
-        require_once __DIR__ . '/ElasticsearchProvider.php';
-        $provider = new Noiiolelo\ElasticsearchProvider( $options );
-    } else {
-        throw new \Exception("Invalid search provider: $searchProvider. Must be 'Elasticsearch' or 'Laana'");
+    $options = [ 'verbose' => true ];
+
+    $providers = getKnownProviders();
+    if (!isset($providers[$searchProvider])) {
+        $valid = implode(", ", array_keys($providers));
+        throw new \Exception("Invalid search provider: $searchProvider. Must be one of $valid");
     }
+    $meta = $providers[$searchProvider];
+    require_once $meta['file'];
+    $class = $meta['class'];
+    $provider = new $class($options);
     
     return $provider;
 }

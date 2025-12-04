@@ -9,7 +9,7 @@ if ($providerName === null) {
     exit;
 }
 
-if (!in_array($providerName, ['Elasticsearch', 'Laana'])) {
+if (!in_array($providerName, ['Elasticsearch', 'Laana', 'Postgres'])) {
     http_response_code(400);
     echo "Invalid provider";
     exit;
@@ -32,7 +32,7 @@ if ($providerName === 'Elasticsearch') {
 </ul>
 <p><span class="searchtype">No Diacriticals</span>: diacritical marks and 'okina are ignored. For example, searching for <span class="searchterm">ho'okipa</span> matches <span class="searchterm">hookipa</span> as well as <span class="searchterm">ho'okipa</span>; searching for <span class="searchterm">hookipa</span> returns the same results. Without No Diacriticals, searching for <span class="searchterm">ho'okipa</span> returns only results with <span class="searchterm">ho'okipa</span> while searching for <span class="searchterm">hookipa</span> matches only on <span class="searchterm">hookipa</span></p>
 HTML;
-} else { // Laana
+} else if ($providerName === 'Laana') { // Laana
     $helpContent = <<<HTML
 <h3>Search options (Laana Provider)</h3>
 <p>All searches except for "Regex" and "Exact" are case-insensitive. These are the choices:</p>
@@ -43,6 +43,19 @@ HTML;
   <li><span class="searchtype">Regular expression search</span>: matches your <a class="fancy" target="_blank" href="https://www.guru99.com/regular-expressions.html">regular expression</a>, e.g. <span class="searchterm">ho\w{5}\skaua</span> to find sentences containing a 7-letter word starting with ho and followed by a space and kaua</li>
 </ul>
 <p><span class="searchtype">No Diacriticals</span>: diacritical marks and 'okina are ignored. For example, searching for <span class="searchterm">ho'okipa</span> matches <span class="searchterm">hookipa</span> as well as <span class="searchterm">ho'okipa</span>; searching for <span class="searchterm">hookipa</span> returns the same results. Without No Diacriticals, searching for <span class="searchterm">ho'okipa</span> returns only results with <span class="searchterm">ho'okipa</span> while searching for <span class="searchterm">hookipa</span> matches only on <span class="searchterm">hookipa</span></p>
+HTML;
+} else { // Postgres
+    $helpContent = <<<HTML
+<h3>Search options (Postgres Provider)</h3>
+<p>All searches except for "Regex" are case-insensitive. These are the choices:</p>
+<ul>
+  <li><span class="searchtype">Match any of the words</span>: matches sentences with any of the words in your search expression.</li>
+  <li><span class="searchtype">Match all words in any order</span>: matches sentences including all words in any order.</li>
+  <li><span class="searchtype">Match exact phrase</span>: matches your search expression exactly as entered.</li>
+  <li><span class="searchtype">Words adjacent in order</span>: finds sentences where words appear next to each other in order.</li>
+  <li><span class="searchtype">Regular expression search</span>: matches your <a class="fancy" target="_blank" href="https://www.guru99.com/regular-expressions.html">regular expression</a>.</li>
+</ul>
+<p><span class="searchtype">No Diacriticals</span>: diacritical marks and 'okina are ignored via unaccent, enabling matches like <span class="searchterm">ho'okipa</span> and <span class="searchterm">hookipa</span> to be equivalent.</p>
 HTML;
 }
 

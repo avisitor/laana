@@ -123,8 +123,15 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                 <div>
                     <label for="provider-select" style="font-size:0.85em; display:block;">Provider:</label>
                     <select id="provider-select" class="dd-menu" onchange="providerSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
-                        <option value="Elasticsearch" <?=($provider->getName() == 'Elasticsearch') ? 'selected' : ''?>>Elasticsearch</option>
-                        <option value="Laana" <?=($provider->getName() == 'Laana') ? 'selected' : ''?>>Laana</option>
+                        <?php 
+                            // Dynamically render known providers
+                            require_once __DIR__ . '/lib/provider.php';
+                            $known = getKnownProviders();
+                            foreach (array_keys($known) as $provName) {
+                                $selected = ($provider->getName() === $provName) ? 'selected' : '';
+                                echo "<option value=\"$provName\" $selected>$provName</option>";
+                            }
+                        ?>
                     </select>
                 </div>
             </div>

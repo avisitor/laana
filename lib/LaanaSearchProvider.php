@@ -6,7 +6,7 @@ require_once __DIR__ . '/SearchProviderInterface.php';
 
 class LaanaSearchProvider implements SearchProviderInterface
 {
-    private \Laana $laana;
+    protected \Laana $laana;
     public int $pageSize;
     public $sentenceMask;
 
@@ -220,6 +220,9 @@ class LaanaSearchProvider implements SearchProviderInterface
             }
         } else if( $pattern == 'order' ) {
             $tw = '\\b' . implode( '\\b.*\\b', $targetwords ) . '\\b';
+        } else if( $pattern == 'near' ) {
+            // Adjacent-in-order highlight: match words with single or whitespace separator
+            $tw = '\\b' . implode( '\\s+', $targetwords ) . '\\b';
         } else if( $pattern == 'regex' ) {
             $tw = str_replace( "[[:>:]]", "\\b",
                                str_replace("[[:<:]]", "\\b", $target) );
@@ -249,16 +252,16 @@ class LaanaSearchProvider implements SearchProviderInterface
 
     public function checkStripped( $hawaiianText ) {
         if( $this->sentenceMask &&
-            $this->sentenceMask['stripped'] &&
-            !preg_match( '/' . $sentenceMask['stripped'] . '/', $hawaiiantext ) ) {
-            $provider->debuglog("Skipping sentence: stripped={$this['sentenceMask']['stripped']}, hawaiiantext=$hawaiiantext");
+            !empty($this->sentenceMask['stripped']) &&
+            !preg_match( '/' . $this->sentenceMask['stripped'] . '/', $hawaiianText ) ) {
+            $this->debuglog("Skipping sentence: stripped={$this->sentenceMask['stripped']}, hawaiiantext=$hawaiianText");
             return false;
         }
         return true;
     }
     
     public function processText( $hawaiiantext ) {
-        if ( $this->sentenceMask ) {
+        if ( $this->sentenceMask && !empty($this->sentenceMask['pat']) ) {
             return preg_replace($this->sentenceMask['pat'], $this->sentenceMask['repl'], $hawaiiantext );
         }
         return $hawaiiantext;
