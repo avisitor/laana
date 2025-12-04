@@ -13,4 +13,6 @@ db/ulukau/output/
 **/phpinfo.php
 save/
 **/*.log
+**/*.txt
+**/*.json
 
