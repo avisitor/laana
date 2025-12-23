@@ -18,8 +18,21 @@ CREATE TABLE contents (
     "sourceID" INT PRIMARY KEY,
     "html"     TEXT,
     "text"     TEXT,
-    "created"  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    "created"  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "embedding" vector(384)
 );
+
+-- Index for contents embedding
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relname = 'contents_embedding_ivfflat' AND n.nspname = current_schema()
+    ) THEN
+        EXECUTE 'CREATE INDEX contents_embedding_ivfflat ON contents USING ivfflat (embedding vector_cosine_ops)';
+    END IF;
+END$$;
 
 -- 3. SENTENCES TABLE (The core search table)
 CREATE TABLE sentences (
@@ -126,7 +139,7 @@ CREATE TABLE IF NOT EXISTS sentence_metrics (
 CREATE INDEX IF NOT EXISTS sentence_metrics_freq_idx ON sentence_metrics (frequency);
 
 CREATE TABLE IF NOT EXISTS document_metrics (
-    doc_id BIGINT PRIMARY KEY REFERENCES documents(doc_id) ON DELETE CASCADE,
+    sourceid INT PRIMARY KEY REFERENCES contents(sourceid) ON DELETE CASCADE,
     hawaiian_word_ratio REAL,
     word_count INT,
     length INT,
