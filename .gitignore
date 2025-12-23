@@ -15,4 +15,5 @@ save/
 **/*.log
 **/*.txt
 **/*.json
+scripts/__pycache__
 
