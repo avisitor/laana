@@ -43,6 +43,42 @@ class PostgresClient extends \PostgresLaana
         return (int)($row['c'] ?? 0);
     }
 
+    public function countTotalDocuments(): int
+    {
+        $sql = 'SELECT COUNT(*) AS c FROM contents WHERE text IS NOT NULL AND octet_length(text) > 0';
+        $stmt = $this->conn->query($sql);
+        $row = $stmt->fetch();
+        return (int)($row['c'] ?? 0);
+    }
+
+    public function countMissingDocumentEmbeddings(): int
+    {
+        $sql = 'SELECT COUNT(*) AS c FROM contents c LEFT JOIN document_metrics m ON m.sourceid = c.sourceID WHERE c.text IS NOT NULL AND octet_length(c.text) > 0 AND (c.embedding IS NULL OR m.sourceid IS NULL OR m.entity_count < 0)';
+        $stmt = $this->conn->query($sql);
+        $row = $stmt->fetch();
+        return (int)($row['c'] ?? 0);
+    }
+
+    public function fetchCandidateDocumentIds(int $limit = 0): array
+    {
+        $sql = 'SELECT c.sourceID
+                FROM contents c
+                LEFT JOIN document_metrics m ON m.sourceid = c.sourceID
+                WHERE c.text IS NOT NULL AND octet_length(c.text) > 0
+                  AND (c.embedding IS NULL OR m.sourceid IS NULL OR m.entity_count < 0)
+                ORDER BY c.sourceID';
+        if ($limit > 0) {
+            $sql .= ' LIMIT :limit';
+        }
+        $stmt = $this->conn->prepare($sql);
+        if ($limit > 0) {
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+        return array_map(function($r){ return (int)$r['sourceid']; }, $rows);
+    }
+
     public function fetchCandidateSentenceIds(int $limit = 0): array
     {
         $sql = 'SELECT s.sentenceid
@@ -140,6 +176,45 @@ class PostgresClient extends \PostgresLaana
                         $stmt->bindValue(':len', (int)($m['length'] ?? 0), PDO::PARAM_INT);
                         $stmt->bindValue(':ec', (int)($m['entity_count'] ?? 0), PDO::PARAM_INT);
                         $stmt->bindValue(':freq', (float)($m['frequency'] ?? 0));
+            $stmt->execute();
+            $count++;
+        }
+        return $count;
+    }
+
+    public function bulkUpdateDocumentEmbeddings(array $embeddings): int
+    {
+        if (empty($embeddings)) return 0;
+        $this->conn->exec('CREATE TEMP TABLE IF NOT EXISTS staging_doc_embeddings (sourceid bigint, embedding vector(384)) ON COMMIT DROP');
+        $ins = $this->conn->prepare('INSERT INTO staging_doc_embeddings(sourceid, embedding) VALUES (:sid, (:emb)::vector(384))');
+        foreach ($embeddings as $sid => $vec) {
+            $ins->bindValue(':sid', (int)$sid, PDO::PARAM_INT);
+            $ins->bindValue(':emb', '[' . implode(',', array_map(function($v){ return is_int($v) ? (string)$v : (string)(float)$v; }, $vec)) . ']');
+            $ins->execute();
+        }
+        $updated = $this->conn->exec('UPDATE contents c SET embedding = st.embedding FROM staging_doc_embeddings st WHERE c.sourceID = st.sourceid');
+        return (int)$updated;
+    }
+
+    public function upsertDocumentMetrics(array $metricsRows): int
+    {
+        if (empty($metricsRows)) return 0;
+        $sql = 'INSERT INTO document_metrics (sourceid, hawaiian_word_ratio, word_count, length, entity_count, updated_at)
+                VALUES (:sid, :ratio, :wc, :len, :ec, CURRENT_TIMESTAMP)
+                ON CONFLICT (sourceid) DO UPDATE SET
+                  hawaiian_word_ratio = EXCLUDED.hawaiian_word_ratio,
+                  word_count = EXCLUDED.word_count,
+                  length = EXCLUDED.length,
+                  entity_count = EXCLUDED.entity_count,
+                  updated_at = CURRENT_TIMESTAMP';
+        $stmt = $this->conn->prepare($sql);
+        $count = 0;
+        foreach ($metricsRows as $m) {
+            $stmt->bindValue(':sid', (int)$m['sourceid'], PDO::PARAM_INT);
+            $stmt->bindValue(':ratio', (float)($m['hawaiian_word_ratio'] ?? 0));
+            $stmt->bindValue(':wc', (int)($m['word_count'] ?? 0), PDO::PARAM_INT);
+            $stmt->bindValue(':len', (int)($m['length'] ?? 0), PDO::PARAM_INT);
+            $stmt->bindValue(':ec', (int)($m['entity_count'] ?? 0), PDO::PARAM_INT);
             $stmt->execute();
             $count++;
         }

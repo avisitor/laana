@@ -33,7 +33,7 @@ class PostgresSearchProvider extends LaanaSearchProvider implements SearchProvid
     public function search(string $query, string $mode, int $limit, int $offset): array {
         $pattern = strtolower($mode);
         if ($pattern === 'hybrid') {
-            $url = getenv('EMBED_SERVICE_URL');
+            $url = getenv('EMBEDDING_SERVICE_URL');
             if (!$url) {
                 throw new \RuntimeException('EMBED_SERVICE_URL not configured for hybrid search');
             }
