@@ -55,7 +55,7 @@ function getParameters() {
                                     ($params['pattern'] == 'all');
 
         if( !($params['word'] && $params['pattern']) ) {
-            echo "Usage: getPageHTML.php --word SEARCHTERM --pattern PATTERN [--order ORDER] [--nodiacriticals=1] [--raw=1]\n";
+            echo "Usage: getPageHTML.php --word SEARCHTERM --pattern PATTERN [--order ORDER] [--nodiacriticals=1] [--raw=1] [--from=DATE] [--to=DATE] [--page=NUMBER] [--limit=NUMBER] [--raw] [--verbose] [--provider=PROVIDER]\n";
             return '';
         }
     }
