@@ -11,6 +11,18 @@ CREATE TABLE `sentences` (
   UNIQUE KEY `sentenceID` (`sentenceID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+CREATE TABLE sentence_patterns (
+    patternid int(11) NOT NULL AUTO_INCREMENT,
+    sentenceid bigint,
+    pattern_type text NOT NULL, -- e.g., 'kalele_kulana', 'pepeke_aike_he'
+    signature text,             -- e.g., 'HE + KIKINO + SUBJECT'
+    confidence float DEFAULT 1.0,
+    created_at timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (patternid),
+    KEY idx_sentenceid (sentenceid),
+    KEY idx_pattern_type (pattern_type)
+);
+
 CREATE TABLE `sources` (
   `sourceID` int(11) NOT NULL AUTO_INCREMENT,
   `sourceName` varchar(200) NOT NULL,
@@ -25,7 +37,8 @@ CREATE TABLE `sources` (
   created DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`sourceID`),
   UNIQUE KEY `sourceID` (`sourceID`),
-  UNIQUE KEY `link` (`link`)
+  UNIQUE KEY `link` (`link`),
+  KEY `date` (`date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_c;
 
 CREATE TABLE `searchstats` (
@@ -88,7 +101,11 @@ DELIMITER ;
 
 DELIMITER //
 CREATE TRIGGER delete_sentences AFTER DELETE ON sentences
-FOR EACH ROW UPDATE stats SET value = value - 1 where name = 'sentences';
+FOR EACH ROW 
+BEGIN
+  DELETE FROM sentence_patterns WHERE sentenceid = OLD.sentenceID;
+  UPDATE stats SET value = value - 1 WHERE name = 'sentences';
+END;
 //
 CREATE TRIGGER insert_sources AFTER INSERT ON sources
 FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sources';
