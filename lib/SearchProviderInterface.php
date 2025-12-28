@@ -41,6 +41,8 @@ interface SearchProviderInterface
      */
     public function getAvailableSearchModes(): array;
 
+    public function getGrammarPatterns(): array;
+
     public function providesHighlights(): bool;
 
     public function providesNoDiacritics(): bool;
