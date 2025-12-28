@@ -120,6 +120,29 @@ class LaanaSearchProvider implements SearchProviderInterface
         $hits = $this->getSentences($query, $mode, $pageNumber, ['limit' => $limit]);
         return ['hits' => $hits, 'total' => count($hits)];
     }
+    public function searchDocuments(string $query, string $mode, int $limit, int $offset): array {
+        $pageNumber = floor($offset / $limit);
+        $options = ['limit' => $limit];
+        
+        // If the underlying laana has getDocuments method, use it
+        if (method_exists($this->laana, 'getDocuments')) {
+            $hits = $this->laana->getDocuments($query, $mode, $pageNumber, $options);
+            return $hits;
+        }
+        
+        // Fallback: group sentences by source
+        $allResults = $this->laana->getSentences($query, $mode, $pageNumber, $options);
+        $docs = [];
+        $seen = [];
+        foreach ($allResults as $sentence) {
+            $sourceId = $sentence['sourceid'] ?? null;
+            if (!$sourceId || isset($seen[$sourceId])) continue;
+            $seen[$sourceId] = true;
+            $docs[] = $sentence;
+            if (count($docs) >= $limit) break;
+        }
+        return $docs;
+    }
     public function getDocument(string $docId, string $format = 'text'): ?array {
         error_log("LaanaSearchProvider::getDocument called with docId=$docId, format=$format");
         if ($format === 'html') {
@@ -151,6 +174,13 @@ class LaanaSearchProvider implements SearchProviderInterface
         ];
     }
 
+    public function getGrammarPatterns( $options = [] ): array {
+        return $this->laana->getGrammarPatterns( $options );
+    }
+
+    public function getGrammarMatches( $pattern, $limit, $offset, $options = [] ): array {
+        return $this->laana->getGrammarMatches( $pattern, $limit, $offset, $options );
+    }
     public function providesHighlights(): bool
     {
         // The MySql search client provides no highlights for matches
@@ -195,7 +225,7 @@ class LaanaSearchProvider implements SearchProviderInterface
             "/u|ū|Ū/" => "ʻ*[uŪū]",
         ];
         $repl = "<span>$1</span>";
-        $target = ($params['nodiacriticals']) ? $this->normalizeString( $word ) :  $word;
+        $target = (!empty($params['nodiacriticals'])) ? $this->normalizeString( $word ) :  $word;
         //$target = $provider->normalizeString( $word );
         if( $pattern != 'exact' && $pattern != 'regex' ) {
             $target = str_replace( 'ʻ', 'ʻ*', $target );
