@@ -146,3 +146,18 @@ CREATE TABLE IF NOT EXISTS document_metrics (
     entity_count INT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE laana.sentence_patterns (
+    patternid SERIAL PRIMARY KEY,
+    sentenceid bigint REFERENCES laana.sentences(sentenceid) ON DELETE CASCADE,
+    pattern_type text NOT NULL, -- e.g., 'kalele_kulana', 'pepeke_aike_he'
+    signature text,             -- e.g., 'HE + KIKINO + SUBJECT'
+    confidence float DEFAULT 1.0,
+    created_at timestamp DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_pattern_sentence ON laana.sentence_patterns(sentenceid);
+CREATE INDEX idx_pattern_type ON laana.sentence_patterns(pattern_type);
+-- Ensure we don't double-count the same pattern for the same sentence
+ALTER TABLE laana.sentence_patterns 
+ADD CONSTRAINT unique_sentence_pattern UNIQUE (sentenceid, pattern_type);
