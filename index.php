@@ -19,6 +19,8 @@ if( $word ) {
 }
 $doSources = isset( $_GET['sources'] );
 $doResources = isset( $_GET['resources'] );
+$doGrammar = isset( $_GET['grammar'] );
+$doStats = isset( $_GET['stats'] );
 $nodiacriticals = ( isset( $_REQUEST['nodiacriticals'] ) && $_REQUEST['nodiacriticals'] == 1 ) ? 1 : 0;
 $nodiacriticalsparam = ($nodiacriticals) ? "&nodiacriticals=1" : "";
 $order = isset($_GET['order']) ? $_GET['order'] : "rand";
@@ -32,6 +34,9 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         <?php include 'common-head.html'; ?>
         <title><?=$word?> - Noiʻiʻōlelo</title>
         <link rel="stylesheet" type="text/css" href="./static/bouncy-loader.css">
+        <?php if ($doStats) { ?>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <?php } ?>
         <script>
             var pattern ="<?=$pattern?>";
             var orderBy ="<?=$order?>";
@@ -42,6 +47,8 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         <div class="headerlinks">
         <?= ($doSources) ? '<a href="' . $base . '"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?sources"><button class="linkbutton" type="button">Sources</button></a>' ?>
         <?= ($doResources) ? '<a href="' . $base . '"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?resources"><button class="linkbutton" type="button">Resources</button></a>' ?>
+        <?= ($doGrammar) ? '<a href="' . $base . '"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?grammar"><button class="linkbutton" type="button">Grammar</button></a>' ?>
+        <?= ($doStats) ? '<a href="' . $base . '"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?stats"><button class="linkbutton" type="button">Stats</button></a>' ?>
     </div>
 
        <a href="<?=$base?>" class="nostyle">
@@ -51,13 +58,13 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
          </div>
        </a>
 
-<?php if( $word ) {  ?>
+<?php if( $word && !($doGrammar || $doSources || $doResources || $doStats) ) {  ?>
        <a class="slide" href="#">Help</a>
        <div id="fade-help" class="box" data-provider="<?=$provider->getName()?>"></div>
 <?php } ?>
 
 
-<?php if( !($doSources || $doResources) ) { ?>
+<?php if( !($doSources || $doResources || $doGrammar || $doStats) ) { ?>
        
        <center style="max-width:100vw; overflow-x:hidden;">
          <form method="get" style="max-width:100%; overflow-x:hidden;">
@@ -84,7 +91,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         <button class="character-insert-button" type="button" onclick="insertcharacter('‘')">‘</button>
         
         <div id="search-options" style="display:none; font-size:0.8em; max-width:100%; padding:0.5em;">
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.5em; max-width:600px; margin:0 auto;">
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.5em; max-width:500px; margin:0 auto;">
                 <div>
                     <label for="searchtype" style="font-size:0.85em; display:block;">Search type:</label>
                     <select id="searchtype" class="dd-menu" onchange="patternSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
@@ -95,11 +102,11 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                 </div>
                 <div>
                     <label for="frombox" style="font-size:0.85em; display:block;">From year:</label>
-                    <input type="text" name="frombox" id="frombox" style="width:100%; font-size:0.85em; box-sizing:border-box;" onchange="fromChanged(this)" value="<?=$from?>" />
+                    <input type="text" name="frombox" id="frombox" style="width:4em; font-size:0.85em; box-sizing:border-box;" onchange="fromChanged(this)" value="<?=$from?>" />
                 </div>
                 <div>
                     <label for="tobox" style="font-size:0.85em; display:block;">To year:</label>
-                    <input type="text" name="tobox" id="tobox" style="width:100%; font-size:0.85em; box-sizing:border-box;" onchange="toChanged(this)" value="<?=$to?>" />
+                    <input type="text" name="tobox" id="tobox" style="width:4em; font-size:0.85em; box-sizing:border-box;" onchange="toChanged(this)" value="<?=$to?>" />
                 </div>
                 <div>
                     <label for="select-order" style="font-size:0.85em; display:block;">Sort by:</label>
@@ -122,7 +129,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                 </div>
                 <div>
                     <label for="provider-select" style="font-size:0.85em; display:block;">Provider:</label>
-                    <select id="provider-select" class="dd-menu" onchange="providerSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
+                    <select id="provider-select" class="dd-menu" onchange="providerSelected(this)" style="font-size:0.85em; width:100%; max-width:10em;">
                         <?php 
                             // Dynamically render known providers
                             require_once __DIR__ . '/lib/provider.php';
@@ -138,7 +145,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 		</div>
        </center>
 
-<?php } // !($doSources || $doResources) ?>
+<?php } // !($doSources || $doResources || $doGrammar || $doStats) ?>
 
 <?php
      $groups = $provider->getLatestSourceDates();
@@ -157,7 +164,285 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 
 <?php } ?>
 
+<?php if( $doGrammar ) { ?>
+<div style="padding:.3em 0.5em; text-align:center; color:#333; background-color:rgba(255,255,255,0.85); margin:0.5em auto; max-width:fit-content;">
+    Select a provider and a grammar pattern to find matching sentences.
+</div>
+
+<center style="max-width:100vw; overflow-x:hidden;">
+    <form id="grammar-form" style="max-width:fit-content; background-color:rgba(255,255,255,0.85); padding:0.5em; border-radius:8px;">
+        <div style="display:flex; flex-direction:column; gap:0.5em;">
+            <!-- First row: Provider, Pattern, Go button -->
+            <div style="display:flex; gap:1em; align-items:flex-end; justify-content:center;">
+                <div>
+                    <label for="grammar-provider-select" style="display:block; font-size:0.85em; color:#333; font-weight:600;">Provider:</label>
+                    <select id="grammar-provider-select" class="dd-menu" onchange="grammarProviderSelected(this)" style="font-size:0.85em; width:10em;">
+                        <?php 
+                            require_once __DIR__ . '/lib/provider.php';
+                            $known = getKnownProviders();
+                            // In grammar view, default to Laana
+                            $grammarProvider = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'Laana';
+                            foreach (array_keys($known) as $provName) {
+                                $selected = ($grammarProvider === $provName) ? 'selected' : '';
+                                echo "<option value=\"$provName\" $selected>$provName</option>";
+                            }
+                        ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="grammar-pattern-select" style="display:block; font-size:0.85em; color:#333; font-weight:600;">Grammar Pattern:</label>
+                    <select id="grammar-pattern-select" class="dd-menu" style="font-size:0.85em; width:20em;">
+                        <option value="">Loading patterns...</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="button" id="grammar-go-button" class="search-button" onclick="loadGrammarResults()" disabled>
+                        <i>Go!</i>
+                    </button>
+                </div>
+            </div>
+            <!-- Second row: From year, To year, Sort by -->
+            <div style="display:flex; gap:1em; align-items:flex-end; justify-content:center;">
+                <div>
+                    <label for="grammar-from-year" style="display:block; font-size:0.85em; color:#333; font-weight:600;">From year:</label>
+                    <input type="text" id="grammar-from-year" style="width:8em; font-size:0.85em; box-sizing:border-box;" value="<?=$from?>" />
+                </div>
+                <div>
+                    <label for="grammar-to-year" style="display:block; font-size:0.85em; color:#333; font-weight:600;">To year:</label>
+                    <input type="text" id="grammar-to-year" style="width:8em; font-size:0.85em; box-sizing:border-box;" value="<?=$to?>" />
+                </div>
+                <div>
+                    <label for="grammar-sort-by" style="display:block; font-size:0.85em; color:#333; font-weight:600;">Sort by:</label>
+                    <select id="grammar-sort-by" class="dd-menu" style="font-size:0.85em; width:10em;">
+                        <option value="rand" <?=($order == 'rand') ? 'selected' : ''?>>Random</option>
+                        <option value="alpha" <?=($order == 'alpha') ? 'selected' : ''?>>Alpha</option>
+                        <option value="alpha desc" <?=($order == 'alpha desc') ? 'selected' : ''?>>Alpha desc</option>
+                        <option value="date" <?=($order == 'date') ? 'selected' : ''?>>Date</option>
+                        <option value="date desc" <?=($order == 'date desc') ? 'selected' : ''?>>Date desc</option>
+                        <option value="source" <?=($order == 'source') ? 'selected' : ''?>>Source</option>
+                        <option value="source desc" <?=($order == 'source desc') ? 'selected' : ''?>>Source desc</option>
+                        <option value="length" <?=($order == 'length') ? 'selected' : ''?>>Length</option>
+                        <option value="length desc" <?=($order == 'length desc') ? 'selected' : ''?>>Length desc</option>
+                        <option value="none" <?=($order == 'none') ? 'selected' : ''?>>None</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </form>
+</center>
+
+<script>
+// Grammar view JavaScript
+var grammarInfiniteScroll = null;
+
+function grammarProviderSelected(selectElement) {
+    let providerName = selectElement.value;
+    console.log('Grammar provider selected:', providerName);
+    
+    // Fetch patterns for this provider
+    updateGrammarPatterns(providerName);
+}
+
+function updateGrammarMatchCount() {
+    // Get date filters if they exist
+    let fromYear = document.getElementById('grammar-from-year').value;
+    let toYear = document.getElementById('grammar-to-year').value;
+    if( fromYear || toYear ) {
+        let patternSelect = document.getElementById('grammar-pattern-select');
+        let targetPattern = patternSelect.value;
+        // Build URL with date filters
+        let providerName = document.getElementById('grammar-provider-select').value;
+        let url = 'ops/getGrammarPatterns.php?provider=' + encodeURIComponent(providerName);
+        if (fromYear) url += '&from=' + encodeURIComponent(fromYear);
+        if (toYear) url += '&to=' + encodeURIComponent(toYear);
+    
+        fetch(url)
+            .then(response => response.json())
+            .then(patterns => {
+                console.log('Received grammar patterns:', patterns);
+                
+                if (patterns.length > 0 || (!patterns.error)) {
+                    patterns.forEach(pattern => {
+                        if( pattern.pattern_type === targetPattern ) {
+                            let div = document.getElementById('grammar-matchcount');
+                            div.innerHTML = pattern.count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ' matching sentences';
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching grammar patterns:', error);
+            });
+        }
+}
+
+function updateGrammarPatterns(providerName) {
+    let patternSelect = document.getElementById('grammar-pattern-select');
+    let goButton = document.getElementById('grammar-go-button');
+    
+    patternSelect.innerHTML = '<option value="">Loading patterns...</option>';
+    goButton.disabled = true;
+    
+    // Build URL with date filters
+    let url = 'ops/getGrammarPatterns.php?provider=' + encodeURIComponent(providerName);
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(patterns => {
+            console.log('Received grammar patterns:', patterns);
+            
+            patternSelect.innerHTML = '';
+            
+            if (patterns.length === 0 || (patterns.error)) {
+                patternSelect.innerHTML = '<option value="">No patterns available</option>';
+                goButton.disabled = true;
+            } else {
+                patterns.forEach(pattern => {
+                    let option = document.createElement('option');
+                    option.value = pattern.pattern_type;
+                    option.textContent = pattern.pattern_type + ' (' + pattern.count + ')';
+                    patternSelect.appendChild(option);
+                });
+                goButton.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching grammar patterns:', error);
+            patternSelect.innerHTML = '<option value="">Error loading patterns</option>';
+            goButton.disabled = true;
+        });
+}
+
+function loadGrammarResults() {
+    let providerName = document.getElementById('grammar-provider-select').value;
+    let patternSelect = document.getElementById('grammar-pattern-select');
+    let pattern = patternSelect.value;
+    let fromYear = document.getElementById('grammar-from-year').value;
+    let toYear = document.getElementById('grammar-to-year').value;
+    let sortBy = document.getElementById('grammar-sort-by').value;
+    
+    if (!pattern) {
+        alert('Please select a grammar pattern');
+        return;
+    }
+    
+    // Extract total count from the selected option text (e.g., "pepeke_aike_he (329414)")
+    let selectedOption = patternSelect.options[patternSelect.selectedIndex];
+    let totalCount = 0;
+    let match = selectedOption.text.match(/\((\d+)\)/);
+    if (match) {
+        totalCount = parseInt(match[1]);
+    }
+    
+    console.log('Loading grammar results for pattern:', pattern, 'provider:', providerName, 'from:', fromYear, 'to:', toYear, 'sort:', sortBy, 'total:', totalCount);
+    
+    // Show and clear existing results
+    let sentencesDiv = document.getElementById('sentences');
+    $('#sentences').show();
+    sentencesDiv.innerHTML = '';
+    
+    // Recreate the grammar matchcount element and display total count
+    let matchcountDiv = document.createElement('div');
+    let matchcountSpan = document.createElement('span');
+    matchcountSpan.id = 'grammar-matchcount';
+    matchcountSpan.style.color = 'white';
+    matchcountSpan.innerHTML = totalCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ' matching sentences';
+    matchcountDiv.appendChild(matchcountSpan);
+    sentencesDiv.appendChild(matchcountDiv);
+    
+    let brElement = document.createElement('br');
+    sentencesDiv.appendChild(brElement);
+    
+    // Destroy existing infinite scroll if any
+    if (grammarInfiniteScroll) {
+        grammarInfiniteScroll.destroy();
+    }
+    
+    // Build URL for infinite scroll with all parameters
+    let url = 'ops/getGrammarMatchesHtml.php?pattern=' + encodeURIComponent(pattern) + 
+              '&provider=' + encodeURIComponent(providerName) + 
+              '&page={{#}}';
+    
+    if (fromYear) {
+        url += '&from=' + encodeURIComponent(fromYear);
+    }
+    if (toYear) {
+        url += '&to=' + encodeURIComponent(toYear);
+    }
+    if (sortBy) {
+        url += '&order=' + encodeURIComponent(sortBy);
+    }
+    
+    // Initialize infinite scroll
+    let $container = $('.sentences').infiniteScroll({
+        path: url,
+        history: false,
+        prefill: true,
+        debug: true,
+        append: 'div.hawaiiansentence',
+        status: '.preloader',
+        onInit: function() {
+            this.on('request', function() {
+                console.log('Grammar Infinite Scroll request');
+            });
+            this.on('load', function(body, path, response) {
+                console.log('Grammar Infinite Scroll load', response);
+            });
+            this.on('last', function(body, path) {
+                console.log('Grammar Infinite Scroll last, ' + this.loadCount + ' pages loaded');
+                setTimeout(function() {
+                    $(".preloader").css("display", "none");
+                }, 100);
+            });
+            this.on('error', function(error, path, response) {
+                console.log('Grammar Infinite Scroll error', error);
+            });
+            this.on('append', function(body, path, items, response) {
+                console.log('Grammar Infinite Scroll append', items.length, 'items');
+                
+                // Count is already displayed from the pattern data, no need to update incrementally
+                
+                if (items.length < 20) {
+                    console.log('Turning off loadOnScroll');
+                    this.option({
+                        scrollThreshold: false,
+                        prefill: false,
+                    });
+                }
+            });
+        },
+    });
+    
+    grammarInfiniteScroll = $container.data('infiniteScroll');
+    updateGrammarMatchCount();
+}
+
+// Initialize grammar patterns on page load if in grammar view
+$(document).ready(function() {
+    if (document.getElementById('grammar-provider-select')) {
+        let providerName = document.getElementById('grammar-provider-select').value;
+        updateGrammarPatterns(providerName);
+        // Hide the sentences div until results are loaded
+        $('#sentences').hide();
+        
+        // Add event listeners to date fields to refresh pattern counts on Enter key
+        $('#grammar-from-year, #grammar-to-year').on('keypress', function(e) {
+            if (e.which === 13) { // Enter key
+                let providerName = document.getElementById('grammar-provider-select').value;
+                updateGrammarPatterns(providerName);
+            }
+        });
+    }
+});
+</script>
+
+<?php } ?>
+
  <div class="sentences" id="sentences">
+     
+<?php if( $doGrammar ) { ?>
+    <div><span id="grammar-matchcount" style="color:white;"></span></div><br />
+<?php } ?>
      
 <?php if( !$word ) { ?>
     <?php if( $doSources ) { ?>
@@ -374,8 +659,11 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 <?php 
     } else if( $doResources ) { 
         include 'resources.html';
-    } else {
-        // No word, not sources, not resources
+    } else if( $doStats ) {
+        define('INCLUDED_FROM_INDEX', true);
+        include 'grammar_stats.php';
+    } else if( !$doGrammar ) {
+        // No word, not sources, not resources, not grammar - show overview
         $stats = $provider->getCorpusStats();
         $sentenceCount = number_format($stats['sentence_count']);
         $sourceCount = number_format($stats['source_count']);
