@@ -784,6 +784,90 @@ class Laana extends DB {
         return ($row['first']) ? $row['first'] : '';
     }
     
+    public function getGrammarPatterns( $options = [] ): array {
+        $sql = 'select distinct sp.pattern_type, count(*) count from sentence_patterns sp';
+        $params = [];
+        
+        // Join with sentences and sources if we need date filtering
+        if (!empty($options['from']) || !empty($options['to'])) {
+            $sql .= ' join sentences s on s.sentenceid = sp.sentenceid';
+            $sql .= ' join sources src on src.sourceid = s.sourceid';
+            $sql .= ' where 1=1';
+            
+            if (!empty($options['from'])) {
+                $sql .= ' and src.date >= :from';
+                $params['from'] = $options['from'] . '-01-01';
+            }
+            
+            if (!empty($options['to'])) {
+                $sql .= ' and src.date <= :to';
+                $params['to'] = $options['to'] . '-12-31';
+            }
+        }
+        
+        $sql .= ' group by sp.pattern_type order by sp.pattern_type';
+        
+        return $this->query( $sql, $params );
+    }
+
+    public function getGrammarMatches( $pattern, $limit = 0, $offset = 0, $options = [] ): array {
+        $sql = 'select sp.*, s.hawaiiantext, s.englishtext, s.sourceid, src.sourcename, src.date, src.authors, src.link ' .
+               'from sentence_patterns sp ' .
+               'join sentences s on sp.sentenceid = s.sentenceid ' .
+               'join sources src on s.sourceid = src.sourceid ' .
+               'where sp.pattern_type = :pattern ';
+        
+        $values = [
+            'pattern' => $pattern,
+        ];
+        
+        // Add date filters if provided
+        if( isset( $options['from'] ) && $options['from'] ) {
+            $sql .= " and src.date >= :from";
+            $values['from'] = $options['from'] . '-01-01';
+        }
+        if( isset( $options['to'] ) && $options['to'] ) {
+            $sql .= " and src.date <= :to";
+            $values['to'] = $options['to'] . '-12-31';
+        }
+        
+        // Add ordering
+        $order = $options['order'] ?? 'rand';
+        $sql .= $this->getGrammarMatchesOrderSql($order);
+        
+        if( $limit > 0 ) {
+            $sql .= ' limit :limit offset :offset';
+            $values['limit'] = intval( $limit );
+            $values['offset'] = intval( $offset );
+        }
+        return $this->getDBRows( $sql, $values );
+    }
+
+    protected function getGrammarMatchesOrderSql($order) {
+        if( $order == 'alpha' ) {
+            return ' order by s.hawaiiantext asc';
+        } else if( $order == 'alpha desc' ) {
+            return ' order by s.hawaiiantext desc';
+        } else if( $order == 'date' ) {
+            return ' and not isnull(src.date) order by src.date asc, s.hawaiiantext asc';
+        } else if( $order == 'date desc' ) {
+            return ' and not isnull(src.date) order by src.date desc, s.hawaiiantext desc';
+        } else if( $order == 'source' ) {
+            return ' order by src.sourcename asc, s.hawaiiantext asc';
+        } else if( $order == 'source desc' ) {
+            return ' order by src.sourcename desc, s.hawaiiantext desc';
+        } else if( $order == 'length' ) {
+            return ' order by length(s.hawaiiantext) asc';
+        } else if( $order == 'length desc' ) {
+            return ' order by length(s.hawaiiantext) desc';
+        } else if( $order == 'none' ) {
+            return ' order by sp.sentenceid asc';
+        } else {
+            // rand or default
+            return ' order by rand()';
+        }
+    }
+
     // Processing Log Methods - Implementation for ProcessingLogger trait
     protected function startProcessingLogImpl($operationType, $sourceID = null, $groupname = null, $parserKey = null, $metadata = null) {
         $sql = "INSERT INTO processing_log (operation_type, source_id, groupname, parser_key, status, metadata) 
