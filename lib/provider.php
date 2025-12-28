@@ -24,7 +24,7 @@ function isValidProvider(string $name): bool {
 }
 
 function getProvider($searchProvider = null) {
-    // Priority: parameter > $_REQUEST > .env
+    // Priority: parameter > $_REQUEST > .env > default to Laana
     if ($searchProvider === null) {
         $searchProvider = $_REQUEST['provider'] ?? null;
     }
@@ -35,7 +35,7 @@ function getProvider($searchProvider = null) {
     }
     
     if ($searchProvider === null) {
-        throw new \Exception('No search provider specified in parameter, request, or .env file');
+        $searchProvider = 'Laana';  // Default to Laana if no provider specified
     }
     
     $options = [ 'verbose' => true ];
