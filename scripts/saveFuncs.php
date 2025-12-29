@@ -58,6 +58,19 @@ class SaveManager {
         return null;
     }
 
+    public function verboseLog( $message = '', $prefix = '' ) {
+        if( $this->verbose ) {
+            $this->log( $message, $prefix );
+        }
+    }
+    
+    public function verboseOutput($message) {
+        //if (!isset($this->verbose) || $this->verbose !== false) {
+        if( $this->verbose ) {
+            echo $message;
+        }
+    }
+    
     /**
      * Get the maxrows setting
      */
@@ -191,7 +204,7 @@ class SaveManager {
         $msg .= ", hasText: " . (($hasText) ? "yes" : "no");
         $msg .= ", resplit: " . (($resplit) ? "yes" : "no");
         $msg .= ", force: " . (($force) ? "yes" : "no");
-        $this->log($msg);
+        $this->verboseLog($msg);
 
         // Start processing log (debug output suppressed)
         $logID = $this->laana->startProcessingLog(
@@ -216,17 +229,17 @@ class SaveManager {
                 // HTML exists - load it from database
                 $text = $this->laana->getRawText($sourceID);
                 $this->log("Loaded " . strlen($text) . " characters of raw HTML from database");
-                $this->log("DEBUG: \$text type=" . gettype($text) . ", empty=" . (empty($text) ? "YES" : "NO") . ", bool=" . ($text ? "TRUE" : "FALSE"));
+                $this->verboseLog("DEBUG: \$text type=" . gettype($text) . ", empty=" . (empty($text) ? "YES" : "NO") . ", bool=" . ($text ? "TRUE" : "FALSE"));
             }
 
             // Extract sentences if: we have HTML AND (no sentences exist OR resplit flag OR force flag)
-            $this->log("DEBUG: Checking if should extract: \$text=" . ($text ? "TRUE" : "FALSE") . ", \$sentenceCount=$sentenceCount, \$resplit=$resplit, \$force=$force");
+            $this->verboseLog("DEBUG: Checking if should extract: \$text=" . ($text ? "TRUE" : "FALSE") . ", \$sentenceCount=$sentenceCount, \$resplit=$resplit, \$force=$force");
             if ($text && (!$sentenceCount || $resplit || $force)) {
                 $this->log( "Saving sentences" );
                 $finalSentenceCount = $this->addSentences($parser, $sourceID, $link, $text);
             } else {
                 // Sentences already exist and not forcing re-extraction
-                $this->log("$sourceName already has $sentenceCount sentences");
+                $this->verboseLog("$sourceName already has $sentenceCount sentences");
                 $finalSentenceCount = 0;
             }
             
@@ -249,16 +262,9 @@ class SaveManager {
     private function updateSource($parser, $source) {
         $this->funcName = "updateSource";
         $force = isset($this->options['force']) ? $this->options['force'] : false;
-        $params = [
-            'title' => $parser->metadata['title'],
-            'date' => $parser->metadata['date'],
-        ];
-        if ($parser->metadata['author'] && !$source['author']) {
-            $params['author'] = $parser->metadata['author'];
-        }
-        $date = $source['date'] ?? '';
-        if ($parser->metadata['date'] && ($parser->metadata['date'] != $date)) {
-            $params['date'] = $parser->metadata['date'];
+        $params = [];
+        foreach( ['title', 'date', 'author', 'sourcename'] as $key ) {
+            $params[$key] = $parser->metadata[$key] ?? $source[$key] ?? '';
         }
         $this->log($source, "Parameters found in source");
         $this->log($params, "Parameters found by parser");
@@ -269,13 +275,14 @@ class SaveManager {
                 $sourcekey = $source[$key] ?? '';
                 $paramskey = $params[$key] ?? '';
                 $this->log("$key is to change from $sourcekey to $paramskey");
+                $this->outputLine("$key is to change from $sourcekey to $paramskey for " . $source['sourceid'] . " " . $source['link']);
                 $source[$key] = $params[$key];
                 $doUpdate = true;
             }
         }
 
         if ($doUpdate || $force) {
-            $this->log($source, "About to call updatesourceByID");
+            $this->verboseLog($source, "About to call updatesourceByID");
             $this->laana->updateSourceByID($source);
         }
         return $doUpdate;
@@ -295,7 +302,7 @@ class SaveManager {
                     $this->log("Updated source record");
                     return true;
                 } else {
-                    $this->log("No change to source record");
+                    $this->verboseLog("No change to source record");
                 }
             } else {
                 $this->log("No parser for $groupname");
@@ -406,7 +413,7 @@ class SaveManager {
                 } else if ($item['sourceid'] >= $this->options['minsourceid'] && $item['sourceid'] <= $this->options['maxsourceid']) {
                     $item['url'] = $item['link'];
                     array_push($docs, $item);
-                    $this->log($item, "adding page to process");
+                    $this->verboseLog($item, "adding page to process");
                 }
             }
         }
@@ -419,14 +426,22 @@ class SaveManager {
         $nDocs = sizeof($docs);
         $this->outputLine($nDocs . " documents found");
         $this->outputLine("...");
-        $this->debugPrint($docs);
+        $this->verbosePrint($docs);
 
         $updates = 0;
         $sentenceCount = 0;
         $docCount = 0;
         $i = 0;
+        $processed = [];
         foreach ($docs as $source) {
+            $this->verbosePrint($source, "Document");
             $sourceName = $source['sourcename'];
+            if( isset( $processed[$sourceName] ) ) {
+                $sourceUrl = $source['url'];
+                $sourceLink = $processed[$sourceName];
+                $this->outLine( "Skipping already processed $sourceName $sourceUrl (sticking with $sourceLink)" );
+                continue;
+            }
             $link = $source['url'] ?? '';
             if (!$link) {
                 $this->outBoth("Skipping item with no URL: $sourceName");
@@ -436,6 +451,23 @@ class SaveManager {
             if (!isset($source['sourceid'])) {
                 $src = $this->laana->getSourceByLink($link);
                 $source['sourceid'] = $src['sourceid'] ?? '';
+                if( !isset($src['sourceid']) || !$src['sourceid'] ) {
+                    $this->outLine( "No sourceid registered for $link, checking for $sourceName" );
+                    // Double-check if it is an updated link
+                    $row = $this->laana->getSourceByName( $sourceName );
+                    if( isset( $row['link'] ) && $row['link'] ) {
+                        // Same source but new link
+                        $row['link'] = $link;
+                        $this->outBoth($row, "New link for source $sourceName" );
+                        $this->verbosePrint($row, "New link for source $sourceName");
+                        $this->laana->updateSourceByID($row);
+                        $source = $row;
+                        $this->laana->removecontents( $source['sourceid'] );
+                        $this->laana->removesentences( $source['sourceid'] );
+                    } else {
+                        $this->outLine( "No sourceName $sourceName found" );
+                    }
+                }
             }
             $sourceID = $source['sourceid'] ?? '';
 
@@ -444,7 +476,7 @@ class SaveManager {
                 continue;
             }
 
-            $this->log($source, "page");
+            $this->verboseLog($source, "page");
             $title = $source['title'];
             $author = $source['author'] ?? '';
             $parser = $this->getParser($source['groupname']);
@@ -453,12 +485,12 @@ class SaveManager {
                 continue;
             }
             if (!$local) {
+                $this->verbosePrint( "Initializing parser from $link\n" );
                 $parser->initialize($link);
             }
 
             if (!$sourceID) {
                 // New source
-                $this->outBoth( $link, "New source" );
                 $params = [
                     'link' => $link,
                     'groupname' => $parser->groupname,
@@ -467,7 +499,7 @@ class SaveManager {
                     'authors' => $author,
                     'sourcename' => $sourceName,
                 ];
-                $this->log($params, "Adding source $sourceName");
+                $this->outBoth($params, "Adding source $sourceName");
                 $row = $this->laana->addSource($sourceName, $params);
                 //$this->outputLine("From addSource: ". var_export( $row, true ));
                 $sourceID = $row['sourceid'] ?? '';
@@ -482,7 +514,7 @@ class SaveManager {
                             $sentenceCount += $count;
                             $docCount++;
                         } else {
-                            $this->outputLine("SKIP (no new sentences)");
+                            $this->verboseOutput("SKIP (no new sentences)\n");
                         }
                     } catch (Exception $e) {
                         $this->outputLine("ERROR: " . $e->getMessage());
@@ -505,14 +537,13 @@ class SaveManager {
                         }
                     }
                     $index = $i + 1;
-                    $this->out("[$index/$nDocs] Processing $sourceName (ID: $sourceID) $action... ");
                     try {
                         $count = $this->saveContents($parser, $sourceID);
                         if ($count > 0) {
-                            $this->outputLine("SUCCESS ($count sentences)");
+                            $this->outputLine("[$index/$nDocs] Processing $sourceName (ID: $sourceID) $action... SUCCESS ($count sentences)");
                             $sentenceCount += $count;
                         } else {
-                            $this->outputLine("SKIP (no new sentences)");
+                            $this->verboseOutput("[$index/$nDocs] Processing $sourceName (ID: $sourceID) $action... SKIP (no new sentences)\n");
                         }
                     } catch (Exception $e) {
                         $this->outputLine("ERROR: " . $e->getMessage());
@@ -528,7 +559,9 @@ class SaveManager {
                 $this->outputLine("Ending because reached maxrows {$this->maxrows}");
                 break;
             }
+            $processed[$sourceName] = $source['link'];
         }
+        $this->outputLine( "" );
         
         // Complete batch processing log
         if ($batchLogID) {
