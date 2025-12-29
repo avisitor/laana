@@ -14,6 +14,7 @@ db/ulukau/output/
 save/
 **/*.log
 **/*.txt
-**/*.json
+node_modules/*.json
+ops/*.json
 scripts/__pycache__
-
+**/*bak
