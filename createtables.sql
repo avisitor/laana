@@ -110,8 +110,13 @@ END;
 CREATE TRIGGER insert_sources AFTER INSERT ON sources
 FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sources';
 //
+DELIMITER //
 CREATE TRIGGER delete_sources AFTER DELETE ON sources
-FOR EACH ROW UPDATE stats SET value = value - 1 where name = 'sources';
+FOR EACH ROW
+BEGIN
+  DELETE FROM sentences WHERE sourceid = OLD.sourceID;
+  UPDATE stats SET value = value - 1 where name = 'sources';
+END;
 //
 DELIMITER ;
 
