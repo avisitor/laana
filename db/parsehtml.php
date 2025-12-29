@@ -1731,7 +1731,19 @@ class AoLamaHTML extends HtmlParse {
         if( !$dom ) {
             $dom = $this->dom;
         }
-        $this->metadata['date'] = $this->getDateFromUrl( $this->url );
+        $xpath = new DOMXPath($dom);
+        $node = $xpath->query('//meta[@property="og:title"]')->item(0);
+        if ($node) {
+            $raw = $node->getAttribute('content');   // "11-21-25"
+
+            $date = DateTime::createFromFormat('m-d-y', $raw);
+            if ($date) {
+                $formatted = $date->format('Y-m-d');
+                 $this->metadata['date'] = $formatted;   // 2025-11-21
+            }
+        } else {
+            $this->metadata['date'] = $this->getDateFromUrl( $this->url );
+        }
         $this->metadata['title'] =
             $this->basename . ' ' . $this->metadata['date'];
         $this->metadata['sourcename'] =
@@ -1741,6 +1753,7 @@ class AoLamaHTML extends HtmlParse {
         $this->funcName = "getDocumentList";
         $page = 0;
         $pages = [];
+        $seen = [];
         while( true ) {
             $contents = $this->getRaw( $this->baseurl . $page, false );
             $response = json_decode( $contents );
@@ -1749,16 +1762,26 @@ class AoLamaHTML extends HtmlParse {
             }
             $urls = array_keys( (array)$response->postflair );
             foreach( $urls as $u ) {
-                $date = $this->getDateFromUrl( $u );
+                $p = new AoLamaHTML();
+                $p->initialize( $u );
+                $p->extractMetadata();
+                $date = $p->metadata['date'];
+                $sourcename = $p->metadata['sourcename'];
+                $title = $p->metadata['title'];
+                if( isset( $seen[$sourcename] ) ) {
+                    //echo "Already processed $sourcename\n";
+                    continue;
+                }
                 $pages[] = [
-                    'sourcename' => $this->basename . ": $date",
+                    'sourcename' => $sourcename,
                     'url' => $u,
                     'image' => '',
-                    'title' => $this->basename . " $date",
+                    'title' => $title,
                     'date' => $date,
                     'groupname' => $this->groupname,
                     'author' => $this->authors,
                 ];
+                $seen[$sourcename] = $u;
             }
             $page++;
         }
