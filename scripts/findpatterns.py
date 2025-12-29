@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import sys
 import time
 
+import json
+
 # 1. Load credentials
 load_dotenv('/var/www/html/noiiolelo/.env')
 
@@ -38,34 +40,13 @@ def get_connection(provider='Postgres'):
     return conn
 
 # 2. Define linguistic patterns
-PATTERNS = {
-    # Existing Patterns
-    'pepeke_aike_he': {'regex': r'^He\s+[\wāēīōūʻ]+\s+', 'signature': 'HE + KIKINO'},
-    'pepeke_aike_o': {'regex': r'^ʻ?O\s+[\wāēīōūʻ]+\s+nō?\s+[\wāēīōūʻ]+', 'signature': 'O + NAME + NO'},
-    'kalele_kulana': {'regex': r'^(Ma|I|No|Ma muli o)\s+.*?\s+ai[\s,.]', 'signature': 'PREP_FRONTING + AI'},
-    'pepeke_henua': {'regex': r'^Aia\s+(nō|paha)?\s+(i|ma)\s+', 'signature': 'AIA + LOCATIVE'},
-    'kalele_akena': {'regex': r'^Na\s+[\wāēīōūʻ]+\s+i\s+', 'signature': 'NA + ACTOR + I + VERB'},
-    'hiki_infinitive': {'regex': r'^Hiki\s+.*?\s+ke\s+[\wāēīōūʻ]+', 'signature': 'HIKI + KE'},
-    'hoole_pepeke': {'regex': r'^ʻ?Aʻole\s+', 'signature': 'AAOLE (NEGATIVE)'},
-    'pepeke_painu_ana': {'regex': r'^E\s+.*?\s+ana', 'signature': 'E + VERB + ANA (FUTURE/CONT)'},
-    'sequential_action': {'regex': r'[\s,](mai|aku|iho|ae)\s+la\s+nō\s+ia', 'signature': 'DIRECTIONAL + LA NO IA'},
-
-    # New Patterns (Extended)
-    'pepeke_painu': {'regex': r'^(Ua|E|Ke|I)\s+[\wāēīōūʻ]+', 'signature': 'TENSE + VERB'},
-    'hoole_pepeke_painu': {'regex': r'^ʻ?Aʻole\s+(i|e)\s+', 'signature': 'AAOLE + I/E'},
-    'hoole_pepeke_aike_o': {'regex': r'^ʻ?Aʻole\s+ʻ?o\s+', 'signature': 'AAOLE + O'},
-    'hoole_pepeke_aike_he': {'regex': r'^ʻ?Aʻole\s+he\s+', 'signature': 'AAOLE + HE'},
-    'hoole_kalele_akena': {'regex': r'^ʻ?Aʻole\s+na\s+', 'signature': 'AAOLE + NA'},
-    'aohe_existential': {'regex': r'^ʻ?Aʻohe\s+', 'signature': 'AOHE (EXISTENTIAL NEG)'},
-    'kalele_kumua': {'regex': r'^Mai\s+.*?\s+mai', 'signature': 'MAI + ... + MAI'},
-    'immediate_sequential': {'regex': r'^ʻ?O\s+(ka|ke)\s+.*?\s+(ala|mai|aku|iho|aʻe)\s+la\s+nō\s+ia', 'signature': 'O KA VERB DIR LA NO IA'},
-    'i_loko_no_o': {'regex': r'^I\s+loko\s+nō\s+o\s+', 'signature': 'I LOKO NO O'},
-    'pepeke_oi_aku': {'regex': r'^ʻ?Oi\s+aku\s+', 'signature': 'OI AKU'},
-    'pepeke_e_aho': {'regex': r'^E\s+aho\s+', 'signature': 'E AHO'},
-    'i_mea_e_painu_ai': {'regex': r'^I\s+mea\s+e\s+.*?\s+ai\b', 'signature': 'I MEA E ... AI'},
-    'ma_ke_ano_he': {'regex': r'\bma\s+ke\s+ʻ?ano\s+he\b', 'signature': 'MA KE ANO HE'},
-    'pepeke_nonoa': {'regex': r'^He\s+.*?\s+(ko|kā|o|ā)\s+', 'signature': 'HE ... KO/KA'},
-}
+# Load patterns from shared JSON file
+try:
+    with open('/var/www/html/noiiolelo/lib/grammar_patterns.json', 'r') as f:
+        PATTERNS = json.load(f)
+except Exception as e:
+    print(f"Error loading patterns from JSON: {e}")
+    sys.exit(1)
 
 def generate_fingerprint(text):
     """Creates a 'DNA' string of grammatical markers."""
