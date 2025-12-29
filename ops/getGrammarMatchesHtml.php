@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../lib/provider.php';
 require_once __DIR__ . '/../lib/utils.php';
+require_once __DIR__ . '/../lib/grammar_patterns.php';
 
 // Get parameters
 $pattern = $_REQUEST['pattern'] ?? '';
@@ -18,6 +19,10 @@ if (!$pattern) {
 
 // Get the provider
 $provider = $providerName ? getProvider($providerName) : getProvider();
+
+// Get regex for the pattern
+$patterns = getGrammarPatterns();
+$regex = $patterns[$pattern]['regex'] ?? null;
 
 // For some reason infiniteScroll skips the requests for the first two pages
 if ($page >= 2) {
@@ -56,6 +61,14 @@ try {
         $hawaiiantext = $row['hawaiiantext'];
         $link = isset($row['link']) ? $row['link'] : '';
         
+        // Highlight the match if regex is available
+        $displaySentence = $hawaiiantext;
+        if ($regex) {
+            $displaySentence = preg_replace_callback($regex, function($matches) {
+                return "<span class='match'>" . $matches[0] . "</span>";
+            }, $hawaiiantext);
+        }
+        
         $sourcelink = "<a class='fancy' href='$link' target='_blank'>$source</a>";
         $encodedSentence = urlencode($hawaiiantext);
         $idlink = "<a class='fancy' href='context?id=$sentenceid&raw&highlight_text=$encodedSentence' target='_blank'>Context</a>";
@@ -67,7 +80,7 @@ try {
         $output .= <<<EOF
                   
             <div class="hawaiiansentence">
-              <p class='title'>$hawaiiantext</p>
+              <p class='title'>$displaySentence</p>
               <p style='font-size:0.6em;margin-bottom:0;'>
               <span class='hawaiiansentence source'>$sourcelink&nbsp;&nbsp;$snapshot</span>
               </p><p style='font-size:0.5em;margin-top:0.1em;'>
