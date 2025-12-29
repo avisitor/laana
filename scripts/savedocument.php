@@ -4,6 +4,7 @@ include_once __DIR__ . '/../scripts/saveFuncs.php';
 $longopts = [
     "force",
     "debug",
+    "verbose",
     "local",
     'sourceid:',
     'minsourceid:',
@@ -11,6 +12,7 @@ $longopts = [
     'parser:',
     'resplit',
     'delete-existing',
+    'maxrows',
 ];
 $args = getopt( "", $longopts );
 $parserkey = $args['parser'] ?? '';
@@ -20,10 +22,11 @@ $options = [
     'debug' => isset( $args['debug'] ) ? true : false,
     'local' => isset( $args['local'] ) ? true : false,
     'resplit' => isset( $args['resplit'] ) ? true : false,
-    'verbose' => true, // Always show output by default
+    'verbose' => isset( $args['verbose'] ) ? true : false,
     'sourceid' => $args['sourceid'] ?? 0,
     'minsourceid' => $args['minsourceid'] ?? 0,
     'maxsourceid' => $args['maxsourceid'] ?? PHP_INT_MAX,
+    'maxrows' => $args['maxrows'] ?? PHP_INT_MAX,
 ];
 
 // If a parser is not specified, look it up if a sourceid was provided
