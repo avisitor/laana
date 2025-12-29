@@ -49,6 +49,13 @@ trait LoggingTrait {
         }
     }
     
+    public function verbosePrint($obj, $prefix = "") {
+        if ($this->verbose) {
+            $text = $this->formatLog($obj, $prefix);
+            $this->printObject($obj, $text);
+        }
+    }
+    
     /**
      * Set debug mode
      */
@@ -61,9 +68,7 @@ trait LoggingTrait {
      * Output a message to stdout (can be suppressed by setting $verbose to false)
      */
     public function output($message) {
-        if (!isset($this->verbose) || $this->verbose !== false) {
-            echo $message;
-        }
+        echo $message;
     }
 
     /**
