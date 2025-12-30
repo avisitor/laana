@@ -142,13 +142,16 @@ class HtmlParse {
             'sentence_count' => 0,
             'final_text_char_count' => 0,
             'title' => '',
-            'author' => '',
+            'authors' => '',
             'date' => '1970-01-01',
             'sourcename' => '',
         ];
     }
     public function getMetadata() {
         return $this->metadata;
+    }
+    public function getFields() {
+        return ['title', 'date', 'authors', 'sourcename', 'groupname', 'link', 'sourceid'];
     }
     protected function formatLog( $obj, $prefix="" ) {
         if($prefix && !is_string($prefix)) {
@@ -1671,7 +1674,7 @@ class CBHtml extends HtmlParse {
             $query = "//meta[@property='article:author']/@content";
             $nodes = $xpath->query($query);
             if ($nodes->length > 0) {
-                $this->metadata['author'] = $nodes->item(0)->nodeValue;
+                $this->metadata['authors'] = $nodes->item(0)->nodeValue;
             }
             $this->print( $this->metadata );
         } else {
@@ -1705,7 +1708,7 @@ class CBHtml extends HtmlParse {
                         'image' => '',
                         'title' => $this->metadata['title'],
                         'groupname' => $this->groupname,
-                        'author' => $this->metadata['author'],
+                        'authors' => $this->metadata['authors'],
                         'date' => $this->metadata['date'],
                     ];
                 }
@@ -1779,7 +1782,7 @@ class AoLamaHTML extends HtmlParse {
                     'title' => $title,
                     'date' => $date,
                     'groupname' => $this->groupname,
-                    'author' => $this->authors,
+                    'authors' => $this->authors,
                 ];
                 $seen[$sourcename] = $u;
             }
@@ -1792,6 +1795,8 @@ class AoLamaHTML extends HtmlParse {
 class KauakukalahaleHTML extends HtmlParse {
     private $basename = "Kauakukalahale";
     private $domain = "https://www.staradvertiser.com/";
+    private $categoryUrl = 'https://www.staradvertiser.com/category/editorial/kauakukalahale/';
+    private $ajaxurl = 'https://www.staradvertiser.com/wp-content/themes/hsa-redesign/inc/ajax/load-more-posts.php';
     protected $sources = [];
     public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
@@ -1822,10 +1827,7 @@ class KauakukalahaleHTML extends HtmlParse {
     public function updateVisibility( $text ) {
         $this->funcName = "updateVisibility";
         if( !$text ) return $text;
-        $dom = new DOMDocument;
-        $dom->encoding = 'utf-8';
-        libxml_use_internal_errors(true);
-        $dom->loadHTML( $text );
+        $dom = (new DomParser())->parse( $text );
         $xpath = new DOMXpath($dom);
         $changed = 0;
         $p = $xpath->query( '//div[contains(@id, "hsa-paywall-content")]' );
@@ -1868,14 +1870,14 @@ class KauakukalahaleHTML extends HtmlParse {
             // Title: from <h1 class="story-title">
             $titleNode = $xpath->query("//h1[@class='story-title']");
             $title = $titleNode->length ? trim($titleNode[0]->nodeValue) : '';
-            $title = str_replace( "Column: ", "", $title );
+            $title = preg_replace('/^Column:\s*/u', '', $title);
             $this->metadata['title'] = $title;
 
             // Author: from <p class="author custom_byline"> — stripping "By "
             $authorNode = $xpath->query("//p[contains(@class,'author')]");
-            $author = $authorNode->length ? trim($authorNode[0]->nodeValue) : '';
-            $this->metadata['author'] =
-                preg_replace( '/(By na |By |Na )/', '', $author );
+            $authors = $authorNode->length ? trim($authorNode[0]->nodeValue) : '';
+            $this->metadata['authors'] =
+                trim(preg_replace('/^(By na |By |Na )\s*/u', '', $authors));
         }
         $this->metadata['sourcename'] =
             $this->basename . ": " . $this->metadata['date'];
@@ -1896,28 +1898,26 @@ class KauakukalahaleHTML extends HtmlParse {
     }
 
     public function getAllBlurbs() {
-        $categoryUrl = 'https://www.staradvertiser.com/category/editorial/kauakukalahale/';
         $archiveType = 'category';
         $archiveSlug = 'kauakukalahale';
         
         // Fetch the initial page to extract dynamicLoadMore config
-        $initialPage = file_get_contents($categoryUrl);
+        $initialPage = file_get_contents($this->categoryUrl);
         if ($initialPage === false) {
             $this->print("Failed to fetch initial page");
             return '';
         }
         
         // Extract dynamicLoadMore JSON from the page
+        $ajaxUrl = $config['ajaxUrl'] ?? $this->ajaxurl;
         if (preg_match('/var dynamicLoadMore = ({[^;]+});/', $initialPage, $matches)) {
             $config = json_decode($matches[1], true);
-            $ajaxUrl = $config['ajaxUrl'] ?? 'https://www.staradvertiser.com/wp-content/themes/hsa-redesign/inc/ajax/load-more-posts.php';
             $nonce = $config['nonce'] ?? '';
             $startPage = (int)($config['currentPage'] ?? 1);
             
             $this->print("Extracted nonce: $nonce, starting page: $startPage");
         } else {
             $this->print("Could not extract dynamicLoadMore config, using defaults");
-            $ajaxUrl = 'https://www.staradvertiser.com/wp-content/themes/hsa-redesign/inc/ajax/load-more-posts.php';
             $nonce = '';
             $startPage = 0;
         }
@@ -1928,7 +1928,7 @@ class KauakukalahaleHTML extends HtmlParse {
             $postData = http_build_query([
                 'action'      => 'load_more_posts',
                 'pagenum'     => $startPage,
-                'currentPage'     => $startPage,
+                'currentPage' => $startPage,
                 'archiveType' => $archiveType,
                 'archiveSlug' => $archiveSlug,
                 'security'    => $nonce,
@@ -1952,7 +1952,8 @@ class KauakukalahaleHTML extends HtmlParse {
                 break;
             }
 
-            $response = json_decode($result, true);
+            //$response = json_decode($result, true);
+            $response = json_decode($result, true, 512, JSON_INVALID_UTF8_IGNORE);
 
             if (!isset($response['success']) || !$response['success']) {
                 $this->print( "No more posts after page $startPage" );
@@ -1981,9 +1982,13 @@ $htmlFragment
 </html>
 HTML;
 
+        $dom = $this->getDOMFromString($wrappedHtml);
+/*
         libxml_use_internal_errors(true);
         $dom = new DOMDocument();
+        $dom->encoding = 'utf-8';
         $dom->loadHTML($wrappedHtml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+*/
         $xpath = new DOMXPath($dom);
 
         // Extract articles
@@ -1993,7 +1998,7 @@ HTML;
         foreach ($articles as $article) {
             $imgurl = '';
             $title = '';
-            $author = '';
+            $authors = '';
             $date = '';
             $url = '';
 
@@ -2014,39 +2019,44 @@ HTML;
             // Author
             $authorNode = $xpath->query('.//li[contains(@class, "custom_byline")]', $article);
             if ($authorNode->length > 0) {
-                $author = trim(preg_replace('/^By\s*/u', '', $authorNode->item(0)->nodeValue));
+                $authors = $authorNode->item(0)->nodeValue;
+                $authors = trim(preg_replace('/^(By na |By |Na )\s*/u', '', $authors));
             }
 
             // Date
-            $dateNode = $xpath->query('.//ul[contains(@class, "byline")]/li[2]', $article);
-            if ($dateNode->length > 0) {
-                $rawDate = trim($dateNode->item(0)->nodeValue);
-                $rawDate = preg_replace('/\s+/', ' ', $rawDate); // Normalize spacing
-                $dateObj = DateTime::createFromFormat('M. j, Y', $rawDate);
-                if (!$dateObj) {
-                    $dateObj = DateTime::createFromFormat('M j, Y', $rawDate); // fallback if no dot
+            if( $url ) {
+                $date = $this->getDateFromUrl( $url );
+            } else {
+                $dateNode = $xpath->query('.//ul[contains(@class, "byline")]/li[2]', $article);
+                if ($dateNode->length > 0) {
+                    $rawDate = trim($dateNode->item(0)->nodeValue);
+                    $rawDate = preg_replace('/\s+/', ' ', $rawDate); // Normalize spacing
+                    $dateObj = DateTime::createFromFormat('M. j, Y', $rawDate);
+                    if (!$dateObj) {
+                        $dateObj = DateTime::createFromFormat('M j, Y', $rawDate); // fallback if no dot
+                    }
+                    $date = $dateObj ? $dateObj->format('Y-m-d') : $rawDate;
                 }
-                $date = $dateObj ? $dateObj->format('Y-m-d') : $rawDate;
             }
             
             // If date not found, extract from URL as fallback
+            /*
             if (empty($date) && !empty($url)) {
                 // URL format: https://www.staradvertiser.com/2025/05/10/editorial/kauakukalahale/...
                 if (preg_match('#/(\d{4})/(\d{2})/(\d{2})/#', $url, $matches)) {
                     $date = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
                 }
             }
+            */
 
-            $sourcename = "Kauakukalahale: " . $date;
-            $groupname = "kauakukalahale";
             $items[] = [
                 "title" => $title,
-                "author" => $author,
+                "authors" => $authors,
                 "date" => $date,
                 "image" => $imgurl,
                 "url" => $url,
-                "sourcename" => $sourcename,
-                "groupname" => $groupname,
+                "sourcename" => $this->basename . ": $date",
+                "groupname" => $this->groupname,
             ];
         }
         $this->print( "Found " . count($items) . " articles" );
@@ -2061,7 +2071,8 @@ HTML;
         $pages = $this->extractPages( $htmlFragment );
         return $pages;
     }
-    
+
+    /*
     public function getSomePages( $pagenr ) {
         $this->funcName = "getSomePages";
         $pages = [];
@@ -2100,8 +2111,8 @@ HTML;
             // Author (search upward from article)
             $query = ".//li[contains(@class,'custom_byline')]";
             $authorNode = $xpath->query($query, $article->parentNode);
-            $author = $authorNode->length ? trim($authorNode[0]->nodeValue) : '';
-            $author = preg_replace( '/(^By na |^By |^Na )/i', '', $author );
+            $authors = $authorNode->length ? trim($authorNode[0]->nodeValue) : '';
+            $authors = preg_replace( '/(^By na |^By |^Na )/i', '', $authors );
 
             // Image URL
             $query = ".//div[contains(@class,'thumbnail')]//img";
@@ -2114,13 +2125,14 @@ HTML;
                 'title' => $title,
                 'date' => $date,
                 'image' => $img,
-                'author' => $author,
+                'authors' => $authors,
                 'groupname' => $this->groupname,
             ];
 
         }
         return $pages;
     }
+    */
 }
 
 class NupepaHTML extends HtmlParse {
@@ -2194,7 +2206,7 @@ class NupepaHTML extends HtmlParse {
                                 'image' => $imgSrc,
                                 'title' => "{$titleText} {$dateText}",
                                 'date' => $normalizedDate,
-                                'author' => '',
+                                'authors' => '',
                                 'groupname' => 'nupepa',
                             ];
                             //echo( var_export( $source, true ) . "\n" );
@@ -2306,7 +2318,7 @@ class UlukauOld extends NupepaHTML {
             if( $language != 'haw' ) continue;
             $title = html_entity_decode(trim($node->getAttribute('data-title')), ENT_QUOTES, 'UTF-8');
             $authorNode = $xpath->query('.//div[contains(@class,"la")][contains(., "Author")]', $node)->item(0);
-            $author = $authorNode ? (preg_match('/Author\(s\):\s*(.+)/u', $authorNode->textContent, $matches) ? html_entity_decode(trim($matches[1]), ENT_QUOTES, 'UTF-8') : '') : '';
+            $authors = $authorNode ? (preg_match('/Author\(s\):\s*(.+)/u', $authorNode->textContent, $matches) ? html_entity_decode(trim($matches[1]), ENT_QUOTES, 'UTF-8') : '') : '';
             $linkNode = $xpath->query('.//div[contains(@class,"tt")]//a', $node)->item(0);
             $rel_url = $linkNode ? html_entity_decode(trim($linkNode->getAttribute('href')), ENT_QUOTES, 'UTF-8') : '';
             $full_url = $rel_url ? rtrim($host, '/') . $rel_url : $this->baseurl;
@@ -2321,7 +2333,7 @@ class UlukauOld extends NupepaHTML {
                 'image' => $full_image,
                 'title' => $title,
                 'groupname' => $this->groupname,
-                'author' => $author,
+                'authors' => $authors,
                 'language' => $language,
             ];
         }
@@ -2371,7 +2383,7 @@ class KaPaaMooleloHTML extends HtmlParse {
                     'url' => $this->domain . "moolelo/" . $url,
                     'title' => $sourcename,
                     'image' => '',
-                    'author' => $this->authors,
+                    'authors' => $this->authors,
                     'groupname' => $this->groupname,
                 ];
             }
@@ -2633,7 +2645,7 @@ class BaibalaHTML extends HtmlParse {
                     'url' => $directUrl,
                     'title' => $title,
                     'image' => '',
-                    'author' => '',
+                    'authors' => '',
                     'groupname' => $this->groupname,
                 ];
             }
@@ -2769,7 +2781,7 @@ class BaibalaHTML extends HtmlParse {
                 'url' => $url,
                 'title' => $book['title'],
                 'image' => '',
-                'author' => '',
+                'authors' => '',
                 'groupname' => $this->groupname,
             ];
         }
@@ -2863,7 +2875,7 @@ class EhoouluLahuiHTML extends HtmlParse {
                 'url' => 'https://ehooululahui.maui.hawaii.edu/?page_id=' . $index['id'],
                 'image' => '',
                 'title' => $index['title'],
-                'author' => '',
+                'authors' => '',
                 'groupname' => $this->groupname,
             ];
         }
@@ -2899,7 +2911,7 @@ class EhoouluLahuiHTML extends HtmlParse {
                 'url' => $url,
                 'image' => '',
                 'title' => $title,
-                'author' => $this->authors,
+                'authors' => $this->authors,
                 'groupname' => $this->groupname,
             ];
             $page++;
@@ -2997,9 +3009,9 @@ class KaiwakiloumokuHTML extends HtmlParse {
                 $description = trim($descriptionNode->item(1)->nodeValue);
             }
 
-            $author = '';
+            $authors = '';
             if (preg_match('/by (.*?)\./', $description, $matches)) {
-                $author = $matches[1];
+                $authors = $matches[1];
             }
 
             $date = '';
@@ -3016,7 +3028,7 @@ class KaiwakiloumokuHTML extends HtmlParse {
                     'url' => $href,
                     'title' => $baseTitle,
                     'image' => '',
-                    'author' => $author,
+                    'authors' => $authors,
                     'date' => $date,
                     'groupname' => $this->groupname,
                     'chapters' => [],
