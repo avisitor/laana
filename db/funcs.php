@@ -150,7 +150,20 @@ class Laana extends DB {
     
     private $pageNumber = 0;
     public $pageSize = 1000;
-    
+
+    public static function getFields( $table ) {
+        $fieldList = [
+            'sources' =>
+                [
+                "link", "groupname", "sourcename", "authors", "title", "date", "sourceid"
+                ],
+        ];
+        if( isset( $fieldList[$table] ) ) {
+            return $fieldList[$table];
+        }
+        return [];
+    }
+
     public function getRandomWord( $minlength = 5 ) {
         $count = $this->getSentenceCount();
         $len = 0;
@@ -492,9 +505,7 @@ class Laana extends DB {
 
     public function updateSourceByID( $params ) {
         $values = $params;
-        $attrs = [
-            "link", "groupname", "sourcename", "author", "title", "date", "sourceid"
-        ];
+        $attrs = Laana::getFields( 'sources' );
         debuglog( $values, "Laana::updateSourceByID params before cleaning" );
         foreach( $values as $key => $value ) {
             if( !in_array( $key, $attrs ) ) {
@@ -516,7 +527,7 @@ class Laana extends DB {
         $sql = "update sources set link = :link, " .
                "groupname = :groupname, " .
                "sourcename = :sourcename, " .
-               "authors = :author, " .
+               "authors = :authors, " .
                "title = :title, " .
                "date = :date " .
                "where sourceID = :sourceid";
