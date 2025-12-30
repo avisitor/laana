@@ -1,4 +1,5 @@
 <?php
+ini_set('default_charset', 'UTF-8');
 include_once __DIR__ . '/../scripts/saveFuncs.php';
 
 $longopts = [
@@ -10,6 +11,7 @@ $longopts = [
     'minsourceid:',
     'maxsourceid:',
     'parser:',
+    'remote:',
     'resplit',
     'delete-existing',
     'maxrows',
@@ -24,6 +26,7 @@ $options = [
     'resplit' => isset( $args['resplit'] ) ? true : false,
     'verbose' => isset( $args['verbose'] ) ? true : false,
     'sourceid' => $args['sourceid'] ?? 0,
+    'remote' => $args['remote'] ?? 0,
     'minsourceid' => $args['minsourceid'] ?? 0,
     'maxsourceid' => $args['maxsourceid'] ?? PHP_INT_MAX,
     'maxrows' => $args['maxrows'] ?? PHP_INT_MAX,
@@ -50,7 +53,7 @@ try {
     // Initialize manager upfront
     $saveManager = new SaveManager( $options );
     
-    if( !$parserkey && !$options['minsourceid'] ) {
+    if( !$parserkey && !$options['minsourceid'] && !$options['remote'] ) {
         $values = $saveManager->getParserKeys();
         $saveManager->outLine("Specify a parser: $values or a sourceid");
         $saveManager->outLine("savedocument [--debug] [--force] [--local] [--resplit] [--delete-existing] [--minsourceid=minsourceid] [--maxsourceid=maxsourceid] --parser=parsername ($values)");
