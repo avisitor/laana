@@ -31,7 +31,7 @@ CREATE TABLE `sources` (
   `start` int(11) DEFAULT NULL,
   `end` int(11) DEFAULT NULL,
   groupname varchar(20) NOT NULL,
-  title varchar(100) NOT NULL,
+  title varchar(200) NOT NULL,
   date DATE,
   sentenceCount int(11) DEFAULT 0,
   created DATETIME DEFAULT CURRENT_TIMESTAMP,
