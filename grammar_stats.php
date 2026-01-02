@@ -221,7 +221,7 @@ async function loadGlobalStats() {
 
         const ctxGlobal = document.getElementById('globalChart').getContext('2d');
         globalChart = new Chart(ctxGlobal, {
-            type: 'bar',
+            type: 'pie',
             data: {
                 labels: labels,
                 datasets: [{
@@ -231,37 +231,30 @@ async function loadGlobalStats() {
                     borderWidth: 1
                 }]
             },
-            plugins: [{
-                id: 'topLabels',
-                afterDatasetsDraw(chart, args, options) {
-                    const { ctx } = chart;
-                    chart.data.datasets.forEach((dataset, i) => {
-                        const meta = chart.getDatasetMeta(i);
-                        if (!meta.hidden) {
-                            meta.data.forEach((element, index) => {
-                                const data = dataset.data[index];
-                                if (data !== null && data !== undefined) {
-                                    ctx.fillStyle = '#333';
-                                    ctx.font = '11px sans-serif';
-                                    ctx.textAlign = 'center';
-                                    ctx.textBaseline = 'bottom';
-                                    const position = element.tooltipPosition();
-                                    ctx.fillText(data.toLocaleString(), position.x, position.y - 2);
-                                }
-                            });
-                        }
-                    });
-                }
-            }],
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Count' } },
-                    x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 } }
+                    legend: { 
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 15,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value.toLocaleString()} (${percentage}%)`;
+                            }
+                        }
+                    }
                 }
             }
         });
