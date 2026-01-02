@@ -160,6 +160,12 @@ class SaveManager {
         $count = $this->laana->addSentences($sourceID, $sentences);
         $this->log("$count sentences added to sentence table with sourceID $sourceID");
 
+        // Save grammar patterns
+        if (method_exists($parser, 'saveGrammarPatterns')) {
+            $patternCount = $parser->saveGrammarPatterns($sourceID, $this->laana);
+            $this->log("$patternCount grammar patterns saved for sourceID $sourceID");
+        }
+
         $count = $this->laana->addFullText($sourceID, $sentences);
         $this->log("$count sentences added to full text table");
         $this->log("Returning from addSentences");

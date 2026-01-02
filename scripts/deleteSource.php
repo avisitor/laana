@@ -11,7 +11,7 @@ if( $groupname ) {
             'groupname' => $groupname,
         ];
         echo "$sql\n";
-        $result = $db->executeSQL( $sql );
+        $result = $db->executePrepared( $sql );
         echo "Result for $table: $result\n";
     }
 } else {

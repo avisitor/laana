@@ -1,6 +1,7 @@
 <?php
 header('Content-type: text/plain');
 include_once 'db/funcs.php';
+include_once 'lib/GrammarScanner.php';
 //echo( var_export( $_POST, true) . "\n" );
 $sourceID = $_POST['sourceid'];
 $sourceName = $_POST['sourcename'];
@@ -20,4 +21,8 @@ if( !$sourceID || strlen($sourceID) < 1 ) {
 $sentences = explode( "\n", $text);
 $count = $laana->addSentences( $sourceID, $sentences);
 echo "$count sentences added\n";
+
+$scanner = new \Noiiolelo\GrammarScanner($laana);
+$patternCount = $scanner->updateSourcePatterns($sourceID);
+echo "$patternCount grammar patterns saved\n";
 ?>

@@ -41,7 +41,9 @@ interface SearchProviderInterface
      */
     public function getAvailableSearchModes(): array;
 
-    public function getGrammarPatterns(): array;
+    public function getGrammarPatterns( $options = [] ): array;
+
+    public function getGrammarMatches( $pattern, $limit, $offset, $options = [] ): array;
 
     public function providesHighlights(): bool;
 

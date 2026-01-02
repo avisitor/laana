@@ -452,10 +452,10 @@ class Laana extends DB {
 
     public function updateCounts() {
         $sql = "update stats set value=(select count(*) from sentences where name = 'sentences'";
-        $status = $this->executeSQL( $sql );
+        $status = $this->executePrepared( $sql );
         if( $status == 1 ) {
             $sql = "update stats set value=(select count(*) from sources) where name = 'sources'";
-            $status = $this->executeSQL( $sql );
+            $status = $this->executePrepared( $sql );
         }
         return $status;
     }
@@ -614,7 +614,7 @@ class Laana extends DB {
             ];
             return $this->executePrepared( $sql, $values );
         } else {
-            return $this->executeSQL( $sql );
+            return $this->executePrepared( $sql );
         }
     }
     public function addsentences( $sourceID, $sentences ) {

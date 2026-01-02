@@ -14,11 +14,19 @@ $dir = dirname(__DIR__, 1);
 require_once $dir . '/db/funcs.php';
 include_once $dir . '/db/parsehtml.php';
 include_once $dir . '/scripts/parsers.php';
+include_once $dir . '/lib/provider.php';
 
 function show( $var ) {
     echo( var_export( $var, true ) . "\n" );
 }
 
+$provider = getProvider( 'Postgres' );
+$patterns = $provider->getGrammarPatterns();
+show( $patterns );
+$pattern = $patterns[0]['pattern_type'];
+$matches = $provider->getGrammarMatches( $pattern, 10, 0 );
+show( $matches );
+return;
 
 //testUlukauLocalFetch();
 kauakukalahaleBlurbs();

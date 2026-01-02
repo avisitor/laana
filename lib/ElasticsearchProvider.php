@@ -355,8 +355,12 @@ class ElasticsearchProvider implements SearchProviderInterface {
        ];
     }
 
-    public function getGrammarPatterns(): array {
-        return [];
+    public function getGrammarPatterns( $options = [] ): array {
+        return $this->client->getGrammarPatterns( $options );
+    }
+
+    public function getGrammarMatches( $pattern, $limit, $offset, $options = [] ): array {
+        return $this->client->getGrammarMatches( $pattern, $limit, $offset, $options );
     }
 
     public function getLatestSourceDates(): array

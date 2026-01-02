@@ -15,7 +15,7 @@ function cleanup( $table ) {
         $sourceid = $row['sourceid'];
         echo "$sourceid\n";
         $sql = "delete from $table where sourceid = $sourceid";
-        $db->executeSQL( $sql );
+        $db->executePrepared( $sql );
     }
 }
 cleanup( "sentences" );

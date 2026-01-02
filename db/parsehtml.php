@@ -3,6 +3,7 @@ include_once __DIR__ . '/../db/funcs.php';
 include_once __DIR__ . '/ContentFetcher.php';
 include_once __DIR__ . '/DomParser.php';
 include_once __DIR__ . '/TextProcessor.php';
+include_once __DIR__ . '/../lib/GrammarScanner.php';
 
 require __DIR__ . '/../../vendor/autoload.php';
 
@@ -28,6 +29,7 @@ class HtmlParse {
     protected $contentFetcher;
     protected $domParser;
     protected $textProcessor;
+    protected $grammarScanner;
     public $title = "";
     public $authors = "";
     public $discarded = [];
@@ -131,7 +133,29 @@ class HtmlParse {
         $this->contentFetcher = new ContentFetcher();
         $this->domParser = new DomParser();
         $this->textProcessor = new TextProcessor();
+        $this->grammarScanner = new \Noiiolelo\GrammarScanner();
         $this->resetMetadata();
+    }
+
+    /**
+     * Set the database connection for the grammar scanner
+     * @param mixed $db The database connection object
+     */
+    public function setDB($db) {
+        $this->grammarScanner->setDB($db);
+    }
+
+    /**
+     * Scan and save grammar patterns for all sentences in a source
+     * @param int $sourceID The source ID
+     * @param mixed $db Optional database connection
+     * @return int Number of patterns saved
+     */
+    public function saveGrammarPatterns($sourceID, $db = null) {
+        if ($db) {
+            $this->setDB($db);
+        }
+        return $this->grammarScanner->updateSourcePatterns($sourceID);
     }
     public function resetMetadata() {
         $this->metadata = [

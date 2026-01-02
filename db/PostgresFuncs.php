@@ -4,7 +4,7 @@ require_once __DIR__ . '/../env-loader.php';
 
 class PostgresLaana extends Laana {
     public function __construct() {
-        $this->conn = $this->connect();
+        parent::__construct();
     }
 
     public function connect($dsn = null, $options = false) {
