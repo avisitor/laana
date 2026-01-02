@@ -64,15 +64,15 @@ function getParameters() {
 
 function getOrderBy( $order, $providerName = '' ) {
     $orders = [
-        'alpha' => "hawaiianText",
-        'alpha desc' => "hawaiianText desc",
+        'alpha' => "hawaiiantext",
+        'alpha desc' => "hawaiiantext desc",
         'rand' => 'rand()',
-        'length' => 'length(hawaiianText),hawaiianText',
-        'length desc' => 'length(hawaiianText) desc,hawaiianText',
-        'source' => 'sourcename,hawaiianText',
-        'source desc' => 'sourcename desc,hawaiianText',
-        'date' => 'date,hawaiianText',
-        'date desc' => 'date desc,hawaiianText',
+        'length' => 'length(hawaiiantext),hawaiiantext',
+        'length desc' => 'length(hawaiiantext) desc,hawaiiantext',
+        'source' => 'sourcename,hawaiiantext',
+        'source desc' => 'sourcename desc,hawaiiantext',
+        'date' => 'date,hawaiiantext',
+        'date desc' => 'date desc,hawaiiantext',
     ];
     $orderBy = $orders[$order] ?? '';
     // Adjust function names for Postgres
