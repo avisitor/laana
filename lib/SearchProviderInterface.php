@@ -10,7 +10,7 @@ interface SearchProviderInterface
      * Performs a search query.
      * @return array ['hits' => [], 'total' => 0]
      */
-    public function search(string $query, string $mode, int $limit, int $offset): array;
+    public function search(string $query, string $mode, int $limit = 10, int $offset = 0): array;
 
     /**
      * Retrieves a specific document's content.

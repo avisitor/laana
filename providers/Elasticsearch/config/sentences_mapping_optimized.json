@@ -1,0 +1,155 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "refresh_interval": "30s",
+    "index": {
+      "max_result_window": 100000,
+      "mapping": {
+        "total_fields": {
+          "limit": 1000
+        }
+      }
+    },
+    "analysis": {
+      "char_filter": {
+        "remove_okina": {
+          "type": "mapping",
+          "mappings": [
+            "ʻ=>"
+          ]
+        }
+      },
+      "analyzer": {
+        "folding_analyzer": {
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "asciifolding"
+          ],
+          "char_filter": [
+            "remove_okina"
+          ]
+        },
+        "search_analyzer": {
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "asciifolding",
+            "stop"
+          ],
+          "char_filter": [
+            "remove_okina"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "_meta": {
+      "model": "intfloat/multilingual-e5-small",
+      "version": "2.1.0",
+      "description": "Hawaiian language corpus - Sentences index optimized for vector similarity and text search.",
+      "changelog": [
+        "2.1.0: Performance optimizations for sentence-level search",
+        "2.0.0: Split from combined index - sentence-level fields with document metadata"
+      ]
+    },
+    "properties": {
+      "created_at": {
+        "type": "date"
+      },
+      "doc_id": {
+        "type": "keyword",
+        "store": true
+      },
+      "text": {
+        "type": "text",
+        "analyzer": "folding_analyzer", 
+        "search_analyzer": "search_analyzer",
+        "store": true,
+        "fields": {
+          "raw": {
+            "type": "keyword",
+            "ignore_above": 8192,
+            "store": false
+          },
+          "folded": {
+            "type": "text",
+            "analyzer": "folding_analyzer",
+            "store": false
+          }
+        }
+      },
+      "vector": {
+        "type": "dense_vector",
+        "dims": 384,
+        "index": true,
+        "similarity": "cosine"
+      },
+      "position": {
+        "type": "integer",
+        "store": false
+      },
+      "chunk_id": {
+        "type": "integer",
+        "store": false
+      },
+      "quality_score": {
+        "type": "float",
+        "store": false
+      },
+      "hawaiian_word_ratio": {
+        "type": "float",
+        "store": false
+      },
+      "word_count": {
+        "type": "integer",
+        "store": false
+      },
+      "entity_count": {
+        "type": "integer",
+        "store": false
+      },
+      "boilerplate_score": {
+        "type": "float",
+        "store": false
+      },
+      "length": {
+        "type": "integer",
+        "store": false
+      },
+      "frequency": {
+        "type": "integer",
+        "store": false
+      },
+      "sourcename": {
+        "type": "keyword",
+        "store": false
+      },
+      "sourceid": {
+        "type": "keyword",
+        "store": false
+      },
+      "authors": {
+        "type": "keyword",
+        "store": false
+      },
+      "date": {
+        "type": "date",
+        "format": "yyyy-MM-dd",
+        "store": false
+      },
+      "groupname": {
+        "type": "keyword",
+        "store": false
+      },
+      "title": {
+        "type": "text",
+        "analyzer": "folding_analyzer",
+        "search_analyzer": "search_analyzer",
+        "store": false
+      }
+    }
+  }
+}

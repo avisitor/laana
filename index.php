@@ -95,9 +95,26 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                 <div>
                     <label for="searchtype" style="font-size:0.85em; display:block;">Search type:</label>
                     <select id="searchtype" class="dd-menu" onchange="patternSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
-                        <?php foreach ($provider->getAvailableSearchModes() as $mode => $description) { ?>
-                            <option value="<?=$mode?>" <?=($pattern == $mode) ? 'selected' : ''?>><?=$description?></option>
-                        <?php } ?>
+                        <?php 
+                        $availableModes = $provider->getAvailableSearchModes();
+                        $modeOrder = [];
+                        $providerName = $provider->getName();
+                        if ($providerName === 'Elasticsearch') {
+                            $modeOrder = ['match', 'matchall', 'phrase', 'regex', 'hybrid'];
+                        } else if ($providerName === 'Postgres') {
+                            $modeOrder = ['exact', 'any', 'all', 'near', 'regex', 'hybrid'];
+                        } else {
+                            $modeOrder = ['exact', 'any', 'all', 'regex'];
+                        }
+                        
+                        foreach ($modeOrder as $mode) {
+                            if (isset($availableModes[$mode])) {
+                                $description = $availableModes[$mode];
+                                $selected = ($pattern == $mode) ? 'selected' : '';
+                                echo "<option value=\"$mode\" $selected>$description</option>";
+                            }
+                        }
+                        ?>
                     </select>
                 </div>
                 <div>
@@ -180,8 +197,8 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                         <?php 
                             require_once __DIR__ . '/lib/provider.php';
                             $known = getKnownProviders();
-                            // In grammar view, default to Laana
-                            $grammarProvider = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'Laana';
+                            // In grammar view, default to MySQL
+                            $grammarProvider = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'MySQL';
                             foreach (array_keys($known) as $provName) {
                                 $selected = ($grammarProvider === $provName) ? 'selected' : '';
                                 echo "<option value=\"$provName\" $selected>$provName</option>";

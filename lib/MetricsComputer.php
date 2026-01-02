@@ -1,6 +1,6 @@
 <?php
 
-namespace HawaiianSearch;
+namespace Noiiolelo;
 
 class MetricsComputer
 {

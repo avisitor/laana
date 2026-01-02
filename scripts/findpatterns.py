@@ -25,7 +25,7 @@ def get_connection(provider='Postgres'):
         # Autocommit allows us to see progress in the DB immediately 
         # and keeps the script resilient to interruptions.
         conn.autocommit = True
-    elif provider == 'Laana':
+    elif provider == 'MySQL':
         conn = pymysql.connect(
             host=os.getenv('DB_HOST', 'localhost'),
             port=int(os.getenv('DB_PORT', 3306)),
@@ -36,7 +36,7 @@ def get_connection(provider='Postgres'):
             autocommit=True
         )
     else:
-        raise ValueError(f"Invalid provider: {provider}. Must be 'Postgres' or 'Laana'.")
+        raise ValueError(f"Invalid provider: {provider}. Must be 'Postgres' or 'MySQL'.")
     return conn
 
 # 2. Define linguistic patterns
@@ -180,7 +180,7 @@ def scan_grammar(force=False, provider='Postgres'):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Delta-aware Hawaiian grammar scanner.")
     parser.add_argument('--force', action='store_true', help="Clear pattern table before running")
-    parser.add_argument('--provider', type=str, default='Postgres', choices=['Postgres', 'Laana'],
+    parser.add_argument('--provider', type=str, default='Postgres', choices=['Postgres', 'MySQL'],
                         help="Database provider to use (default: Postgres)")
     args = parser.parse_args()
 

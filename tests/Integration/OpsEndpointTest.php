@@ -30,7 +30,7 @@ class OpsEndpointTest extends BaseTestCase
      */
     public function testGetPageHtmlWithPagination(string $providerName): void
     {
-        $pattern = $providerName === 'Laana' ? 'exact' : 'match';
+        $pattern = ($providerName === 'Elasticsearch') ? 'phrase' : 'exact';
         
         $output = $this->executeEndpoint('ops/getPageHtml.php', [
             'word' => 'aloha',
@@ -48,8 +48,8 @@ class OpsEndpointTest extends BaseTestCase
 
     public function testGetPageHtmlWithDifferentOrdering(): void
     {
-        if (!$this->isValidProvider('Laana')) {
-            $this->markTestSkipped('Laana provider not in valid provider list');
+        if (!$this->isValidProvider('MySQL')) {
+            $this->markTestSkipped('MySQL provider not in valid provider list');
         }
 
         $output1 = $this->executeEndpoint('ops/getPageHtml.php', [
@@ -57,7 +57,7 @@ class OpsEndpointTest extends BaseTestCase
             'pattern' => 'exact',
             'page' => '1',
             'order' => 'date',
-            'provider' => 'Laana'
+            'provider' => 'MySQL'
         ]);
         
         $output2 = $this->executeEndpoint('ops/getPageHtml.php', [
@@ -65,7 +65,7 @@ class OpsEndpointTest extends BaseTestCase
             'pattern' => 'exact',
             'page' => '1',
             'order' => 'source',
-            'provider' => 'Laana'
+            'provider' => 'MySQL'
         ]);
         
         $this->assertNotEmpty($output1, 'Date ordering should return results');
@@ -82,7 +82,7 @@ class OpsEndpointTest extends BaseTestCase
      */
     public function testResultCountCommandLine(string $providerName): void
     {
-        $pattern = $providerName === 'Laana' ? 'exact' : 'match';
+        $pattern = ($providerName === 'Elasticsearch') ? 'match' : 'exact';
         
         $output = $this->executeEndpoint('ops/resultcount.php', [
             'search' => 'aloha',
@@ -101,7 +101,7 @@ class OpsEndpointTest extends BaseTestCase
      */
     public function testMultipleConsecutiveRequests(string $providerName): void
     {
-        $pattern = $providerName === 'Laana' ? 'exact' : 'match';
+        $pattern = ($providerName === 'Elasticsearch') ? 'match' : 'exact';
         
         $count1 = intval(trim($this->executeEndpoint('ops/resultcount.php', [
             'search' => 'aloha',
@@ -144,8 +144,8 @@ class OpsEndpointTest extends BaseTestCase
             $this->markTestSkipped('Need at least 2 providers for switching test');
         }
 
-        $pattern1 = $providers[0] === 'Laana' ? 'exact' : 'match';
-        $pattern2 = $providers[1] === 'Laana' ? 'exact' : 'match';
+        $pattern1 = $providers[0] === 'MySQL' ? 'exact' : 'match';
+        $pattern2 = $providers[1] === 'MySQL' ? 'exact' : 'match';
         
         $count1 = trim($this->executeEndpoint('ops/resultcount.php', [
             'search' => 'aloha',

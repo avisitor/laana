@@ -13,13 +13,13 @@ class SearchFunctionalityTest extends BaseTestCase
         resetRequest();
     }
 
-    public function testLaanaExactSearch(): void
+    public function testMySQLExactSearch(): void
     {
-        if (!$this->isValidProvider('Laana')) {
-            $this->markTestSkipped('Laana provider not in valid provider list');
+        if (!$this->isValidProvider('MySQL')) {
+            $this->markTestSkipped('MySQL provider not in valid provider list');
         }
 
-        $provider = getTestProvider('Laana');
+        $provider = getTestProvider('MySQL');
         $results = $provider->getSentences('aloha', 'exact', 1);
         
         $this->assertIsArray($results);
@@ -36,13 +36,13 @@ class SearchFunctionalityTest extends BaseTestCase
         }
     }
 
-    public function testLaanaAnyWordSearch(): void
+    public function testMySQLAnyWordSearch(): void
     {
-        if (!$this->isValidProvider('Laana')) {
-            $this->markTestSkipped('Laana provider not in valid provider list');
+        if (!$this->isValidProvider('MySQL')) {
+            $this->markTestSkipped('MySQL provider not in valid provider list');
         }
 
-        $provider = getTestProvider('Laana');
+        $provider = getTestProvider('MySQL');
         $results = $provider->getSentences('aloha mahalo', 'any', 1);
         
         $this->assertIsArray($results);
@@ -58,13 +58,13 @@ class SearchFunctionalityTest extends BaseTestCase
         }
     }
 
-    public function testLaanaAllWordsSearch(): void
+    public function testMySQLAllWordsSearch(): void
     {
-        if (!$this->isValidProvider('Laana')) {
-            $this->markTestSkipped('Laana provider not in valid provider list');
+        if (!$this->isValidProvider('MySQL')) {
+            $this->markTestSkipped('MySQL provider not in valid provider list');
         }
 
-        $provider = getTestProvider('Laana');
+        $provider = getTestProvider('MySQL');
         $results = $provider->getSentences('aloha mahalo', 'all', 1);
         
         $this->assertIsArray($results);
@@ -76,13 +76,13 @@ class SearchFunctionalityTest extends BaseTestCase
         }
     }
 
-    public function testLaanaRegexSearch(): void
+    public function testMySQLRegexSearch(): void
     {
-        if (!$this->isValidProvider('Laana')) {
-            $this->markTestSkipped('Laana provider not in valid provider list');
+        if (!$this->isValidProvider('MySQL')) {
+            $this->markTestSkipped('MySQL provider not in valid provider list');
         }
 
-        $provider = getTestProvider('Laana');
+        $provider = getTestProvider('MySQL');
         $results = $provider->getSentences('^aloha', 'regex', 1);
         
         $this->assertIsArray($results);
@@ -153,7 +153,7 @@ class SearchFunctionalityTest extends BaseTestCase
     public function testSearchResultStructure(string $providerName): void
     {
         $provider = getTestProvider($providerName);
-        $searchMode = $providerName === 'Laana' ? 'exact' : 'match';
+        $searchMode = $providerName === 'MySQL' ? 'exact' : 'match';
         $results = $provider->getSentences('aloha', $searchMode, 1);
         
         if (count($results) > 0) {
@@ -171,7 +171,7 @@ class SearchFunctionalityTest extends BaseTestCase
     public function testEmptySearch(string $providerName): void
     {
         $provider = getTestProvider($providerName);
-        $searchMode = $providerName === 'Laana' ? 'exact' : 'match';
+        $searchMode = $providerName === 'MySQL' ? 'exact' : 'match';
         $results = $provider->getSentences('', $searchMode, 1);
         
         $this->assertIsArray($results);
@@ -184,7 +184,7 @@ class SearchFunctionalityTest extends BaseTestCase
     public function testPagination(string $providerName): void
     {
         $provider = getTestProvider($providerName);
-        $searchMode = $providerName === 'Laana' ? 'any' : 'match';
+        $searchMode = $providerName === 'MySQL' ? 'any' : 'match';
         
         $page1 = $provider->getSentences('a', $searchMode, 1);
         $page2 = $provider->getSentences('a', $searchMode, 2);
@@ -204,7 +204,7 @@ class SearchFunctionalityTest extends BaseTestCase
     public function testMatchCount(string $providerName): void
     {
         $provider = getTestProvider($providerName);
-        $searchMode = $providerName === 'Laana' ? 'exact' : 'match';
+        $searchMode = $providerName === 'MySQL' ? 'exact' : 'match';
         
         $count = $provider->getMatchingSentenceCount('aloha', $searchMode, -1, []);
         

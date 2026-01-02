@@ -1,4 +1,6 @@
 <?php
+namespace Noiiolelo;
+
 /**
  * LoggingTrait - Reusable logging functionality for classes
  * 

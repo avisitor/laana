@@ -171,7 +171,7 @@ class YourTest extends TestCase
 
     public function testYourFeature(): void
     {
-        $provider = getTestProvider('Laana');
+        $provider = getTestProvider('MySQL');
         // Your test code
         $this->assertTrue($result);
     }

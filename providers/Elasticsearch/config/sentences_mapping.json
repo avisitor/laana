@@ -1,0 +1,86 @@
+{
+  "settings": {
+    "analysis": {
+      "char_filter": {
+        "remove_okina": {
+          "type": "mapping",
+          "mappings": [
+            "ʻ=>"
+          ]
+        }
+      },
+      "analyzer": {
+        "folding_analyzer": {
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "asciifolding"
+          ],
+          "char_filter": [
+            "remove_okina"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "_meta": {
+      "model": "intfloat/multilingual-e5-small",
+      "version": "2.0.0",
+      "description": "Hawaiian language corpus - Sentences index with vector similarity and quality metadata.",
+      "changelog": [
+        "2.0.0: Split from combined index - sentence-level fields only with embedded metadata"
+      ]
+    },
+    "properties": {
+      "created_at": {"type": "date"},
+      "sentence_id": {"type": "keyword"},
+      "doc_id": {"type": "keyword"},
+      "text": {
+        "type": "text",
+        "fields": {
+          "raw": {
+            "type": "keyword",
+            "store": true,
+            "doc_values": true,
+            "ignore_above": 50000
+          },
+          "folded": {
+            "type": "text",
+            "analyzer": "folding_analyzer"
+          }
+        }
+      },
+      "position": {"type": "integer"},
+      "vector": {
+        "type": "dense_vector",
+        "dims": 384,
+        "index": true,
+        "similarity": "cosine"
+      },
+      "sentence_hash": {"type": "keyword"},
+      "frequency": {"type": "integer"},
+      "hawaiian_word_ratio": {"type": "float"},
+      "quality_score": {"type": "float"},
+      "word_count": {"type": "integer"},
+      "entity_count": {"type": "integer"},
+      "length": {"type": "integer"},
+      "boilerplate_score": {"type": "float"},
+      "grammar_patterns": {"type": "keyword"},
+      "sourcename": {"type": "keyword"},
+      "sourceid": {"type": "keyword"},
+      "authors": {"type": "keyword"},
+      "link": {"type": "keyword"},
+      "date": {
+        "type": "date",
+        "format": "yyyy-MM-dd"
+      },
+      "groupname": {"type": "keyword"},
+      "title": {"type": "text"},
+      "metadata": {
+        "type": "object",
+        "enabled": true
+      }
+    }
+  }
+}

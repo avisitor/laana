@@ -183,6 +183,9 @@ class Laana extends DB {
     }
     
     public function getsentences( $term, $pattern, $pageNumber = -1, $options = [] ) {
+        if (empty(trim($term))) {
+            return [];
+        }
         $funcName = "Laana::getsentences";
         debuglog( $options, "$funcName($term,$pattern,$pageNumber");
         $countOnly = isset($options['count']) ? $options['count'] : false;
@@ -281,7 +284,7 @@ class Laana extends DB {
             $sql .= " and authors = '" . $options['authors'] . "'";
         }
         $orderBy = "";
-        if( !$countOnly && isset( $options['orderby'] ) ) {
+        if( !$countOnly && !empty($options['orderby']) && $options['orderby'] !== 'none' ) {
             $orderBy = ' order by ' . $options['orderby'];
         }
         $sql .= $orderBy;

@@ -65,13 +65,13 @@ class ProviderInterfaceTest extends BaseTestCase
         $this->assertTrue(method_exists($provider, 'getCorpusStats'));
     }
 
-    public function testLaanaSearchModes(): void
+    public function testMySQLSearchModes(): void
     {
-        if (!$this->isValidProvider('Laana')) {
-            $this->markTestSkipped('Laana provider not in valid provider list');
+        if (!$this->isValidProvider('MySQL')) {
+            $this->markTestSkipped('MySQL provider not in valid provider list');
         }
 
-        $provider = getTestProvider('Laana');
+        $provider = getTestProvider('MySQL');
         $modes = $provider->getAvailableSearchModes();
         
         $this->assertIsArray($modes);

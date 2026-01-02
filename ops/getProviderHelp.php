@@ -9,10 +9,23 @@ if ($providerName === null) {
     exit;
 }
 
-if (!in_array($providerName, ['Elasticsearch', 'Laana', 'Postgres'])) {
+if (!isValidProvider($providerName)) {
     http_response_code(400);
     echo "Invalid provider";
     exit;
+}
+
+// Normalize provider name
+if (strtolower($providerName) === 'laana') {
+    $providerName = 'MySQL';
+} else {
+    $known = getKnownProviders();
+    foreach ($known as $key => $value) {
+        if (strtolower($providerName) === strtolower($key)) {
+            $providerName = $value;
+            break;
+        }
+    }
 }
 
 // Generate provider-specific search mode help
@@ -32,9 +45,9 @@ if ($providerName === 'Elasticsearch') {
 </ul>
 <p><span class="searchtype">No Diacriticals</span>: diacritical marks and 'okina are ignored. For example, searching for <span class="searchterm">ho'okipa</span> matches <span class="searchterm">hookipa</span> as well as <span class="searchterm">ho'okipa</span>; searching for <span class="searchterm">hookipa</span> returns the same results. Without No Diacriticals, searching for <span class="searchterm">ho'okipa</span> returns only results with <span class="searchterm">ho'okipa</span> while searching for <span class="searchterm">hookipa</span> matches only on <span class="searchterm">hookipa</span></p>
 HTML;
-} else if ($providerName === 'Laana') { // Laana
+} else if ($providerName === 'MySQL' || $providerName === 'Laana') { // MySQL
     $helpContent = <<<HTML
-<h3>Search options (Laana Provider)</h3>
+<h3>Search options (MySQL Provider)</h3>
 <p>All searches except for "Regex" and "Exact" are case-insensitive. These are the choices:</p>
 <ul>
   <li><span class="searchtype">Match exact phrase</span>: matches your search expression exactly as entered, e.g. <span class="searchterm">hale kuai</span> returns sentences containing <span class="searchterm">hale kuai</span> in that exact order</li>

@@ -73,7 +73,7 @@ class APIEndpointTest extends BaseTestCase
      */
     public function testResultCountEndpoint(string $providerName): void
     {
-        $searchPattern = $providerName === 'Laana' ? 'exact' : 'match';
+        $searchPattern = ($providerName === 'Elasticsearch') ? 'match' : 'exact';
         
         $output = $this->executeOpsRequest('resultcount.php', [
             'search' => 'aloha',

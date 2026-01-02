@@ -18,5 +18,5 @@ $provider->debuglog( "resultcount: $word, $pattern, -1, " . json_encode($options
 if( $word && $pattern ) {
     $count = $provider->getMatchingSentenceCount( $word, $pattern, -1, $options );
 }
-echo "$count";
+echo "$count\n";
 ?>

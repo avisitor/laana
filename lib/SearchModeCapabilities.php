@@ -1,5 +1,7 @@
 <?php
 
+namespace Noiiolelo;
+
 /**
  * Defines search mode capabilities for proper highlighting and behavior
  */

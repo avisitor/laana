@@ -65,36 +65,59 @@ function providerSelected(object) {
             
             // Update the search type dropdown
             let searchTypeSelect = document.getElementById('searchtype');
+            if (!searchTypeSelect) {
+                console.error('Could not find searchtype element');
+                return;
+            }
+            
+            // Save current selection if possible
+            let currentMode = searchTypeSelect.value;
+            console.log('Current mode before update:', currentMode);
+            
             searchTypeSelect.innerHTML = '';
             
             // Define explicit order for modes based on provider
             let modeOrder;
             if (providerName === 'Elasticsearch') {
                 modeOrder = ['match', 'matchall', 'phrase', 'regex', 'hybrid'];
+            } else if (providerName === 'Postgres') {
+                modeOrder = ['exact', 'any', 'all', 'near', 'regex', 'hybrid'];
             } else {
                 modeOrder = ['exact', 'any', 'all', 'regex'];
             }
+            console.log('Mode order for ' + providerName + ':', modeOrder);
             
             for (let mode of modeOrder) {
                 if (modes[mode]) {
                     let option = document.createElement('option');
                     option.value = mode;
-                    option.textContent = modes[mode];
-                    searchTypeSelect.appendChild(option);
+                    option.text = modes[mode];
+                    searchTypeSelect.add(option);
+                    console.log('Added option:', mode, modes[mode]);
                 }
             }
             
-            // Select the first option and update hidden field
-            if (searchTypeSelect.options.length > 0) {
+            // Restore previous selection if it exists in the new list, else select first
+            let found = false;
+            for (let i = 0; i < searchTypeSelect.options.length; i++) {
+                if (searchTypeSelect.options[i].value === currentMode) {
+                    searchTypeSelect.value = currentMode;
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found && searchTypeSelect.options.length > 0) {
                 let firstMode = searchTypeSelect.options[0].value;
                 searchTypeSelect.value = firstMode;
                 setPattern(firstMode);
                 console.log('Set pattern to:', firstMode);
-                console.log('Hidden field value:', document.getElementById('search-pattern').value);
-                
-                // Trigger change event on the select to ensure any listeners are notified
-                searchTypeSelect.dispatchEvent(new Event('change'));
             }
+            
+            console.log('Final searchtype value:', searchTypeSelect.value);
+            
+            // Trigger change event on the select to ensure any listeners are notified
+            searchTypeSelect.dispatchEvent(new Event('change'));
         })
         .catch(error => console.error('Error fetching provider modes:', error));
 }
@@ -219,7 +242,7 @@ $(document).ready(function() {
         let slider = document.getElementById('fade-help');
         if (slider) {
             // Load provider-specific help every time
-            let providerName = slider.getAttribute('data-provider') || 'Laana';
+            let providerName = slider.getAttribute('data-provider') || 'MySQL';
             let providerHelpUrl = 'ops/getProviderHelp.php?provider=' + encodeURIComponent(providerName);
             
             fetch(providerHelpUrl)

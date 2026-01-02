@@ -423,7 +423,7 @@ class SearchCLI {
         echo "Environment:\n";
         echo "  Set PROVIDER in .env file to choose default provider:\n";
         echo "    PROVIDER=Elasticsearch  (default)\n";
-        echo "    PROVIDER=Laana          (MySQL backend)\n";
+        echo "    PROVIDER=MySQL          (MySQL backend)\n";
         echo "    PROVIDER=Postgres       (PostgreSQL backend)\n\n";
         
         echo "Examples:\n";

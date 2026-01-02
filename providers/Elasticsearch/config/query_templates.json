@@ -1,0 +1,167 @@
+{
+    "match_query": {
+        "query": {
+            "match": {
+                "text": "{{query_text}}"
+            }
+        }
+    },
+    "wildcard_query": {
+        "query": {
+            "wildcard": {
+                "text.wildcard": "{{pattern}}"
+            }
+        }
+    },
+    "regexp_script_query": {
+        "query": {
+            "bool": {
+                "should": [
+                    {
+                        "script": {
+                            "script": {
+                                "source": "doc['text.raw'].size() > 0 && doc['text.raw'].value =~ \/{{regex_pattern}}\/"
+                            }
+                        }
+                    },
+                    {
+                        "nested": {
+                            "path": "text_chunks",
+                            "query": {
+                                "script": {
+                                    "script": {
+                                        "source": "doc['text_chunks.chunk_text.raw'].value =~ \/{{regex_pattern}}\/"
+                                    }
+                                }
+                            },
+                            "inner_hits": {
+                                "name": "matching_chunks",
+                                "size": 10
+                            }
+                        }
+                    }
+                ],
+                "minimum_should_match": 1
+            }
+        }
+    },
+    "nested_sentence_wildcard": {
+        "query": {
+            "nested": {
+                "path": "sentences",
+                "query": {
+                    "wildcard": {
+                        "sentences.text.wildcard": "{{pattern}}"
+                    }
+                },
+                "inner_hits": {
+                    "highlight": {
+                        "fields": {
+                            "sentences.text": []
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "nested_sentence_regexp": {
+        "query": {
+            "nested": {
+                "path": "sentences",
+                "query": {
+                    "script": {
+                        "script": {
+                            "source": "doc['sentences.text.raw'].value =~ \/{{regex_pattern}}\/"
+                        }
+                    }
+                },
+                "inner_hits": {
+                    "highlight": {
+                        "fields": {
+                            "sentences.text": []
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "vector_similarity": {
+        "query": {
+            "script_score": {
+                "query": {
+                    "match_all": []
+                },
+                "script": {
+                    "source": "cosineSimilarity(params.query_vector, 'text_vector') + 1.0",
+                    "params": {
+                        "query_vector": "{{embedding_vector}}"
+                    }
+                }
+            }
+        }
+    },
+    "hybrid_query": {
+        "query": {
+            "bool": {
+                "should": [
+                    {
+                        "match": {
+                            "text": {
+                                "query": "{{query_text}}",
+                                "boost": "{{text_boost}}"
+                            }
+                        }
+                    },
+                    {
+                        "script_score": {
+                            "query": {
+                                "match_all": []
+                            },
+                            "script": {
+                                "source": "cosineSimilarity(params.query_vector, 'text_vector') + 1.0",
+                                "params": {
+                                    "query_vector": "{{embedding_vector}}"
+                                }
+                            },
+                            "boost": "{{vector_boost}}"
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "chunk_regexp_query": {
+        "query": {
+            "nested": {
+                "path": "text_chunks",
+                "query": {
+                    "regexp": {
+                        "text_chunks.chunk_text": "{{regex_pattern}}"
+                    }
+                },
+                "inner_hits": {
+                    "name": "matching_chunks",
+                    "size": 10,
+                    "_source": [
+                        "chunk_index",
+                        "chunk_start",
+                        "chunk_length"
+                    ]
+                }
+            }
+        }
+    },
+    "_documentation": {
+        "version": "1.2.0",
+        "chunk_support": "Documents >32K characters are split into chunks for full regex support",
+        "regex_patterns": {
+            "chunk_regexp_query": "Recommended for long documents - searches all chunks",
+            "regexp_script_query": "Legacy approach using painless scripts - may have limitations"
+        },
+        "examples": {
+            "simple_pattern": "Mr.*Robert.*More",
+            "year_pattern": "[0-9]{4}",
+            "hawaiian_pattern": "ka.*[Ll]ahui"
+        }
+    }
+}

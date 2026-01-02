@@ -15,10 +15,10 @@ if ($queryString) {
     $_GET = array_merge($_GET, $queryParams);
 }
 
-// Get provider from URL parameter, default to 'Laana'
-$providerName = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'Laana';
-if (!in_array($providerName, ['Laana', 'Elasticsearch'])) {
-    error_response('Invalid provider. Must be either Laana or Elasticsearch', 400);
+// Get provider from URL parameter, default to 'MySQL'
+$providerName = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'MySQL';
+if (!in_array($providerName, ['MySQL', 'Elasticsearch', 'Postgres'])) {
+    error_response('Invalid provider. Must be MySQL, Elasticsearch or Postgres', 400);
 }
 $provider = getProvider($providerName);
 $method = $_SERVER['REQUEST_METHOD'];

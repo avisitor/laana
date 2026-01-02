@@ -1,0 +1,156 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "refresh_interval": "30s",
+    "index": {
+      "max_result_window": 50000,
+      "mapping": {
+        "total_fields": {
+          "limit": 2000
+        }
+      }
+    },
+    "analysis": {
+      "char_filter": {
+        "remove_okina": {
+          "type": "mapping",
+          "mappings": [
+            "ʻ=>"
+          ]
+        }
+      },
+      "analyzer": {
+        "folding_analyzer": {
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "asciifolding"
+          ],
+          "char_filter": [
+            "remove_okina"
+          ]
+        },
+        "search_analyzer": {
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "asciifolding",
+            "stop"
+          ],
+          "char_filter": [
+            "remove_okina"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "_meta": {
+      "model": "intfloat/multilingual-e5-small",
+      "version": "2.1.0",
+      "description": "Hawaiian language corpus - Documents index optimized for performance.",
+      "changelog": [
+        "2.1.0: Performance optimizations - better refresh intervals, optimized field mappings",
+        "2.0.0: Split from combined index - document-level fields only"
+      ]
+    },
+    "properties": {
+      "created_at": {
+        "type": "date"
+      },
+      "doc_id": {
+        "type": "keyword",
+        "store": true
+      },
+      "groupname": {
+        "type": "keyword",
+        "store": false
+      },
+      "sourcename": {
+        "type": "keyword",
+        "store": true
+      }, 
+      "sourceid": {
+        "type": "keyword",
+        "store": false
+      },
+      "title": {
+        "type": "text",
+        "analyzer": "folding_analyzer",
+        "search_analyzer": "search_analyzer",
+        "store": false
+      },
+      "date": {
+        "type": "date",
+        "format": "yyyy-MM-dd",
+        "store": false
+      },
+      "authors": {
+        "type": "keyword",
+        "store": false
+      },
+      "link": {
+        "type": "keyword",
+        "index": false,
+        "store": false
+      },
+      "hawaiian_word_ratio": {
+        "type": "float",
+        "store": false
+      },
+      "sentence_count": {
+        "type": "integer",
+        "store": false
+      },
+      "text": {
+        "type": "text",
+        "analyzer": "folding_analyzer",
+        "search_analyzer": "search_analyzer",
+        "store": false,
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256,
+            "store": false
+          },
+          "raw": {
+            "type": "keyword",
+            "ignore_above": 32766,
+            "store": false
+          },
+          "folded": {
+            "type": "text",
+            "analyzer": "folding_analyzer",
+            "store": false
+          }
+        }
+      },
+      "text_chunks": {
+        "type": "nested",
+        "properties": {
+          "chunk_index": {"type": "integer"},
+          "chunk_text": {
+            "type": "text",
+            "analyzer": "folding_analyzer",
+            "search_analyzer": "search_analyzer",
+            "fields": {
+              "raw": {
+                "type": "keyword",
+                "ignore_above": 32766
+              }
+            }
+          },
+          "chunk_start": {"type": "integer"},
+          "chunk_length": {"type": "integer"}
+        }
+      },
+      "text_vector": {
+        "type": "dense_vector",
+        "dims": 384,
+        "index": true,
+        "similarity": "cosine"
+      }
+    }
+  }
+}

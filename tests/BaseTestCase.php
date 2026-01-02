@@ -14,8 +14,9 @@ abstract class BaseTestCase extends TestCase
      * Modify this array to add, change, or remove provider names in one place
      */
     protected static array $validProviders = [
-        'Laana',
-        'Elasticsearch'
+        'MySQL',
+        'Elasticsearch',
+        'Postgres'
     ];
 
     /**

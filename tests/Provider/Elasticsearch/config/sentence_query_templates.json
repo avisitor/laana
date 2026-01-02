@@ -1,0 +1,65 @@
+{
+    "match_sentence": {
+        "query": {
+            "nested": {
+                "path": "sentences",
+                "query": {
+                    "match": {
+                        "sentences.text": "{{query_text}}"
+                    }
+                },
+                "inner_hits": {
+                    "size": 100,
+                    "_source": ["text"],
+                    "highlight": {
+                        "fields": {
+                            "sentences.text": {}
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "term_sentence": {
+        "query": {
+            "nested": {
+                "path": "sentences",
+                "query": {
+                    "term": {
+                        "sentences.text.keyword": "{{query_text}}"
+                    }
+                },
+                "inner_hits": {
+                    "size": 100,
+                    "_source": ["text"],
+                    "highlight": {
+                        "fields": {
+                            "sentences.text": {}
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "phrase_sentence": {
+        "query": {
+            "nested": {
+                "path": "sentences",
+                "query": {
+                    "match_phrase": {
+                        "sentences.text": "{{query_text}}"
+                    }
+                },
+                "inner_hits": {
+                    "size": 100,
+                    "_source": ["text"],
+                    "highlight": {
+                        "fields": {
+                            "sentences.text": {}
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

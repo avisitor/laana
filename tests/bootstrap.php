@@ -16,7 +16,7 @@ ini_set('error_log', __DIR__ . '/../tests/debug.log');
 require_once __DIR__ . '/../vendor/autoload.php';
 
 // Set test environment variables
-$_ENV['PROVIDER'] = 'Laana'; // Default for tests
+$_ENV['PROVIDER'] = 'MySQL'; // Default for tests
 
 /**
  * Helper function to get test provider

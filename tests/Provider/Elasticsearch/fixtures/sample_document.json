@@ -1,0 +1,11 @@
+{
+    "sourceid": "test_001",
+    "title": "Sample Hawaiian Document",
+    "text": "Aloha! This is a sample document containing both English and Hawaiian text. E komo mai! Mahalo nui loa for testing our system. The quick brown fox jumps over the lazy dog. Ua mau ke ea o ka ʻāina i ka pono.",
+    "url": "https://example.com/test/001",
+    "metadata": {
+        "word_count": 32,
+        "hawaiian_word_ratio": 0.25,
+        "language": "mixed"
+    }
+}

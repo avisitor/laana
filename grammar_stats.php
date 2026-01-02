@@ -200,7 +200,7 @@ document.getElementById('logScaleToggle').addEventListener('change', function(e)
 async function loadGlobalStats() {
     try {
         // Use existing endpoint, passing provider explicitly
-        const response = await fetch('ops/getGrammarPatterns.php?provider=Laana');
+        const response = await fetch('ops/getGrammarPatterns.php?provider=MySQL');
         const stats = await response.json();
         
         // Check for error object
@@ -340,7 +340,7 @@ async function loadTimelineStats(allPatterns) {
         labels.push(label);
         
         // Fetch individually using existing endpoint
-        const p = fetch(`ops/getGrammarPatterns.php?provider=Laana&from=${rangeStart}&to=${rangeEnd}`)
+        const p = fetch(`ops/getGrammarPatterns.php?provider=MySQL&from=${rangeStart}&to=${rangeEnd}`)
             .then(r => r.json())
             .then(result => {
                 if (result.error) return { label, periodMap: {} };

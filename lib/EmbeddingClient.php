@@ -1,6 +1,6 @@
 <?php
 
-namespace HawaiianSearch;
+namespace Noiiolelo;
 
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\GuzzleException;

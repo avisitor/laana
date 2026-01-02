@@ -1,0 +1,12 @@
+{
+    "sourceid": "test_002",
+    "title": "Long Hawaiian Document for Chunking Test",
+    "text": "This is a very long document that will be used to test the chunking functionality of the Hawaiian search system. It contains multiple paragraphs and should exceed the 32KB limit when we repeat this content multiple times. Aloha! E komo mai! Mahalo nui loa! Ua mau ke ea o ka ʻāina i ka pono. Here we have some Hawaiian words mixed with English text to create a realistic test scenario. The document processing system should be able to handle documents of various lengths, from very short ones to extremely long academic papers or books. When a document is too long for Elasticsearch keyword fields, it needs to be split into overlapping chunks to maintain full regex search capability across the entire text. Each chunk should be approximately 30KB in size with a 500-character overlap to ensure that search terms spanning chunk boundaries are not missed. This chunking strategy preserves the ability to perform complex regex queries while working within Elasticsearch's field size limitations.",
+    "url": "https://example.com/test/002",
+    "metadata": {
+        "word_count": 150,
+        "hawaiian_word_ratio": 0.15,
+        "language": "mixed",
+        "length": "long"
+    }
+}

@@ -16,6 +16,19 @@ if (!isValidProvider($providerName)) {
     exit;
 }
 
+// Normalize provider name for the switch/if below
+if (strtolower($providerName) === 'laana') {
+    $providerName = 'MySQL';
+} else {
+    $known = getKnownProviders();
+    foreach ($known as $key => $value) {
+        if (strtolower($providerName) === strtolower($key)) {
+            $providerName = $value;
+            break;
+        }
+    }
+}
+
 // Return search modes - MUST match the actual provider implementations
 $modes = [];
 
@@ -29,8 +42,8 @@ if ($providerName === 'Elasticsearch') {
         'hybrid' => 'Hybrid semantic search on sentences',
         'hybriddoc' => 'Hybrid semantic search on documents',
     ];
-} else if ($providerName === 'Laana') {
-    // From LaanaSearchProvider::getAvailableSearchModes()
+} else if ($providerName === 'MySQL' || $providerName === 'Laana') {
+    // From MySQLProvider::getAvailableSearchModes()
     $modes = [
         'exact' => 'Match exact phrase',
         'any' => 'Match any of the words',
@@ -43,8 +56,10 @@ if ($providerName === 'Elasticsearch') {
         'exact' => 'Match exact phrase',
         'any' => 'Match any of the words',
         'all' => 'Match all words in any order',
+        'near' => 'Words adjacent in order',
         'regex' => 'Regular expression search',
+        'hybrid' => 'Hybrid: keyword + vector + quality',
     ];
 }
 
-echo json_encode($modes);
+echo json_encode($modes) . "\n";

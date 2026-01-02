@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/SearchModeCapabilities.php';
+
+namespace Noiiolelo;
 
 /**
  * Helps getPageHTML select appropriate search modes based on user intent and provider capabilities

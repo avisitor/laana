@@ -1,0 +1,104 @@
+{
+  "settings": {
+    "analysis": {
+      "char_filter": {
+        "remove_okina": {
+          "type": "mapping",
+          "mappings": [
+            "ʻ=>"
+          ]
+        }
+      },
+      "analyzer": {
+        "folding_analyzer": {
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "asciifolding"
+          ],
+          "char_filter": [
+            "remove_okina"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "_meta": {
+      "model": "intfloat/multilingual-e5-small",
+      "version": "2.0.0",
+      "description": "Hawaiian language corpus - Documents index with full-text search and metadata.",
+      "changelog": [
+        "2.0.0: Split from combined index - document-level fields only"
+      ]
+    },
+    "properties": {
+      "created_at": {"type": "date"},
+      "doc_id": {"type": "keyword"},
+      "groupname": {"type": "keyword"},
+      "sourcename": {"type": "keyword"}, 
+      "sourceid": {"type": "keyword"},
+      "title": {"type": "text"},
+      "date": {"type": "date"},
+      "authors": {"type": "keyword"},
+      "link": {"type": "keyword"},
+      "hawaiian_word_ratio": {"type": "float"},
+      "text": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "raw": {
+            "type": "keyword",
+            "store": true,
+            "doc_values": true,
+            "ignore_above": 50000
+          },
+          "folded": {
+            "type": "text",
+            "analyzer": "folding_analyzer"
+          }
+        }
+      },
+      "text_chunks": {
+        "type": "nested",
+        "properties": {
+          "chunk_index": {
+            "type": "integer"
+          },
+          "chunk_text": {
+            "type": "text",
+            "fields": {
+              "raw": {
+                "type": "keyword",
+                "store": true,
+                "doc_values": true,
+                "ignore_above": 50000
+              },
+              "folded": {
+                "type": "text",
+                "analyzer": "folding_analyzer"
+              }
+            }
+          },
+          "chunk_start": {
+            "type": "integer"
+          },
+          "chunk_length": {
+            "type": "integer"
+          }
+        }
+      },
+      "text_vector": {
+        "type": "dense_vector",
+        "index": true,
+        "similarity": "cosine"
+      },
+      "sentence_count": {"type": "integer"},
+      "entity_count": {"type": "integer"},
+      "boilerplate_score": {"type": "float"}
+    }
+  }
+}
