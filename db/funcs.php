@@ -796,11 +796,11 @@ class Laana extends DB {
     }
     
     public function getGrammarPatterns( $options = [] ): array {
-        $sql = 'select distinct sp.pattern_type, count(*) count from sentence_patterns sp';
-        $params = [];
-        
         // Join with sentences and sources if we need date filtering
         if (!empty($options['from']) || !empty($options['to'])) {
+            $sql = 'select distinct sp.pattern_type, count(*) count from sentence_patterns sp';
+            $params = [];
+        
             $sql .= ' join sentences s on s.sentenceid = sp.sentenceid';
             $sql .= ' join sources src on src.sourceid = s.sourceid';
             $sql .= ' where 1=1';
@@ -814,11 +814,15 @@ class Laana extends DB {
                 $sql .= ' and src.date <= :to';
                 $params['to'] = $options['to'] . '-12-31';
             }
-        }
         
-        $sql .= ' group by sp.pattern_type order by sp.pattern_type';
-        
-        return $this->query( $sql, $params );
+            $sql .= ' group by sp.pattern_type order by sp.pattern_type';
+            return $this->query( $sql, $params );
+        } else {
+            $sql = "SELECT pattern_type, total_count as count 
+                    FROM laana.grammar_pattern_counts 
+                    ORDER BY pattern_type";
+            return $this->getDBRows($sql);
+        }        
     }
 
     public function getGrammarMatches( $pattern, $limit = 0, $offset = 0, $options = [] ): array {
