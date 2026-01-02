@@ -161,3 +161,14 @@ CREATE INDEX idx_pattern_type ON laana.sentence_patterns(pattern_type);
 -- Ensure we don't double-count the same pattern for the same sentence
 ALTER TABLE laana.sentence_patterns 
 ADD CONSTRAINT unique_sentence_pattern UNIQUE (sentenceid, pattern_type);
+-- This makes 'any', 'all', and 'near' instant
+CREATE INDEX idx_sentences_tsvector ON sentences 
+USING gin (to_tsvector('simple', hawaiiantext));
+
+CREATE MATERIALIZED VIEW laana.grammar_pattern_counts AS
+SELECT pattern_type, COUNT(*) AS total_count
+FROM laana.sentence_patterns
+GROUP BY pattern_type;
+
+-- Create an index on the view so lookups are instant
+CREATE UNIQUE INDEX idx_pattern_type_counts ON laana.grammar_pattern_counts (pattern_type);
