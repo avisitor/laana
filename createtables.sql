@@ -85,6 +85,26 @@ CREATE TABLE `processing_log` (
   KEY `started_at` (`started_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+CREATE TABLE grammar_pattern_counts_summary (
+    pattern_type VARCHAR(255) PRIMARY KEY,
+    total_count INT NOT NULL,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+DELIMITER //
+CREATE PROCEDURE refresh_grammar_counts()
+BEGIN
+    REPLACE INTO grammar_pattern_counts_summary (pattern_type, total_count)
+    SELECT pattern_type, COUNT(*) 
+    FROM sentence_patterns
+    GROUP BY pattern_type;
+END //
+DELIMITER ;
+
+CREATE EVENT hourly_grammar_refresh
+ON SCHEDULE EVERY 1 HOUR
+DO CALL refresh_grammar_counts();
+
 DELIMITER //
 CREATE TRIGGER insert_sentences AFTER INSERT ON sentences
 FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sentences';
