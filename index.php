@@ -716,6 +716,7 @@ $(document).ready(function() {
              count: count,
              order: order,
              elapsed: elapsedTime,
+             provider: "<?=$provider->getName()?>"
          };
          $.post("ops/recordsearch",
                 params,

@@ -7,8 +7,10 @@ $searchpattern = $_POST['searchpattern'];
 $count = $_POST['count'];
 $order = $_POST['order'];
 $elapsed = $_POST['elapsed'];
+$providerName = $_POST['provider'] ?? null;
+
 if( $search && $searchpattern && isset($count) ) {
-    $provider = getProvider();
+    $provider = getProvider($providerName);
     $provider->logQuery( [
         'searchterm' => $search,
         'pattern' => $searchpattern,
