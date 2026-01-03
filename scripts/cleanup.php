@@ -20,7 +20,4 @@ function cleanup( $table ) {
 }
 cleanup( "sentences" );
 cleanup( "contents" );
-$laana = new Laana();
-echo "Updating sentence counts in sources\n";
-$laana->updateSentenceCount();
 ?>

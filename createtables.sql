@@ -1,69 +1,67 @@
 CREATE TABLE `sentences` (
   `sentenceID` int(11) NOT NULL AUTO_INCREMENT,
   `sourceID` int(11) NOT NULL,
-  `hawaiianText` text,
+  `hawaiianText` text DEFAULT NULL,
   `englishText` varchar(255) DEFAULT NULL,
-  created DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FULLTEXT (hawaiianText),
-  FULLTEXT (simplified),
+  `created` datetime DEFAULT current_timestamp(),
+  `simplified` text DEFAULT NULL,
+  UNIQUE KEY `sentenceID` (`sentenceID`),
+  KEY `hawaiian` (`sourceID`,`hawaiianText`(100)),
   KEY `sourceID` (`sourceID`),
-  PRIMARY KEY (sourceID, hawaiianText(100)),
-  UNIQUE KEY `sentenceID` (`sentenceID`)
-) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
+  FULLTEXT KEY `hawaiianText` (`hawaiianText`),
+  FULLTEXT KEY `simplified` (`simplified`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-CREATE TABLE sentence_patterns (
-    patternid int(11) NOT NULL AUTO_INCREMENT,
-    sentenceid bigint,
-    pattern_type text NOT NULL, -- e.g., 'kalele_kulana', 'pepeke_aike_he'
-    signature text,             -- e.g., 'HE + KIKINO + SUBJECT'
-    confidence float DEFAULT 1.0,
-    created_at timestamp DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (patternid),
-    KEY idx_sentenceid (sentenceid),
-    KEY idx_pattern_type (pattern_type)
-);
+CREATE TABLE `sentence_patterns` (
+  `patternid` int(11) NOT NULL AUTO_INCREMENT,
+  `sentenceid` bigint(20) DEFAULT NULL,
+  `pattern_type` text NOT NULL,
+  `signature` text DEFAULT NULL,
+  `confidence` float DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`patternid`),
+  KEY `idx_pattern_type` (`pattern_type`(768)),
+  KEY `idx_sentenceid` (`sentenceid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `sources` (
   `sourceID` int(11) NOT NULL AUTO_INCREMENT,
   `sourceName` varchar(200) NOT NULL,
   `authors` text DEFAULT NULL,
-  `link` text UNIQUE NOT NULL,
-  `start` int(11) DEFAULT NULL,
-  `end` int(11) DEFAULT NULL,
-  groupname varchar(20) NOT NULL,
-  title varchar(200) NOT NULL,
-  date DATE,
-  sentenceCount int(11) DEFAULT 0,
-  created DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `link` text NOT NULL,
+  `created` datetime DEFAULT current_timestamp(),
+  `groupname` varchar(20) NOT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  `date` date DEFAULT NULL,
   PRIMARY KEY (`sourceID`),
   UNIQUE KEY `sourceID` (`sourceID`),
-  UNIQUE KEY `link` (`link`),
+  UNIQUE KEY `link` (`link`) USING HASH,
   KEY `date` (`date`)
-) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_c;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 CREATE TABLE `searchstats` (
   `searchterm` varchar(255) NOT NULL,
   `created` datetime DEFAULT current_timestamp(),
-  `sort` varchar(15) DEFAULT NULL,
-  `pattern` varchar(10) DEFAULT NULL,
   `results` int(11) DEFAULT NULL,
-  `elapsed` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_c;
+  `pattern` varchar(10) DEFAULT NULL,
+  `elapsed` int(11) DEFAULT NULL,
+  `sort` varchar(15) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 CREATE TABLE `stats` (
   `name` varchar(255) NOT NULL,
   `value` int(11) NOT NULL,
   UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_c;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 CREATE TABLE `contents` (
   `sourceID` int(11) NOT NULL,
-  `html` text,
-  `text` text,
-  created DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `html` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `text` mediumtext DEFAULT NULL,
+  `created` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`sourceID`),
   UNIQUE KEY `sourceID` (`sourceID`)
-) ENGINE=InnoDB AUTO_INCREMENT=27906 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_c;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 CREATE TABLE `processing_log` (
   `log_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -73,8 +71,8 @@ CREATE TABLE `processing_log` (
   `parser_key` varchar(50) DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'started',
   `sentences_count` int(11) DEFAULT 0,
-  `started_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `completed_at` DATETIME DEFAULT NULL,
+  `started_at` datetime DEFAULT current_timestamp(),
+  `completed_at` datetime DEFAULT NULL,
   `error_message` text DEFAULT NULL,
   `metadata` text DEFAULT NULL,
   PRIMARY KEY (`log_id`),
@@ -83,18 +81,19 @@ CREATE TABLE `processing_log` (
   KEY `groupname` (`groupname`),
   KEY `status` (`status`),
   KEY `started_at` (`started_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE grammar_pattern_counts_summary (
-    pattern_type VARCHAR(255) PRIMARY KEY,
-    total_count INT NOT NULL,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+CREATE TABLE `grammar_pattern_counts` (
+  `pattern_type` varchar(255) NOT NULL,
+  `total_count` int(11) NOT NULL,
+  `last_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`pattern_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DELIMITER //
 CREATE PROCEDURE refresh_grammar_counts()
 BEGIN
-    REPLACE INTO grammar_pattern_counts_summary (pattern_type, total_count)
+    REPLACE INTO grammar_pattern_counts (pattern_type, total_count)
     SELECT pattern_type, COUNT(*) 
     FROM sentence_patterns
     GROUP BY pattern_type;
@@ -106,20 +105,23 @@ ON SCHEDULE EVERY 1 HOUR
 DO CALL refresh_grammar_counts();
 
 DELIMITER //
+CREATE TRIGGER sentences_before_insert BEFORE INSERT ON sentences
+FOR EACH ROW
+BEGIN
+    SET NEW.simplified = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(NEW.hawaiianText,'ō','o'),'ī','i'),'ē','e'),'ū','u'),'ā','a'),'Ō','O'),'Ī','I'),'Ē','E'),'Ū','U'),'Ā','A'),'‘',''),'ʻ','');
+END;
+//
+CREATE TRIGGER sentences_before_update BEFORE UPDATE ON sentences
+FOR EACH ROW
+BEGIN
+    IF NEW.hawaiianText <> OLD.hawaiianText THEN
+        SET NEW.simplified = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(NEW.hawaiianText,'ō','o'),'ī','i'),'ē','e'),'ū','u'),'ā','a'),'Ō','O'),'Ī','I'),'Ē','E'),'Ū','U'),'Ā','A'),'‘',''),'ʻ','');
+    END IF;
+END;
+//
 CREATE TRIGGER insert_sentences AFTER INSERT ON sentences
 FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sentences';
-
-/*
-This doesn't work because a trigger can't operate on the same table it is triggered by
-DELIMITER //
-CREATE TRIGGER update_sentences AFTER INSERT ON sentences
-FOR EACH ROW
-update sentences set simplified = replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(hawaiianText,'ō','o'),'ī','i'),'ē','e'),'ū','u'),'ā','a'),'Ō','O'),'Ī','I'),'Ē','E'),'Ū','U'),'Ā','A'),'‘',''),'ʻ','') where sentenceid = NEW.sentenceid;
 //
-DELIMITER ;
-*/
-
-DELIMITER //
 CREATE TRIGGER delete_sentences AFTER DELETE ON sentences
 FOR EACH ROW 
 BEGIN
@@ -130,7 +132,6 @@ END;
 CREATE TRIGGER insert_sources AFTER INSERT ON sources
 FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sources';
 //
-DELIMITER //
 CREATE TRIGGER delete_sources AFTER DELETE ON sources
 FOR EACH ROW
 BEGIN
@@ -138,5 +139,18 @@ BEGIN
   UPDATE stats SET value = value - 1 where name = 'sources';
 END;
 //
+CREATE TRIGGER insert_sentence_patterns AFTER INSERT ON sentence_patterns
+FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sentence_patterns';
+//
+CREATE TRIGGER delete_sentence_patterns AFTER DELETE ON sentence_patterns
+FOR EACH ROW UPDATE stats SET value = value - 1 where name = 'sentence_patterns';
+//
+CREATE TRIGGER insert_contents AFTER INSERT ON contents
+FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'contents';
+//
+CREATE TRIGGER delete_contents AFTER DELETE ON contents
+FOR EACH ROW UPDATE stats SET value = value - 1 where name = 'contents';
+//
 DELIMITER ;
+
 

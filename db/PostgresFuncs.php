@@ -25,6 +25,8 @@ class PostgresLaana extends Laana {
             ]);
             // Ensure UTF-8
             $conn->exec("SET client_encoding TO 'UTF8'");
+            // Set search path
+            $conn->exec("SET search_path TO laana, public");
             debuglog([ 'dsn' => $dsn, 'user' => $user, 'db' => $db, 'host' => $host, 'port' => $port ], 'PostgresLaana::connect');
             return $conn;
         } catch (PDOException $e) {

@@ -453,16 +453,6 @@ class Laana extends DB {
         return $row['count'];
     }
 
-    public function updateCounts() {
-        $sql = "update stats set value=(select count(*) from sentences where name = 'sentences'";
-        $status = $this->executePrepared( $sql );
-        if( $status == 1 ) {
-            $sql = "update stats set value=(select count(*) from sources) where name = 'sources'";
-            $status = $this->executePrepared( $sql );
-        }
-        return $status;
-    }
-
     public function getSourceIDs( $groupname = '' ) {
         if( !$groupname ) {
             $sql = "select sourceID from sources order by sourceID";
@@ -600,26 +590,6 @@ class Laana extends DB {
             return null;
         }
     }
-    public function updateSimplified( $sourceID ) {
-        // Maintain the simplified column without diacriticals
-        $sql = "update sentences set simplified = replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(hawaiianText,'ō','o'),'ī','i'),'ē','e'),'ū','u'),'ā','a'),'Ō','O'),'Ī','I'),'Ē','E'),'Ū','U'),'Ā','A'),'‘',''),'ʻ','') where sourceID = :sourceID";
-        $values = [
-            'sourceID' => $sourceID,
-        ];
-        return $this->executePrepared( $sql, $values );
-    }
-    public function updateSentenceCount( $sourceID = null ) {
-        $sql = "UPDATE sources s INNER JOIN ( SELECT sourceid, COUNT(*) AS sentence_count FROM sentences GROUP BY sourceid ) sc ON s.sourceid = sc.sourceid SET s.sentencecount = sc.sentence_count";
-        if( $sourceID ) {
-            $sql .= " where s.sourceid = :sourceID";
-            $values = [
-                'sourceID' => $sourceID,
-            ];
-            return $this->executePrepared( $sql, $values );
-        } else {
-            return $this->executePrepared( $sql );
-        }
-    }
     public function addsentences( $sourceID, $sentences ) {
         $maxValues = 30;
         $count = 0;
@@ -632,7 +602,6 @@ class Laana extends DB {
             }
             $count += $status;
         }
-        $this->updateSimplified( $sourceID );
         //$this->updateSentenceCount( $sourceID );
         return $count;
     }
