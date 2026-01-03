@@ -18,6 +18,7 @@ try {
     $patterns = $provider->getGrammarPatterns($options);
     
     echo json_encode($patterns);
+    error_log("getGrammarPatterns.php: Returned " . count($patterns) . " patterns for provider '" . $provider->getName() . "'");
     
 } catch (Exception $e) {
     error_log("Error in getGrammarPatterns.php: " . $e->getMessage());

@@ -54,6 +54,13 @@ class PostgresProvider extends MySQLProvider implements SearchProviderInterface
         $hits = $this->laana->getSentences($query, $pattern, $pageNumber, $opts);
         return ['hits' => $hits, 'total' => count($hits)];
     }
+
+    public function getSentenceMask( $word, $pattern, $params ) {
+        if ($pattern === 'hybrid') {
+            $pattern = 'any';
+        }
+        return parent::getSentenceMask($word, $pattern, $params);
+    }
     
     public function searchDocuments(string $query, string $mode, int $limit, int $offset): array {
         $pattern = strtolower($mode);

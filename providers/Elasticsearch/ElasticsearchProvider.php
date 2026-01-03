@@ -9,11 +9,11 @@ use Noiiolelo\Providers\Elasticsearch\ElasticsearchProcessingLogger;
 use Dotenv\Dotenv;
 
 class ElasticsearchProvider implements SearchProviderInterface {
-    private ElasticsearchClient $client;
-    private ElasticsearchProcessingLogger $processingLogger;
+    protected $client;
+    protected $processingLogger;
     public int $pageSize = 5;
-    private bool $verbose;
-    private bool $quiet = true;
+    protected bool $verbose;
+    protected bool $quiet = true;
 
     public function __construct( $options ) {
         /*

@@ -97,6 +97,11 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                     <select id="searchtype" class="dd-menu" onchange="patternSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
                         <?php 
                         $availableModes = $provider->getAvailableSearchModes();
+                        foreach ($availableModes as $mode => $description) {
+                            $selected = ($pattern == $mode) ? 'selected' : '';
+                            echo "<option value=\"$mode\" $selected>$description</option>";
+                        }
+                        /*
                         $modeOrder = [];
                         $providerName = $provider->getName();
                         if ($providerName === 'Elasticsearch') {
@@ -114,7 +119,9 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                                 echo "<option value=\"$mode\" $selected>$description</option>";
                             }
                         }
+                        */
                         ?>
+                        console.log('Available search modes:', <?= json_encode($availableModes) ?>);
                     </select>
                 </div>
                 <div>

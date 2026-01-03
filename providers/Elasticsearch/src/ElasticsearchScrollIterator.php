@@ -31,7 +31,9 @@ class ElasticsearchScrollIterator
         'sentences.vector',
     ];
 
-    public function __construct($client, $index, $scroll = '1m', $batchSize = 1, $sourceIncludes = null, $sourceExcludes = null)
+    private bool $returnFullHit = false;
+
+    public function __construct($client, $index, $scroll = '1m', $batchSize = 1, $sourceIncludes = null, $sourceExcludes = null, bool $returnFullHit = false)
     {
         $this->client = $client->getRawClient();
         $this->index = $index;
@@ -39,6 +41,7 @@ class ElasticsearchScrollIterator
         $this->batchSize = $batchSize;
         $this->sourceIncludes = $sourceIncludes ?? $this->sourceIncludes;
         $this->sourceExcludes = $sourceExcludes ?? $this->sourceExcludes;
+        $this->returnFullHit = $returnFullHit;
     }
 
     public function getSize(): int {
@@ -91,7 +94,7 @@ class ElasticsearchScrollIterator
                         'match_all' => new \stdClass(),
                     ],
                 ],
-                'filter_path' => ['_scroll_id', 'hits.hits._source'],
+                'filter_path' => ['_scroll_id', 'hits.hits._source', 'hits.hits._id'],
             ];
 
             try {
@@ -107,7 +110,7 @@ class ElasticsearchScrollIterator
                 $response = $this->client->scroll([
                     'scroll_id' => $this->scrollId,
                     'scroll' => $this->scroll,
-                    'filter_path' => ['_scroll_id', 'hits.hits._source'],
+                    'filter_path' => ['_scroll_id', 'hits.hits._source', 'hits.hits._id'],
                 ]);
             } catch (ClientResponseException $e) {
                 $this->finished = true;
@@ -127,7 +130,10 @@ class ElasticsearchScrollIterator
             return null;
         }
 
-        // Return only _source
+        // Return full hit or only _source
+        if ($this->returnFullHit) {
+            return $hits;
+        }
         return array_map(fn($hit) => $hit['_source'], $hits);
     }
 }

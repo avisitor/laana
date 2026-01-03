@@ -58,7 +58,9 @@ function providerSelected(object) {
     }
     
     // Fetch available search modes for this provider
-    fetch('ops/getProviderModes.php?provider=' + encodeURIComponent(providerName))
+    const url = 'ops/getProviderModes.php?provider=' + encodeURIComponent(providerName);
+    console.log('Fetching provider modes from URL:', url);
+    fetch(url)
         .then(response => response.json())
         .then(modes => {
             console.log('Received modes:', modes);
@@ -77,6 +79,7 @@ function providerSelected(object) {
             searchTypeSelect.innerHTML = '';
             
             // Define explicit order for modes based on provider
+            /*
             let modeOrder;
             if (providerName === 'Elasticsearch') {
                 modeOrder = ['match', 'matchall', 'phrase', 'regex', 'hybrid'];
@@ -96,7 +99,14 @@ function providerSelected(object) {
                     console.log('Added option:', mode, modes[mode]);
                 }
             }
-            
+            */
+           for (let mode in modes) {
+                let option = document.createElement('option');
+                option.value = mode;
+                option.text = modes[mode];
+                searchTypeSelect.add(option);
+                console.log('Added option:', mode, modes[mode]);
+            }
             // Restore previous selection if it exists in the new list, else select first
             let found = false;
             for (let i = 0; i < searchTypeSelect.options.length; i++) {

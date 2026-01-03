@@ -27,7 +27,7 @@ class QueryBuilder
         return in_array($mode, $sentenceModes) ? 'sentences' : 'documents';
     }
 
-    private function embedText(string $text): ?array
+    protected function embedText(string $text): ?array
     {
         try {
             return $this->embeddingClient->embedText($text);

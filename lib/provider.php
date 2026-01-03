@@ -8,6 +8,7 @@ function getKnownProviders(): array {
     return [
         'MySQL' => 'MySQL',
         'Elasticsearch' => 'Elasticsearch',
+        'OpenSearch' => 'OpenSearch',
         'Postgres' => 'Postgres',
     ];
 }

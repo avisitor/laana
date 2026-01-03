@@ -20,16 +20,29 @@ use HawaiianSearch\SourceIterator;
 use HawaiianSearch\QueryBuilder;
 
 class ElasticsearchClient {
-    protected Client $client;
-    private string $indexName;
-    private string $sourceMetadataIndexName;
+    protected $client;
+    protected string $indexName;
+    protected string $sourceMetadataIndexName;
     public float $similarity_threshold = 0.80;
-    private bool $verbose;
-    private bool $vectorDimensionsValidated = false;
-    private EmbeddingClient $embeddingClient;
-    private \Noiiolelo\GrammarScanner $grammarScanner;
+    protected bool $verbose;
+    protected bool $quiet;
+    protected bool $splitIndices;
+    protected bool $vectorDimensionsValidated = false;
+    protected EmbeddingClient $embeddingClient;
+    protected QueryBuilder $queryBuilder;
+    protected \Noiiolelo\GrammarScanner $grammarScanner;
     private $standardIncludes =  ['sourcename', 'groupname', 'authors', 'date', 'text', 'title', 'link'];
     private ?\Exception $lastError = null;
+
+    protected function getArrayResponse($response) {
+        if (is_array($response)) {
+            return $response;
+        }
+        if (method_exists($response, 'asArray')) {
+            return $response->asArray();
+        }
+        return (array)$response;
+    }
 
     // Model configuration mapping (like Python MODEL_CONFIG)
     private const MODEL_CONFIG = [
@@ -95,6 +108,7 @@ class ElasticsearchClient {
             ->build();
             
         $this->embeddingClient = new EmbeddingClient();
+        $this->queryBuilder = new QueryBuilder($this->embeddingClient);
         $this->grammarScanner = new \Noiiolelo\GrammarScanner();
 
         // Validate embedding service on startup (skip if SKIP_EMBEDDING_VALIDATION is set)
@@ -297,7 +311,7 @@ class ElasticsearchClient {
     /**
      * Expose the raw client for advanced queries (e.g., aggregations)
      */
-    public function getRawClient(): Client
+    public function getRawClient()
     {
         return $this->client;
     }
@@ -309,8 +323,8 @@ class ElasticsearchClient {
     /**
      * Load shared configuration from JSON file
      */
-    private function loadConfig(string $configFile): array {
-        $configPath = __DIR__ . '/../../config/' . $configFile;
+    protected function loadConfig(string $configFile): array {
+        $configPath = __DIR__ . '/../config/' . $configFile;
         if (!file_exists($configPath)) {
             throw new \RuntimeException("Configuration file not found: $configPath");
         }
@@ -352,35 +366,35 @@ class ElasticsearchClient {
         }
     }
 
-    private function createDocumentsIndex(bool $recreate = false, string $customIndexName = '', string $customMappingFile = ''): void
+    protected function createDocumentsIndex(bool $recreate = false, string $customIndexName = '', string $customMappingFile = ''): void
     {
         $indexName = $customIndexName ?: $this->getDocumentsIndexName();
-        $mappingFile = $customMappingFile ?: __DIR__ . '/../../config/documents_mapping.json';
+        $mappingFile = $customMappingFile ?: __DIR__ . '/../config/documents_mapping.json';
         
         $this->print("Creating documents index: {$indexName}");
         $this->createIndexFromMapping($indexName, $mappingFile, $recreate);
     }
 
-    private function createSentencesIndex(bool $recreate = false, string $customIndexName = '', string $customMappingFile = ''): void
+    protected function createSentencesIndex(bool $recreate = false, string $customIndexName = '', string $customMappingFile = ''): void
     {
         $indexName = $customIndexName ?: $this->getSentencesIndexName();
-        $mappingFile = $customMappingFile ?: __DIR__ . '/../../config/sentences_mapping.json';
+        $mappingFile = $customMappingFile ?: __DIR__ . '/../config/sentences_mapping.json';
         
         $this->print("Creating sentences index: {$indexName}");
         $this->createIndexFromMapping($indexName, $mappingFile, $recreate);
     }
 
-    private function createLegacyIndex(bool $recreate = false, string $customIndexName = '', string $customMappingFile = ''): void
+    protected function createLegacyIndex(bool $recreate = false, string $customIndexName = '', string $customMappingFile = ''): void
     {
         // Original createIndex logic for backward compatibility
         $indexName = $customIndexName ?: $this->indexName;
-        $mappingFile = $customMappingFile ?: __DIR__ . '/../../config/index_mapping.json';
+        $mappingFile = $customMappingFile ?: __DIR__ . '/../config/index_mapping.json';
         
         $this->print("Creating legacy combined index: {$indexName}");
         $this->createIndexFromMapping($indexName, $mappingFile, $recreate);
     }
 
-    private function createIndexFromMapping(string $indexName, string $mappingFile, bool $recreate = false): void
+    protected function createIndexFromMapping(string $indexName, string $mappingFile, bool $recreate = false): void
     {
         if (empty($indexName)) {
             $this->print("createIndex: empty index name");
@@ -437,7 +451,7 @@ class ElasticsearchClient {
     /**
      * Create metadata index using shared configuration
      */
-    private function createMetaIndex( $filename, $indexname ): bool {
+    protected function createMetaIndex( $filename, $indexname ): bool {
         $mappingConfig = $this->loadConfig($filename);
         $params = [
             'index' => $indexname,
@@ -1560,8 +1574,7 @@ class ElasticsearchClient {
             return -1;
         }
 
-        $queryBuilder = new QueryBuilder($this->embeddingClient);
-        $params = $queryBuilder->buildCountQuery($mode, $query, $this->getSentencesIndexName(), $options);
+        $params = $this->queryBuilder->buildCountQuery($mode, $query, $this->getSentencesIndexName(), $options);
 
         if ($params === null) {
             $this->print( "Could not create count query for $mode, $query" );
@@ -1742,7 +1755,6 @@ class ElasticsearchClient {
     public function search(string $query, string $mode, array $options = []): ?array
     {
         $this->queryTerm = $query;
-        $queryBuilder = new QueryBuilder($this->embeddingClient);
         
         // `from` is not allowed when `search_after` is used
         if (!empty($options['search_after'])) {
@@ -1753,7 +1765,7 @@ class ElasticsearchClient {
         $options['sentencesIndex'] = $this->getSentencesIndexName();
 
         // Compose an elastic search query
-        $params = $queryBuilder->build($mode, $query, $options);
+        $params = $this->queryBuilder->build($mode, $query, $options);
 
         $this->printVerbose(
             "--- Elasticsearch Query ---\n" .

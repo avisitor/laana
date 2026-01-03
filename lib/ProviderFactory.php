@@ -3,6 +3,7 @@
 namespace Noiiolelo;
 
 use Noiiolelo\Providers\Elasticsearch\ElasticsearchProvider;
+use Noiiolelo\Providers\OpenSearch\OpenSearchProvider;
 use Noiiolelo\Providers\Postgres\PostgresProvider;
 use Noiiolelo\Providers\MySQL\MySQLProvider;
 
@@ -12,6 +13,9 @@ class ProviderFactory {
             case 'elasticsearch':
             case 'es':
                 return new ElasticsearchProvider($options);
+            case 'opensearch':
+            case 'os':
+                return new OpenSearchProvider($options);
             case 'postgres':
             case 'pg':
                 return new PostgresProvider($options);
