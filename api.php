@@ -17,21 +17,40 @@ if ($queryString) {
 
 // Get provider from URL parameter, default to 'MySQL'
 $providerName = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'MySQL';
-if (!in_array($providerName, ['MySQL', 'Elasticsearch', 'Postgres'])) {
-    error_response('Invalid provider. Must be MySQL, Elasticsearch or Postgres', 400);
+if (!isValidProvider($providerName)) {
+    error_response('Invalid provider. Must be one of: ' . implode(', ', array_keys(getKnownProviders())), 400);
 }
 $provider = getProvider($providerName);
 $method = $_SERVER['REQUEST_METHOD'];
-$path = isset($_SERVER['PATH_INFO']) ? $_SERVER['PATH_INFO'] : (isset($_GET['path']) ? $_GET['path'] : '');
+
+// Improved path parsing to handle rewrites and subdirectories
+$requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$scriptName = $_SERVER['SCRIPT_NAME']; // e.g., /noiiolelo/api.php
+
+// If called via rewrite (e.g., /noiiolelo/api/providers), PATH_INFO might be set
+$path = $_SERVER['PATH_INFO'] ?? '';
+
 if (!$path) {
-    $path = str_replace('/api.php', '', parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+    // Fallback: look for /api/ in the URI and take everything after it
+    $apiPos = strpos($requestUri, '/api/');
+    if ($apiPos !== false) {
+        $path = substr($requestUri, $apiPos + 5);
+    } else {
+        $path = str_replace($scriptName, '', $requestUri);
+    }
 }
+
 $path = trim($path, '/');
 $parts = explode('/', $path);
 
 function error_response($msg, $code = 400) {
     http_response_code($code);
     echo json_encode(['error' => $msg]);
+    exit;
+}
+
+if ($parts[0] === 'providers') {
+    echo json_encode(array_values(getKnownProviders()));
     exit;
 }
 
