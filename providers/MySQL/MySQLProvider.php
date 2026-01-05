@@ -80,7 +80,10 @@ class MySQLProvider implements SearchProviderInterface
         
         return $sources;
     }
-    public function getTotalSourceGroupCounts() { return $this->laana->getTotalSourceGroupCounts(); }
+    public function getTotalSourceGroupCounts() {
+        //$this->debuglog( "MySQLProvider::getTotalSourceGroupCounts" );
+        return $this->laana->getTotalSourceGroupCounts();
+    }
     public function getSource( $sourceid ) { return $this->laana->getSource( $sourceid ); }    
     public function getSourceIDs( $groupname ) { return $this->laana->getSourceIDs( $groupname ); }    
     public function getSentencesBySourceID( $sourceid ) { return $this->laana->getSentencesBySourceID( $sourceid ); }
@@ -314,6 +317,7 @@ class MySQLProvider implements SearchProviderInterface
     }
 
     public function getSourceGroupCounts() {
+        //$this->debuglog( "MySQLProvider::getSourceGroupCounts" );
         return $this->laana->getSourceGroupCounts();
     }
 
