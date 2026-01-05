@@ -61,6 +61,11 @@ class ElasticsearchClient {
             'query_prefix' => 'query: ',
             'passage_prefix' => 'passage: '
         ],
+        'intfloat/multilingual-e5-large-instruct' => [
+            'dims' => 1024,
+            'query_prefix' => 'query: ',
+            'passage_prefix' => 'passage: '
+        ],
         'OpenAI Ada v2' => [
             'dims' => 1536,
             'query_prefix' => '',
@@ -69,7 +74,7 @@ class ElasticsearchClient {
     ];
     
     // Expected model (should match Python TRANSFORMER_MODEL)
-    private const EXPECTED_MODEL = 'intfloat/multilingual-e5-small';
+    private const EXPECTED_MODEL = 'intfloat/multilingual-e5-large-instruct';
 
     public function __construct(array $options = []) {
         $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
@@ -280,20 +285,25 @@ class ElasticsearchClient {
      */
     private function validateEmbeddingService(): void {
         try {
-            // Test embedding service by making an embedding request
-            $testEmbedding = $this->embeddingClient->embedText("test text", "passage: ");
-            if (!$testEmbedding || !is_array($testEmbedding)) {
-                throw new \RuntimeException("Embedding service did not return valid embedding data");
+            // Test both models
+            $modelsToTest = [
+                EmbeddingClient::MODEL_SMALL => 384,
+                EmbeddingClient::MODEL_LARGE => 1024
+            ];
+
+            foreach ($modelsToTest as $model => $expectedDims) {
+                $testEmbedding = $this->embeddingClient->embedText("test text", "passage: ", $model);
+                if (!$testEmbedding || !is_array($testEmbedding)) {
+                    throw new \RuntimeException("Embedding service did not return valid embedding data for model {$model}");
+                }
+                
+                $actualDims = count($testEmbedding);
+                if ($actualDims !== $expectedDims) {
+                    throw new \RuntimeException("Vector dimension mismatch for model {$model}. Expected: {$expectedDims}, Got: {$actualDims}");
+                }
+                
+                $this->printVerbose("Embedding service validated for model {$model}: dimensions={$actualDims}");
             }
-            
-            $expectedDims = self::MODEL_CONFIG[self::EXPECTED_MODEL]['dims'];
-            $actualDims = count($testEmbedding);
-            
-            if ($actualDims !== $expectedDims) {
-                throw new \RuntimeException("Vector dimension mismatch. Expected: {$expectedDims}, Got: {$actualDims}");
-            }
-            
-            $this->printVerbose( "Embedding service validated: dimensions={$actualDims}" );
             
         } catch (\Exception $e) {
             throw new \RuntimeException("Embedding service validation failed: " . $e->getMessage(), 0, $e);
@@ -901,10 +911,12 @@ class ElasticsearchClient {
         // Ensure embedding service is available
         $this->ensureEmbeddingServiceAvailable();
 
-        // Get document-level vector
+        // Get document-level vectors
         $textVector = $this->embeddingClient->embedText($text, 'passage: ');
-        if (!$textVector) {
-            $this->print("Could not get document embedding for doc {$docId}. Skipping document index.");
+        $textVector1024 = $this->embeddingClient->embedText($text, 'passage: ', EmbeddingClient::MODEL_LARGE);
+        
+        if (!$textVector || !$textVector1024) {
+            $this->print("Could not get document embeddings for doc {$docId}. Skipping document index.");
             return;
         }
 
@@ -918,6 +930,7 @@ class ElasticsearchClient {
             'doc_id' => $docId,
             'text' => $text,
             'text_vector' => $textVector,
+            'text_vector_1024' => $textVector1024,
             'hawaiian_word_ratio' => $hawaiianWordRatio,
             'sentence_count' => $sentenceCount
         ]);
@@ -1154,20 +1167,30 @@ class ElasticsearchClient {
         }
         foreach ($actions as $action) {
             if (isset($action['_source']['text_vector']) || 
+                isset($action['_source']['text_vector_1024']) ||
                 (isset($action['_source']['sentences']) && 
                  isset($action['_source']['sentences'][0]['vector']))
             ) {
-                
-                $expectedDims = $this->getExpectedVectorDimensions();
                 
                 if (isset($action['_source']['text_vector'])) {
                     if (!is_array($action['_source']['text_vector'])) {
                         throw new \RuntimeException("Text vector must be an array, got: " . gettype($action['_source']['text_vector']));
                     }
                     $textVectorDims = count($action['_source']['text_vector']);
-                    if ($textVectorDims !== $expectedDims) {
+                    if ($textVectorDims !== 384) {
                         throw new 
-                        \RuntimeException("Text vector dimension mismatch! Expected: {$expectedDims}, Got: {$textVectorDims}");
+                        \RuntimeException("Text vector dimension mismatch! Expected: 384, Got: {$textVectorDims}");
+                    }
+                }
+
+                if (isset($action['_source']['text_vector_1024'])) {
+                    if (!is_array($action['_source']['text_vector_1024'])) {
+                        throw new \RuntimeException("Text vector 1024 must be an array, got: " . gettype($action['_source']['text_vector_1024']));
+                    }
+                    $textVector1024Dims = count($action['_source']['text_vector_1024']);
+                    if ($textVector1024Dims !== 1024) {
+                        throw new 
+                        \RuntimeException("Text vector 1024 dimension mismatch! Expected: 1024, Got: {$textVector1024Dims}");
                     }
                 }
                 
@@ -1176,13 +1199,13 @@ class ElasticsearchClient {
                         throw new \RuntimeException("Sentence vector must be an array, got: " . gettype($action['_source']['sentences'][0]['vector']));
                     }
                     $sentenceVectorDims = count($action['_source']['sentences'][0]['vector']);
-                    if ($sentenceVectorDims !== $expectedDims) {
+                    if ($sentenceVectorDims !== 384) {
                         throw new 
-                        \RuntimeException("Sentence vector dimension mismatch! Expected: {$expectedDims}, Got: {$sentenceVectorDims}");
+                        \RuntimeException("Sentence vector dimension mismatch! Expected: 384, Got: {$sentenceVectorDims}");
                     }
                 }
                 $this->vectorDimensionsValidated = true;
-                $this->print( "✅ Vector dimensions validated: text and sentence vectors match expected {$expectedDims} dimensions" );
+                $this->print( "✅ Vector dimensions validated" );
                 break; // Only check first document with vectors
             }
         }

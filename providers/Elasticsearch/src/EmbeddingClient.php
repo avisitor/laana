@@ -6,6 +6,9 @@ use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\GuzzleException;
 
 class EmbeddingClient {
+    public const MODEL_SMALL = 'intfloat/multilingual-e5-small';
+    public const MODEL_LARGE = 'intfloat/multilingual-e5-large-instruct';
+
     private HttpClient $httpClient;
     private string $baseUrl;
 
@@ -26,17 +29,27 @@ class EmbeddingClient {
         $this->baseUrl = $baseUrl;
     }
 
+    public function getHttpClient(): HttpClient {
+        return $this->httpClient;
+    }
+
+    public function getBaseUrl(): string {
+        return $this->baseUrl;
+    }
+
     /**
      * @param string $text
      * @param string $prefix
+     * @param string $modelName
      * @return array|null
      * @throws GuzzleException
      */
-    public function embedText(string $text, string $prefix = 'query: '): ?array {
+    public function embedText(string $text, string $prefix = 'query: ', string $modelName = self::MODEL_SMALL): ?array {
         $payload = [
             'json' => [
                 'text' => $text,
-                'prefix' => $prefix
+                'prefix' => $prefix,
+                'model' => $modelName
             ]
         ];
 
@@ -46,7 +59,7 @@ class EmbeddingClient {
             return $data['embedding'] ?? null;
         } catch (GuzzleException $e) {
             // Log the error with context for debugging
-            error_log("EmbeddingClient::embedText failed for text length " . strlen($text) . ": " . $e->getMessage());
+            error_log("EmbeddingClient::embedText failed for text length " . strlen($text) . " using model $modelName: " . $e->getMessage());
             throw $e;
         }
     }
@@ -54,14 +67,16 @@ class EmbeddingClient {
     /**
      * @param array $sentences
      * @param string $prefix
+     * @param string $modelName
      * @return array|null
      * @throws GuzzleException
      */
-    public function embedSentences(array $sentences, string $prefix = 'passage: '): ?array {
+    public function embedSentences(array $sentences, string $prefix = 'passage: ', string $modelName = self::MODEL_SMALL): ?array {
         $payload = [
             'json' => [
                 'sentences' => $sentences,
-                'prefix' => $prefix
+                'prefix' => $prefix,
+                'model' => $modelName
             ]
         ];
 
@@ -79,7 +94,7 @@ class EmbeddingClient {
             return $data['embeddings'] ?? null;
         } catch (GuzzleException $e) {
             // Log the error with context for debugging
-            error_log("EmbeddingClient::embedSentences failed for " . count($sentences) . " sentences: " . $e->getMessage());
+            error_log("EmbeddingClient::embedSentences failed for " . count($sentences) . " sentences using model $modelName: " . $e->getMessage());
             throw $e;
         }
     }

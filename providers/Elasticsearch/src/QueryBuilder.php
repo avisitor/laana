@@ -27,10 +27,10 @@ class QueryBuilder
         return in_array($mode, $sentenceModes) ? 'sentences' : 'documents';
     }
 
-    protected function embedText(string $text): ?array
+    protected function embedText(string $text, string $model = EmbeddingClient::MODEL_SMALL): ?array
     {
         try {
-            return $this->embeddingClient->embedText($text);
+            return $this->embeddingClient->embedText($text, 'query: ', $model);
         } catch (\Exception $e) {
             error_log("Embedding failed: " . $e->getMessage());
             return null;
@@ -619,7 +619,7 @@ class QueryBuilder
     }
     public function vectorQuery(string $text, array $options = []): array
     {
-        $vector = $this->embedText($text);
+        $vector = $this->embedText($text, EmbeddingClient::MODEL_LARGE);
         if (!$vector) {
             return [];
         }
@@ -627,7 +627,7 @@ class QueryBuilder
             "script_score" => [
                 "query" => ["match_all" => new \stdClass()],
                 "script" => [
-                    "source" => "cosineSimilarity(params.query_vector, 'text_vector') + 1.0",
+                    "source" => "cosineSimilarity(params.query_vector, 'text_vector_1024') + 1.0",
                     "params" => ["query_vector" => $vector]
                 ]
             ]
@@ -636,7 +636,7 @@ class QueryBuilder
 
     public function hybridQuery(string $text, array $options = []): array
     {
-        $vector = $this->embedText($text);
+        $vector = $this->embedText($text, EmbeddingClient::MODEL_LARGE);
         if (!$vector) {
             return [];
         }
@@ -649,7 +649,7 @@ class QueryBuilder
                             "script_score" => [
                                 "query" => ["match_all" => new \stdClass()],
                                 "script" => [
-                                    "source" => "cosineSimilarity(params.query_vector, 'text_vector') + 1.0",
+                                    "source" => "cosineSimilarity(params.query_vector, 'text_vector_1024') + 1.0",
                                     "params" => ["query_vector" => $vector]
                                 ]
                             ]
@@ -662,14 +662,14 @@ class QueryBuilder
 
     public function knnQuery(string $text, array $options = []): array
     {
-        $vector = $this->embedText($text);
+        $vector = $this->embedText($text, EmbeddingClient::MODEL_LARGE);
         if (!$vector) {
             return [];
         }
         $k = $options['k'] ?? 10; // Default k to 10 if not provided
         return [
             "knn" => [
-                "field" => "text_vector",
+                "field" => "text_vector_1024",
                 "query_vector" => $vector,
                 "k" => $k,
                 "num_candidates" => $k * 10 // A common heuristic for num_candidates

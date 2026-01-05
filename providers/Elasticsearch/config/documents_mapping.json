@@ -25,10 +25,11 @@
   },
   "mappings": {
     "_meta": {
-      "model": "intfloat/multilingual-e5-small",
-      "version": "2.0.0",
+      "model": "intfloat/multilingual-e5-large-instruct",
+      "version": "2.1.0",
       "description": "Hawaiian language corpus - Documents index with full-text search and metadata.",
       "changelog": [
+        "2.1.0: Added text_vector_1024 for large-instruct model",
         "2.0.0: Split from combined index - document-level fields only"
       ]
     },
@@ -93,6 +94,12 @@
       },
       "text_vector": {
         "type": "dense_vector",
+        "index": true,
+        "similarity": "cosine"
+      },
+      "text_vector_1024": {
+        "type": "dense_vector",
+        "dims": 1024,
         "index": true,
         "similarity": "cosine"
       },

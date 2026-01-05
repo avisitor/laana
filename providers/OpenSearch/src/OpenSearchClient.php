@@ -13,6 +13,12 @@ class OpenSearchClient extends ElasticsearchClient
 
     public function __construct(array $options = [])
     {
+        // Load environment variables if not already loaded
+        if (!isset($_ENV['OS_HOST'])) {
+            $dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/../../../');
+            $dotenv->safeLoad();
+        }
+
         // We don't call parent::__construct because it initializes the Elasticsearch client
         // Instead, we replicate the initialization logic for OpenSearch
         
@@ -27,8 +33,8 @@ class OpenSearchClient extends ElasticsearchClient
         $apiKey = $options['apiKey'] ?? $_ENV['API_KEY'] ?? getenv('API_KEY') ?? null;
         $host = $_ENV['OS_HOST'] ?? $_ENV['ES_HOST'] ?? 'localhost';
         $port = $_ENV['OS_PORT'] ?? $_ENV['ES_PORT'] ?? 9200;
-        $user = $_ENV['OS_USER'] ?? null;
-        $pass = $_ENV['OS_PASS'] ?? null;
+        $user = $_ENV['OS_USER'] ?? getenv('OS_USER') ?? null;
+        $pass = $_ENV['OS_PASS'] ?? getenv('OS_PASS') ?? null;
 
         $builder = ClientBuilder::create()
             ->setHosts(["https://{$host}:{$port}"])
@@ -80,6 +86,12 @@ class OpenSearchClient extends ElasticsearchClient
                 if (isset($prop['type']) && $prop['type'] === 'dense_vector') {
                     $prop['type'] = 'knn_vector';
                     $prop['dimension'] = $prop['dims'] ?? 384;
+                    
+                    // Handle 1024-dim vectors specifically if they appear in mapping
+                    if (strpos($name, '1024') !== false) {
+                        $prop['dimension'] = 1024;
+                    }
+                    
                     unset($prop['dims']);
                     
                     // OpenSearch uses method for KNN
@@ -171,7 +183,7 @@ class OpenSearchClient extends ElasticsearchClient
 
     public function getRawClient()
     {
-        return $this->rawOsClient;
+        return $this->client;
     }
 
     /**

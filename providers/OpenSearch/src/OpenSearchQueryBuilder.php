@@ -14,16 +14,18 @@ class OpenSearchQueryBuilder extends QueryBuilder
      */
     public function knnQuery(string $text, array $options = []): array
     {
-        $vector = $this->embedText($text);
+        $vector = $this->embedText($text, EmbeddingClient::MODEL_LARGE);
         if (!$vector) {
             return [];
         }
         $k = $options['k'] ?? 10;
         return [
-            "knn" => [
-                "text_vector" => [
-                    "vector" => $vector,
-                    "k" => $k
+            "query" => [
+                "knn" => [
+                    "text_vector_1024" => [
+                        "vector" => $vector,
+                        "k" => $k
+                    ]
                 ]
             ]
         ];
@@ -40,10 +42,12 @@ class OpenSearchQueryBuilder extends QueryBuilder
         }
         $k = $options['k'] ?? 10;
         return [
-            "knn" => [
-                "vector" => [
-                    "vector" => $vector,
-                    "k" => $k
+            "query" => [
+                "knn" => [
+                    "vector" => [
+                        "vector" => $vector,
+                        "k" => $k
+                    ]
                 ]
             ]
         ];
@@ -71,7 +75,7 @@ class OpenSearchQueryBuilder extends QueryBuilder
      */
     public function hybridQuery(string $text, array $options = []): array
     {
-        $vector = $this->embedText($text);
+        $vector = $this->embedText($text, EmbeddingClient::MODEL_LARGE);
         if (!$vector) {
             return $this->matchQuery($text, $options);
         }
@@ -90,7 +94,7 @@ class OpenSearchQueryBuilder extends QueryBuilder
                     ],
                     [
                         "knn" => [
-                            "text_vector" => [
+                            "text_vector_1024" => [
                                 "vector" => $vector,
                                 "k" => $k
                             ]

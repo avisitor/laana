@@ -575,26 +575,56 @@ class CorpusIndexer
             $docHawaiianWordRatio = $fullDoc['hawaiian_word_ratio'] ?? 0.0;
             $chunks = $fullDoc['text_chunks'] ?? []; // Keep existing chunks if any
 
-            // Regenerate text_vector
-            if (!empty($text)) {
-                $this->print("  Regenerating text vector for doc_id: {$sourceid}...");
-                $textVector = $this->retryEmbeddingOperation(function() use ($text) {
-                    return $this->client->getEmbeddingClient()->embedText($text, 'passage: ');
-                }, "embedText", "text (" . strlen($text) . " chars)");
+            // Regenerate text_vector_1024 if it doesn't exist
+            $textVector1024 = $fullDoc['text_vector_1024'] ?? null;
+            if (empty($textVector1024) && !empty($text)) {
+                $this->print("  Generating text vector 1024 for doc_id: {$sourceid}...");
+                $textVector1024 = $this->retryEmbeddingOperation(function() use ($text) {
+                    return $this->client->getEmbeddingClient()->embedText($text, 'passage: ', EmbeddingClient::MODEL_LARGE);
+                }, "embedText", "text (large) (" . strlen($text) . " chars)");
+            } else if (!empty($textVector1024)) {
+                $this->print("  Using existing text vector 1024 for doc_id: {$sourceid}.");
             }
+            
+            // Keep old text_vector if it exists for evaluation
+            $oldTextVector = $fullDoc['text_vector'] ?? null;
 
-            // Regenerate sentence vectors
+            // Regenerate sentence vectors if they don't exist or need update
             if (!empty($sentenceObjects)) {
-                $sentenceTexts = array_column($sentenceObjects, 'text');
-                if (!empty($sentenceTexts)) {
-                    $this->print("  Regenerating " . count($sentenceTexts) . " sentence vectors for doc_id: {$sourceid}...");
-                    $newSentenceVectors = $this->retryEmbeddingOperation(function() use ($sentenceTexts) {
-                        return $this->client->getEmbeddingClient()->embedSentences($sentenceTexts, 'passage: ');
-                    }, "embedSentences", count($sentenceTexts) . " sentences");
-                    
-                    $vectorIdx = 0;
-                    $validSentenceObjects = [];
-                    foreach ($sentenceObjects as $s) { // Remove reference to avoid modifications
+                $needsSentenceVectors = false;
+                foreach ($sentenceObjects as $s) {
+                    if (empty($s['vector'])) {
+                        $needsSentenceVectors = true;
+                        break;
+                    }
+                }
+
+                if ($needsSentenceVectors) {
+                    $sentenceTexts = array_column($sentenceObjects, 'text');
+                    if (!empty($sentenceTexts)) {
+                        $this->print("  Regenerating " . count($sentenceTexts) . " sentence vectors for doc_id: {$sourceid}...");
+                        $newSentenceVectors = $this->retryEmbeddingOperation(function() use ($sentenceTexts) {
+                            return $this->client->getEmbeddingClient()->embedSentences($sentenceTexts, 'passage: ');
+                        }, "embedSentences", count($sentenceTexts) . " sentences");
+                        
+                        $vectorIdx = 0;
+                        $validSentenceObjects = [];
+                        foreach ($sentenceObjects as $s) { // Remove reference to avoid modifications
+                            if (isset($s['text']) && isset($newSentenceVectors[$vectorIdx]) && 
+                                is_array($newSentenceVectors[$vectorIdx]) && !empty($newSentenceVectors[$vectorIdx])) {
+                                $s['vector'] = $newSentenceVectors[$vectorIdx];
+                                $validSentenceObjects[] = $s;
+                            } else {
+                                $this->print("⚠️ Skipping sentence with missing/invalid vector at index {$vectorIdx} for doc {$sourceid}");
+                            }
+                            $vectorIdx++;
+                        }
+                        $sentenceObjects = $validSentenceObjects; // Replace with valid sentences only
+                    }
+                } else {
+                    $this->print("  Using existing sentence vectors for doc_id: {$sourceid}.");
+                }
+            }
                         if (isset($s['text']) && isset($newSentenceVectors[$vectorIdx]) && 
                             is_array($newSentenceVectors[$vectorIdx]) && !empty($newSentenceVectors[$vectorIdx])) {
                             $s['vector'] = $newSentenceVectors[$vectorIdx];
@@ -642,10 +672,12 @@ class CorpusIndexer
             $timerSystemDocEmbedding = TimerFactory::timer('document_embedding'); // Timer system equivalent
             $embeddingClient = $this->client->getEmbeddingClient();
             // Retry embedding text on timeout
-            $textVector = $this->retryEmbeddingOperation(function() use ($embeddingClient, $text) {
-                return $embeddingClient->embedText($text, 'passage: ');
-            }, "embedText", "text (" . strlen($text) . " chars)");
+            $textVector1024 = $this->retryEmbeddingOperation(function() use ($embeddingClient, $text) {
+                return $embeddingClient->embedText($text, 'passage: ', EmbeddingClient::MODEL_LARGE);
+            }, "embedText", "text (large) (" . strlen($text) . " chars)");
             // Timer should automatically destruct here when going out of scope
+            
+            $oldTextVector = null; // New document, no old vector
 
             // Handle very long text by chunking for full regex support
             $originalText = $text;
@@ -695,34 +727,40 @@ class CorpusIndexer
         }
             
         // Document assembly
+        $docSource = [
+            "doc_id" => $sourceid,
+            "groupname" => isset($source['groupname']) ? $source['groupname'] : 'N/A',
+            "sourcename" => isset($source['sourcename']) ? $source['sourcename'] : 'N/A',
+            "text" => strlen($originalText) > 32000 ? substr($originalText, 0, 32000) . "..." : $originalText,  // Truncate main text field for keyword compatibility
+            "text_chunks" => $chunks,  // Store chunks for regex searching (ONLY way to do regex on long docs)
+            "text_vector_1024" => $textVector1024,
+            "sentences" => $sentenceObjects,
+            "date" => isset($source['date']) ? $source['date'] : '',
+            "authors" => isset($source['authors']) ? $source['authors'] : '',
+            "link" => isset($source['link']) ? $source['link'] : '',
+            "hawaiian_word_ratio" => $docHawaiianWordRatio
+        ];
+
+        // Include old text_vector if it exists (for evaluation)
+        if ($oldTextVector) {
+            $docSource["text_vector"] = $oldTextVector;
+        }
+
         $doc = [
             "_index" => $this->client->getDocumentsIndexName(),
             "_id" => $sourceid,
-            "_source" => [
-                "doc_id" => $sourceid,
-                "groupname" => isset($source['groupname']) ? $source['groupname'] : 'N/A',
-                "sourcename" => isset($source['sourcename']) ? $source['sourcename'] : 'N/A',
-                "text" => strlen($originalText) > 32000 ? substr($originalText, 0, 32000) . "..." : $originalText,  // Truncate main text field for keyword compatibility
-                "text_chunks" => $chunks,  // Store chunks for regex searching (ONLY way to do regex on long docs)
-                "text_vector" => $textVector,
-                
-                "sentences" => $sentenceObjects,
-                "date" => isset($source['date']) ? $source['date'] : '',
-                "authors" => isset($source['authors']) ? $source['authors'] : '',
-                "link" => isset($source['link']) ? $source['link'] : '',
-                "hawaiian_word_ratio" => $docHawaiianWordRatio
-            ],
+            "_source" => $docSource,
         ];
 
         // Final validation: Check all vectors in the document before indexing
-        if (!is_array($doc['_source']['text_vector']) || empty($doc['_source']['text_vector'])) {
-            $this->print("❌ CRITICAL: Document text_vector is invalid for {$sourceid}!");
-            $this->print("   Type: " . gettype($doc['_source']['text_vector']));
+        if (!is_array($doc['_source']['text_vector_1024']) || empty($doc['_source']['text_vector_1024'])) {
+            $this->print("❌ CRITICAL: Document text_vector_1024 is invalid for {$sourceid}!");
+            $this->print("   Type: " . gettype($doc['_source']['text_vector_1024']));
             return null;
         }
         
-        if (count($doc['_source']['text_vector']) !== 384) {
-            $this->print("❌ CRITICAL: Document text_vector has wrong dimensions for {$sourceid}: " . count($doc['_source']['text_vector']));
+        if (count($doc['_source']['text_vector_1024']) !== 1024) {
+            $this->print("❌ CRITICAL: Document text_vector_1024 has wrong dimensions for {$sourceid}: " . count($doc['_source']['text_vector_1024']));
             return null;
         }
         
@@ -740,7 +778,7 @@ class CorpusIndexer
             }
         }
         
-        $this->print("✅ All vectors validated for document {$sourceid}: text_vector=" . count($doc['_source']['text_vector']) . "D, " . count($doc['_source']['sentences']) . " sentences with 384D vectors");
+        $this->print("✅ All vectors validated for document {$sourceid}: text_vector_1024=" . count($doc['_source']['text_vector_1024']) . "D, " . count($doc['_source']['sentences']) . " sentences with 384D vectors");
 
         $this->processedDocuments++;
         
