@@ -68,7 +68,7 @@ is inspired by the <a class="fancy"href="https://laana.org">Laana</a> website of
 <h6>There are currently <?=$sourceCount?> documents and <?=$sentenceCount?> sentences in the database.</h6>
 <script>
   async function getGroupCounts() {
-      const url = 'groupcounts';
+      const url = 'groupcounts?provider=' + encodeURIComponent("<?=$provider->getName()?>");
       try {
           const response = await fetch(url);
           if (!response.ok) {
