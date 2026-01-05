@@ -82,6 +82,9 @@ $isIncluded = defined('INCLUDED_FROM_INDEX');
             z-index: 10;
             border-radius: 8px;
         }
+        .form-switch{
+            margin-right: 1em;
+        }
     </style>
 <?php if (!$isIncluded): ?>
 </head>
@@ -119,9 +122,15 @@ $isIncluded = defined('INCLUDED_FROM_INDEX');
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Pattern Frequency Over Time (Decades)</h5>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="logScaleToggle">
-                <label class="form-check-label" for="logScaleToggle">Logarithmic Scale</label>
+            <div class="d-flex align-items-center">
+                <div class="form-check form-switch me-3">
+                    <input class="form-check-input" type="checkbox" id="allPatternsToggle" checked>
+                    <label class="form-check-label" for="allPatternsToggle">All</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="logScaleToggle">
+                    <label class="form-check-label" for="logScaleToggle">Logarithmic Scale</label>
+                </div>
             </div>
         </div>
         <div class="card-body position-relative">
@@ -134,6 +143,24 @@ $isIncluded = defined('INCLUDED_FROM_INDEX');
                 <canvas id="timelineChart"></canvas>
             </div>
             <p class="text-muted small mt-2">Frequency of patterns grouped by decade.</p>
+        </div>
+    </div>
+
+    <!-- Document Distribution Chart -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Corpus Document Source Year Distribution</h5>
+        </div>
+        <div class="card-body position-relative">
+            <div id="documentLoading" class="loading-overlay">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="documentChart"></canvas>
+            </div>
+            <p class="text-muted small mt-2">Percentage of total documents in the corpus by year.</p>
         </div>
     </div>
 </div>
@@ -192,6 +219,17 @@ document.getElementById('logScaleToggle').addEventListener('change', function(e)
             delete timelineChart.options.scales.y.min;
             timelineChart.options.scales.y.beginAtZero = true;
         }
+        timelineChart.update();
+    }
+});
+
+// Toggle All Patterns
+document.getElementById('allPatternsToggle').addEventListener('change', function(e) {
+    if (timelineChart) {
+        const isChecked = e.target.checked;
+        timelineChart.data.datasets.forEach((dataset, index) => {
+            timelineChart.setDatasetVisibility(index, isChecked);
+        });
         timelineChart.update();
     }
 });
@@ -371,16 +409,122 @@ async function loadTimelineStats(allPatterns) {
             });
         });
 
+        // Calculate Mean
+        const meanData = labels.map((_, i) => {
+            let sum = 0;
+            let count = 0;
+            allPatterns.forEach(type => {
+                const val = datasets[type].data[i];
+                const actualVal = val === 0.1 ? 0 : val;
+                sum += actualVal;
+                count++;
+            });
+            const mean = count > 0 ? sum / count : 0;
+            return mean === 0 ? 0.1 : mean;
+        });
+
+        const meanDataset = {
+            label: 'Mean (Average)',
+            data: meanData,
+            borderColor: '#333',
+            backgroundColor: 'transparent',
+            borderDash: [5, 5],
+            borderWidth: 3,
+            tension: 0.3,
+            pointStyle: 'rectRot',
+            pointRadius: 5
+        };
+
         // Update chart
         timelineChart.data.labels = labels;
-        timelineChart.data.datasets = Object.values(datasets);
+        timelineChart.data.datasets = [...Object.values(datasets), meanDataset];
         timelineChart.update();
         
         document.getElementById('timelineLoading').style.display = 'none';
         
+        // Load document stats after timeline
+        loadDocumentStats();
+        
     } catch (e) {
         console.error("Error loading timeline:", e);
         document.getElementById('timelineLoading').innerHTML = `<div class="alert alert-danger">Error loading timeline: ${e.message}</div>`;
+    }
+}
+
+// 3. Load Document Stats
+async function loadDocumentStats() {
+    try {
+        const response = await fetch('api.php/sources?details&properties=date');
+        const data = await response.json();
+        
+        if (data.error) throw new Error(data.error);
+        if (!data.sources) throw new Error("Invalid response format");
+
+        const sources = data.sources;
+        const totalDocs = sources.length;
+        
+        // Count by year
+        const yearCounts = {};
+        sources.forEach(s => {
+            if (s.date && s.date !== '0000-00-00') {
+                const year = s.date.substring(0, 4);
+                yearCounts[year] = (yearCounts[year] || 0) + 1;
+            }
+        });
+
+        const years = Object.keys(yearCounts).sort();
+        const percentages = years.map(y => (yearCounts[y] / totalDocs * 100).toFixed(2));
+
+        const ctxDoc = document.getElementById('documentChart').getContext('2d');
+        new Chart(ctxDoc, {
+            type: 'line',
+            data: {
+                labels: years,
+                datasets: [{
+                    label: '% of Total Documents',
+                    data: percentages,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1,
+                    borderWidth: 2,
+                    pointRadius: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.raw}% of corpus`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Year' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Percentage (%)' },
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        document.getElementById('documentLoading').style.display = 'none';
+        
+    } catch (e) {
+        console.error("Error loading document stats:", e);
+        document.getElementById('documentLoading').innerHTML = `<div class="alert alert-danger">Error loading document stats: ${e.message}</div>`;
     }
 }
 
