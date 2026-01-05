@@ -44,12 +44,23 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
     </head>
 
     <body id=fadein onload="changeid()">
-        <div class="headerlinks">
-        <?= ($doSources) ? '<a href="' . $base . '"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?sources"><button class="linkbutton" type="button">Sources</button></a>' ?>
-        <?= ($doResources) ? '<a href="' . $base . '"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?resources"><button class="linkbutton" type="button">Resources</button></a>' ?>
-        <?= ($doGrammar) ? '<a href="' . $base . '"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?grammar"><button class="linkbutton" type="button">Grammar</button></a>' ?>
-        <?= ($doStats) ? '<a href="' . $base . '"><button class="linkbutton" type="button">Home</button></a>' : '<a href="?stats"><button class="linkbutton" type="button">Stats</button></a>' ?>
-    </div>
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link <?= (!($doSources || $doResources || $doGrammar || $doStats)) ? 'active' : '' ?>" href="<?=$base?>">Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?= ($doSources) ? 'active' : '' ?>" href="?sources">Sources</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?= ($doResources) ? 'active' : '' ?>" href="?resources">Resources</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?= ($doGrammar) ? 'active' : '' ?>" href="?grammar">Grammar</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?= ($doStats) ? 'active' : '' ?>" href="stats.php">Stats</a>
+            </li>
+        </ul>
 
        <a href="<?=$base?>" class="nostyle">
          <div class="titletext nostyle">
