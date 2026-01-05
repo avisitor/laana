@@ -164,22 +164,28 @@ class Laana extends DB {
         return [];
     }
 
-    public function getRandomWord( $minlength = 5 ) {
-        $count = $this->getSentenceCount();
-        $len = 0;
-        $times = 10;
-        while( ($len < $minlength) && ($times > 0) ) {
-            $start = random_int( 0, $count - 1 );
-            $sql = "select hawaiianText from sentences limit $start, 1";
-            $rows = $this->getDBRows( $sql );
+    public function getRandomWord($minlength = 5) {
+        // Get min and max sentenceID
+        $row = $this->getDBRows("SELECT MIN(sentenceID) AS minid, MAX(sentenceID) AS maxid FROM sentences");
+        $min = (int)$row[0]['minid'];
+        $max = (int)$row[0]['maxid'];
+
+        for ($i = 0; $i < 10; $i++) {
+            $id = random_int($min, $max);
+
+            // Skip gaps by using LIMIT 1
+            $sql = "SELECT hawaiianText FROM sentences WHERE sentenceID >= $id LIMIT 1";
+            $rows = $this->getDBRows($sql);
+            if (!$rows) continue;
+
             $sentence = $rows[0]['hawaiiantext'];
-            $words = preg_split( "/[\s,\?!\.\;\:\(\)]+/",  $sentence );
-            $start = random_int( 0, sizeof($words) - 1 );
-            $word = $words[$start];
-            $len = strlen( $word );
-            $times--;
+            $words = preg_split("/[\s,\?!\.\;\:\(\)]+/", $sentence);
+            $word = $words[random_int(0, count($words)-1)];
+
+            if (strlen($word) >= $minlength) {
+                return $word;
+            }
         }
-        return $word;
     }
     
     public function getsentences( $term, $pattern, $pageNumber = -1, $options = [] ) {
@@ -374,7 +380,8 @@ class Laana extends DB {
     }
     
     public function getSourceGroupCounts() {
-        $sql = "SELECT g.groupname, COUNT(DISTINCT s.sourceid) AS c FROM sources g LEFT JOIN sentences s ON g.sourceid = s.sourceid GROUP BY g.groupname";
+        $sql = "SELECT g.groupname, COUNT(DISTINCT s.sourceid) AS c FROM sources g JOIN sentences s ON g.sourceid = s.sourceid GROUP BY g.groupname";
+        $this->debuglog( $sql, "getSourceGroupCounts" );
         $rows = $this->getDBRows( $sql );
         $results = [];
         foreach( $rows as $row ) {
@@ -385,6 +392,7 @@ class Laana extends DB {
     
     public function getTotalSourceGroupCounts() {
         $sql = "SELECT groupname, COUNT(DISTINCT sourceid) AS c FROM sources GROUP BY groupname";
+        $this->debuglog( $sql, "getTotalSourceGroupCounts" );
         $rows = $this->getDBRows( $sql );
         $results = [];
         foreach( $rows as $row ) {
