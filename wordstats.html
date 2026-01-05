@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Word Count Histogram</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    #chart-container {
+      width: 100%;
+      max-width: 900px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Word Count Histogram</h2>
+<div id="chart-container">
+  <canvas id="histogram"></canvas>
+</div>
+
+<script>
+async function loadData() {
+    const response = await fetch("/data/wordcounts.json");
+    const data = await response.json();
+
+    // Convert object into sorted arrays
+    const entries = Object.entries(data);
+
+    // Sort by the numeric prefix before the colon, except ">500"
+    entries.sort((a, b) => {
+        const keyA = a[0].trim();
+        const keyB = b[0].trim();
+
+        if (keyA === ">500") return 1;
+        if (keyB === ">500") return -1;
+
+        const numA = parseInt(keyA.split(":")[0]);
+        const numB = parseInt(keyB.split(":")[0]);
+        return numA - numB;
+    });
+
+     const labels = entries.map(([key]) => {
+         key = key.trim();
+         if (key === ">500") return key;   // leave this one alone
+         return key.replace(/^.*:/, "");   // remove everything before the colon
+     });
+    const values = entries.map(e => e[1]);
+
+    renderChart(labels, values);
+}
+
+function renderChart(labels, values) {
+    const ctx = document.getElementById("histogram").getContext("2d");
+
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Word Count Per Sentence",
+                data: values,
+                backgroundColor: "rgba(54, 162, 235, 0.6)",
+                borderColor: "rgba(54, 162, 235, 1)",
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    ticks: { autoSkip: false, maxRotation: 90, minRotation: 45 }
+                },
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+loadData();
+</script>
+
+</body>
+</html>
