@@ -9,7 +9,7 @@ html {
 }
 
 body {
-    padding: .5em;
+    padding: .1em;
     overflow-x: hidden;
     max-width: 100vw;
     width: 100%;
@@ -800,8 +800,8 @@ div.page-load-status {
 
 /* Custom styles for the stats dashboard and main tabs */
 .stats-container {
-    margin-top: 20px;
-    padding: 15px;
+    margin-top: 3px;
+    padding: 3px;
     background: rgba(255, 255, 255, 0.6);
     border-radius: 10px;
 }
@@ -829,7 +829,7 @@ iframe.stats-frame {
     display: flex;
     justify-content: flex-end; /* Right align */
     padding-right: 15px; /* Space from right edge */
-    margin-bottom: 1em;
+    margin-bottom: 0;
 }
 .nav-tabs .nav-item {
     margin-bottom: -2px;
