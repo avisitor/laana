@@ -1582,6 +1582,45 @@ class ElasticsearchClient {
         }
     }
 
+    public function getSourceGroupCounts( $indexName = null ): array
+    {
+        $index = $indexName ?? $this->getIndexName();
+        $index = $this->getDocumentsIndexName( $index );
+        $params = [
+            'index' => $index,
+            'body' => [
+                'query' => [
+                    'range' => [
+                        'sentence_count' => [
+                            'gt' => 0
+                        ]
+                    ]
+                ],
+                'aggs' => [
+                    'group_by_groupname' => [
+                        'terms' => [
+                            'field' => 'groupname.keyword',
+                            'size' => 10000 // Adjust size as needed
+                        ]
+                    ]
+                ],
+                'size' => 0 // We only need aggregations
+            ]
+        ];
+
+        try {
+            $response = $this->client->search($params)->asArray();
+            $groupCounts = [];
+            foreach ($response['aggregations']['group_by_groupname']['buckets'] as $bucket) {
+                $groupCounts[$bucket['key']] = $bucket['doc_count'];
+            }
+            return $groupCounts;
+        } catch (Exception $e) {
+            // Log the error or handle it appropriately
+            return [];
+        }
+    }
+
     // Returns -1 if counts cannot be estimated for $mode
     public function getMatchingSentenceCount(string $query, string $mode, array $options = []): int
     {

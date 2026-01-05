@@ -430,7 +430,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
     }
 
     public function getSourceGroupCounts() {
-        return $this->client->getTotalSourceGroupCounts();
+        return $this->client->getSourceGroupCounts();
     }
 
     public function getSources( $groupname = '', $properties = [], $sortBy = '', $sortDir = 'asc' ) {
