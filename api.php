@@ -42,6 +42,7 @@ if (!$path) {
 
 $path = trim($path, '/');
 $parts = explode('/', $path);
+error_log( 'parts: ' . var_export( $parts, true ) );
 
 function error_response($msg, $code = 400) {
     http_response_code($code);
@@ -65,6 +66,22 @@ if ($parts[0] === 'sources') {
         $result = ['sources' => $provider->getSources($group, $properties)];
     } else {
         $result = ['sourceids' => $provider->getSourceIDs($group)];
+    }
+}
+if ($parts[0] === 'sentences' && isset($parts[1])) {
+    $result = [];
+    $query = $parts[1];
+    if( $query === 'wordcounts' ) {
+        $result = $provider->getSentenceWordCounts();
+    }
+    echo json_encode($result);
+    exit;
+}
+if ($parts[0] === 'documents' && isset($parts[1])) {
+    $result = [];
+    $query = $parts[1];
+    if( $query === 'wordcounts' ) {
+        $result = $provider->getDocumentWordCounts();
     }
     echo json_encode($result);
     exit;
