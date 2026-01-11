@@ -9,63 +9,334 @@
       font-family: sans-serif;
       margin: 20px;
     }
-    #chart-container {
+    .chart-container {
       width: 100%;
       max-width: 900px;
+      margin-bottom: 50px;
+    }
+    .controls {
+      margin-bottom: 20px;
     }
   </style>
 </head>
 <body>
 
-<h2>Word Count Histogram</h2>
-<div id="chart-container">
-  <canvas id="histogram"></canvas>
+<div class="controls">
+  <label for="viz-style">Visualization Type:</label>
+  <select id="viz-style">
+    <option value="value range bars">Value Range Bars</option>
+    <option value="cumulative value bars">Cumulative Value Bars</option>
+    <option value="value line" selected>Value Line</option>
+    <option value="cumulative value line">Cumulative Value Line</option>
+  </select>
+</div>
+
+<h2>Document Word Count</h2>
+<div class="chart-container">
+  <canvas id="docs-histogram"></canvas>
+</div>
+
+<h2>Sentence Word Count</h2>
+<div class="chart-container">
+  <canvas id="sentences-histogram"></canvas>
 </div>
 
 <script>
-async function loadData() {
-    const response = await fetch("/data/wordcounts.json");
-    const data = await response.json();
+const BUCKETS = [
+    { label: "1–10",    min: 1,   max: 10,    count: 0 },
+    { label: "11–25",   min: 11,  max: 25,    count: 0 },
+    { label: "26–50",   min: 26,  max: 50,    count: 0 },
+    { label: "51–100",  min: 51,  max: 100,   count: 0 },
+    { label: "101–250", min: 101, max: 250,   count: 0 },
+    { label: "251–500", min: 251, max: 500,   count: 0 },
+    { label: ">500",    min: 501, max: Infinity, count: 0 }
+];
 
-    // Convert object into sorted arrays
-    const entries = Object.entries(data);
+function bucketHistogram(rows) {
+    // Clone bucket definitions so we don't mutate the original
+    const buckets = BUCKETS.map(b => ({ ...b }));
 
-    // Sort by the numeric prefix before the colon, except ">500"
-    entries.sort((a, b) => {
-        const keyA = a[0].trim();
-        const keyB = b[0].trim();
+    for (const row of rows) {
+        const wc = row.wordcount;
+        const freq = row.c;
 
-        if (keyA === ">500") return 1;
-        if (keyB === ">500") return -1;
+        for (const bucket of buckets) {
+            if (wc >= bucket.min && wc <= bucket.max) {
+                bucket.count += freq;
+                break;
+            }
+        }
+    }
 
-        const numA = parseInt(keyA.split(":")[0]);
-        const numB = parseInt(keyB.split(":")[0]);
-        return numA - numB;
-    });
-
-     const labels = entries.map(([key]) => {
-         key = key.trim();
-         if (key === ">500") return key;   // leave this one alone
-         return key.replace(/^.*:/, "");   // remove everything before the colon
-     });
-    const values = entries.map(e => e[1]);
-
-    renderChart(labels, values);
+    return buckets;
 }
 
-function renderChart(labels, values) {
-    const ctx = document.getElementById("histogram").getContext("2d");
+function smartBucketHistogram(rows, bucketCount = 10) {
+    // Expand into an array of individual wordcounts weighted by frequency
+    // Example: {wordcount: 3, c: 180452} becomes 180452 copies of "3"
+    // But we do this efficiently without actually expanding the array.
 
-    new Chart(ctx, {
-        type: "bar",
+    // Step 1: Build a sorted list of unique wordcounts
+    const sorted = [...rows].sort((a, b) => a.wordcount - b.wordcount);
+
+    // Step 2: Compute cumulative frequencies
+    let total = 0;
+    for (const r of sorted) total += r.c;
+
+    const cumulative = [];
+    let running = 0;
+    for (const r of sorted) {
+        running += r.c;
+        cumulative.push({ wc: r.wordcount, cum: running });
+    }
+
+    // Step 3: Determine quantile boundaries
+    const boundaries = [];
+    for (let i = 1; i < bucketCount; i++) {
+        const target = (i / bucketCount) * total;
+        const boundary = cumulative.find(c => c.cum >= target).wc;
+        boundaries.push(boundary);
+    }
+
+    // Step 4: Build buckets
+    const buckets = [];
+    let prev = sorted[0].wordcount;
+
+    for (const b of boundaries) {
+        buckets.push({ min: prev, max: b, count: 0 });
+        prev = b + 1;
+    }
+
+    // Last bucket
+    buckets.push({
+        min: prev,
+        max: sorted[sorted.length - 1].wordcount,
+        count: 0
+    });
+
+    // Step 5: Assign frequencies to buckets
+    for (const r of sorted) {
+        for (const bucket of buckets) {
+            if (r.wordcount >= bucket.min && r.wordcount <= bucket.max) {
+                bucket.count += r.c;
+                break;
+            }
+        }
+    }
+
+    return buckets;
+}
+
+function hybridBucketHistogram(rows, totalBuckets = 20, linearBuckets = 10) {
+    // rows = [{ wordcount: X, c: Y }, ...]
+
+    // Sort by wordcount
+    const sorted = [...rows].sort((a, b) => a.wordcount - b.wordcount);
+
+    const minWC = sorted[0].wordcount;
+    const maxWC = sorted[sorted.length - 1].wordcount;
+
+    // -------------------------------
+    // 1. Build linear buckets (first N)
+    // -------------------------------
+    const linearMax = sorted[linearBuckets - 1].wordcount;  
+    // or choose a fixed cutoff like 50 or 100 if you prefer
+
+    const linearWidth = Math.ceil((linearMax - minWC + 1) / linearBuckets);
+
+    const buckets = [];
+
+    let start = minWC;
+    for (let i = 0; i < linearBuckets; i++) {
+        const end = start + linearWidth - 1;
+        buckets.push({ min: start, max: end, count: 0 });
+        start = end + 1;
+    }
+
+    // -------------------------------
+    // 2. Build logarithmic buckets (remaining)
+    // -------------------------------
+    const logBuckets = totalBuckets - linearBuckets;
+
+    let logStart = buckets[buckets.length - 1].max + 1;
+    let logEnd = logStart;
+
+    for (let i = 0; i < logBuckets; i++) {
+        // Exponential growth factor (tweakable)
+        logEnd = Math.floor(logStart * 1.5);
+
+        // Cap at maxWC
+        if (logEnd > maxWC) logEnd = maxWC;
+
+        buckets.push({ min: logStart, max: logEnd, count: 0 });
+
+        logStart = logEnd + 1;
+        if (logStart > maxWC) break;
+    }
+
+    // -------------------------------
+    // 3. Assign frequencies to buckets
+    // -------------------------------
+    for (const r of sorted) {
+        for (const b of buckets) {
+            if (r.wordcount >= b.min && r.wordcount <= b.max) {
+                b.count += r.c;
+                break;
+            }
+        }
+    }
+
+    // -------------------------------
+    // 4. Clean up empty buckets at the end
+    // -------------------------------
+    return buckets.filter(b => b.min <= b.max);
+}
+
+// rows = [{ wordcount: X, c: Y }, ...]
+// returns [{ wordcount: X, cumulative: Z }, ...]
+function buildCumulativeDistribution(rows) {
+    // Sort by wordcount
+    const sorted = [...rows].sort((a, b) => a.wordcount - b.wordcount);
+
+    const cumulative = [];
+    let running = 0;
+
+    for (const r of sorted) {
+        running += r.c;
+        cumulative.push({
+            wordcount: r.wordcount,
+            cumulative: running
+        });
+    }
+
+    return cumulative;
+}
+
+function cumulativeFromBuckets(buckets) {
+    let running = 0;
+    return buckets.map((b, index) => {
+        running += b.count;
+        return {
+            label: index === 0
+                ? `${b.min}–${b.max}`
+                : `${buckets[0].min}–${b.max}`, // cumulative label from the first min
+            cumulative: running
+        };
+    });
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+const provider = urlParams.get('provider');
+const charts = {};
+
+async function loadDataForType(type, canvasId, config) {
+    const endpoint = (type === 'documents') ? 'documents/wordcounts' : 'sentences/wordcounts';
+    const url = `https://noiiolelo.worldspot.org/api/${endpoint}` + (provider ? `?provider=${provider}` : "");
+
+    try {
+        const response = await fetch(url);
+        let rows = await response.json();
+        
+        rows = rows.map(r => ({
+            wordcount: r.wordcount !== undefined ? r.wordcount : r.wordCount,
+            c: parseInt(r.c)
+        }));
+
+        // Exclude 0 and null values for documents
+        if (type === 'documents') {
+            rows = rows.filter(r => r.wordcount && r.wordcount > 0);
+        }
+        
+        if (!rows || rows.length === 0) return;
+
+        window[`data_${type}`] = rows;
+        window[`config_${type}`] = config;
+
+        refreshChart(type, canvasId);
+    } catch (e) {
+        console.error(`Error loading data for ${type}:`, e);
+    }
+}
+
+function refreshChart(type, canvasId) {
+    const rows = window[`data_${type}`];
+    const config = window[`config_${type}`];
+    if (!rows) return;
+
+    const style = document.getElementById('viz-style').value;
+    const buckets = hybridBucketHistogram(rows, config.nBuckets, config.nLinearBuckets);
+    
+    renderChart(buckets, type, canvasId, { type: style });
+}
+
+function renderChart(buckets, type, canvasId, options) {
+    const ctx = document.getElementById(canvasId).getContext("2d");
+    const style = options.type;
+    
+    let chartType = "bar";
+    let dataLabel = "";
+    let labels = [];
+    let values = [];
+
+    // Range-based
+    const rangeLabels = buckets.map(b => `${b.min}–${b.max}`);
+    const rangeValues = buckets.map(b => b.count);
+
+    // Cumulative
+    let running = 0;
+    const cdf = buckets.map((b, index) => {
+        running += b.count;
+        return {
+            label: index === 0 ? `${b.min}–${b.max}` : `${buckets[0].min}–${b.max}`,
+            cumulative: running
+        };
+    });
+    const cumulativeLabels = cdf.map(b => b.label);
+    const cumulativeValues = cdf.map(b => b.cumulative);
+
+    switch (style) {
+        case 'value range bars':
+            chartType = "bar";
+            labels = rangeLabels;
+            values = rangeValues;
+            dataLabel = `Frequency per Range (${type})`;
+            break;
+        case 'cumulative value bars':
+            chartType = "bar";
+            labels = cumulativeLabels;
+            values = cumulativeValues;
+            dataLabel = `Cumulative Frequency (${type})`;
+            break;
+        case 'value line':
+            chartType = "line";
+            labels = rangeLabels;
+            values = rangeValues;
+            dataLabel = `Frequency per Range (${type})`;
+            break;
+        case 'cumulative value line':
+            chartType = "line";
+            labels = cumulativeLabels;
+            values = cumulativeValues;
+            dataLabel = `Cumulative Frequency (${type})`;
+            break;
+    }
+
+    if (charts[canvasId]) {
+        charts[canvasId].destroy();
+    }
+
+    charts[canvasId] = new Chart(ctx, {
+        type: chartType,
         data: {
             labels: labels,
             datasets: [{
-                label: "Word Count Per Sentence",
+                label: dataLabel,
                 data: values,
                 backgroundColor: "rgba(54, 162, 235, 0.6)",
                 borderColor: "rgba(54, 162, 235, 1)",
-                borderWidth: 1
+                borderWidth: 1,
+                fill: style.includes('line') ? false : true,
+                tension: 0.2
             }]
         },
         options: {
@@ -82,7 +353,13 @@ function renderChart(labels, values) {
     });
 }
 
-loadData();
+document.getElementById('viz-style').addEventListener('change', () => {
+    refreshChart('documents', 'docs-histogram');
+    refreshChart('sentences', 'sentences-histogram');
+});
+
+loadDataForType('documents', 'docs-histogram', { nBuckets: 50, nLinearBuckets: 1 });
+loadDataForType('sentences', 'sentences-histogram', { nBuckets: 40, nLinearBuckets: 10 });
 </script>
 
 </body>
