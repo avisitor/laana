@@ -27,7 +27,8 @@ CREATE TABLE laana.sentences (
     hawaiiantext text,
     englishtext text,
     created timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    simplified text,
+    simplified text GENERATED ALWAYS AS (simplify_hawaiian(hawaiiantext)) STORED,
+    wordcount int GENERATED ALWAYS AS (hawaiian_word_count(hawaiiantext)) STORED,
     embedding public.vector(384)
 );
 
@@ -118,14 +119,55 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION laana.normalize_hawaiian() RETURNS TRIGGER AS $$
-BEGIN
-    IF (TG_OP = 'INSERT' OR NEW.hawaiiantext IS DISTINCT FROM OLD.hawaiiantext) THEN
-        NEW.simplified := translate(NEW.hawaiiantext, 'ōīēūāŌĪĒŪĀ‘ʻ', 'oieuaOIEUA');
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION laana.simplify_hawaiian(str text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+    SELECT replace(
+           replace(
+           replace(
+           replace(
+           replace(
+           replace(
+           replace(
+           replace(
+           replace(
+           replace(
+           replace(
+           replace(str,
+               'ō','o'),'ī','i'),'ē','e'),'ū','u'),'ā','a'),
+               'Ō','O'),'Ī','I'),'Ē','E'),'Ū','U'),'Ā','A'),
+               'ʻ',''),'‘','');
+$$;
+
+CREATE OR REPLACE FUNCTION hawaiian_word_count(str text)
+RETURNS int
+LANGUAGE sql
+IMMUTABLE
+AS $$
+    SELECT CASE
+        WHEN str IS NULL OR btrim(str) = '' THEN 0
+        ELSE length(regexp_replace(btrim(str), '\s+', ' ', 'g'))
+             - length(replace(regexp_replace(btrim(str), '\s+', ' ', 'g'), ' ', ''))
+             + 1
+    END;
+$$;
+
+CREATE OR REPLACE FUNCTION hawaiian_syllable_count(str text)
+RETURNS int
+LANGUAGE sql
+IMMUTABLE
+AS $$
+    SELECT (
+        SELECT count(*)
+        FROM regexp_matches(
+            simplify_hawaiian(str),
+            '[aeiouAEIOU]+',
+            'g'
+        ) AS m
+    );
+$$;
 
 CREATE TRIGGER trg_normalize_sentences BEFORE INSERT OR UPDATE ON laana.sentences
 FOR EACH ROW EXECUTE FUNCTION laana.normalize_hawaiian();

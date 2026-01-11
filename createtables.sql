@@ -5,9 +5,11 @@ CREATE TABLE `sentences` (
   `englishText` varchar(255) DEFAULT NULL,
   `created` datetime DEFAULT current_timestamp(),
   `simplified` text DEFAULT NULL,
+  wordCount INT DEFAULT 0,
   UNIQUE KEY `sentenceID` (`sentenceID`),
   KEY `hawaiian` (`sourceID`,`hawaiianText`(100)),
   KEY `sourceID` (`sourceID`),
+  KEY `wordCount` (`wordCount`),
   FULLTEXT KEY `hawaiianText` (`hawaiianText`),
   FULLTEXT KEY `simplified` (`simplified`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
@@ -58,6 +60,7 @@ CREATE TABLE `contents` (
   `sourceID` int(11) NOT NULL,
   `html` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `text` mediumtext DEFAULT NULL,
+  wordCount INT DEFAULT 0,
   `created` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`sourceID`),
   UNIQUE KEY `sourceID` (`sourceID`)
@@ -105,19 +108,131 @@ ON SCHEDULE EVERY 1 HOUR
 DO CALL refresh_grammar_counts();
 
 DELIMITER //
-CREATE TRIGGER sentences_before_insert BEFORE INSERT ON sentences
-FOR EACH ROW
+CREATE FUNCTION simplify_hawaiian(str TEXT)
+RETURNS TEXT
+DETERMINISTIC
 BEGIN
-    SET NEW.simplified = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(NEW.hawaiianText,'ō','o'),'ī','i'),'ē','e'),'ū','u'),'ā','a'),'Ō','O'),'Ī','I'),'Ē','E'),'Ū','U'),'Ā','A'),'‘',''),'ʻ','');
+    IF str IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    RETURN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+           REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+               str,
+               'ō','o'),'ī','i'),'ē','e'),'ū','u'),'ā','a'),
+               'Ō','O'),'Ī','I'),'Ē','E'),'Ū','U'),'Ā','A'),
+               '‘',''),'ʻ','');
 END;
 //
-CREATE TRIGGER sentences_before_update BEFORE UPDATE ON sentences
+DELIMITER ;
+
+DELIMITER //
+CREATE FUNCTION hawaiian_word_count(str TEXT)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    IF str IS NULL OR TRIM(str) = '' THEN
+        RETURN 0;
+    END IF;
+
+    RETURN LENGTH(TRIM(str))
+         - LENGTH(REPLACE(TRIM(str), ' ', ''))
+         + 1;
+END;
+//
+DELIMITER ;
+
+DELIMITER //
+CREATE FUNCTION hawaiian_syllable_count(str TEXT)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE cleaned TEXT;
+    DECLARE i INT DEFAULT 1;
+    DECLARE len INT;
+    DECLARE c CHAR(1);
+    DECLARE in_vowel BOOLEAN DEFAULT FALSE;
+    DECLARE syllables INT DEFAULT 0;
+
+    IF str IS NULL OR TRIM(str) = '' THEN
+        RETURN 0;
+    END IF;
+
+    -- Normalize macrons to plain vowels
+    SET cleaned = simplify_hawaiian(str);
+    SET len = CHAR_LENGTH(cleaned);
+
+    WHILE i <= len DO
+        SET c = SUBSTRING(cleaned, i, 1);
+
+        IF c IN ('a','e','i','o','u','A','E','I','O','U') THEN
+            IF NOT in_vowel THEN
+                SET syllables = syllables + 1;
+                SET in_vowel = TRUE;
+            END IF;
+        ELSE
+            SET in_vowel = FALSE;
+        END IF;
+
+        SET i = i + 1;
+    END WHILE;
+
+    RETURN syllables;
+END;
+//
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER sentences_before_insert
+BEFORE INSERT ON sentences
+FOR EACH ROW
+BEGIN
+    SET NEW.simplified     = simplify_hawaiian(NEW.hawaiianText);
+    SET NEW.wordCount     = hawaiian_word_count(NEW.hawaiianText);
+END;
+//
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER sentences_before_update
+BEFORE UPDATE ON sentences
 FOR EACH ROW
 BEGIN
     IF NEW.hawaiianText <> OLD.hawaiianText THEN
-        SET NEW.simplified = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(NEW.hawaiianText,'ō','o'),'ī','i'),'ē','e'),'ū','u'),'ā','a'),'Ō','O'),'Ī','I'),'Ē','E'),'Ū','U'),'Ā','A'),'‘',''),'ʻ','');
+        SET NEW.simplified     = simplify_hawaiian(NEW.hawaiianText);
+        SET NEW.wordCount     = hawaiian_word_count(NEW.hawaiianText);
     END IF;
 END;
+//
+
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER contents_before_insert
+BEFORE INSERT ON contents
+FOR EACH ROW
+BEGIN
+    SET NEW.wordCount =
+        hawaiian_word_count(NEW.text);
+END;
+//
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER contents_before_update
+BEFORE UPDATE ON contents
+FOR EACH ROW
+BEGIN
+    IF NEW.text <> OLD.text THEN
+        SET NEW.wordCount =
+            hawaiian_word_count(NEW.text);
+    END IF;
+END;
+//
+DELIMITER ;
+
+
+DELIMITER //
 //
 CREATE TRIGGER insert_sentences AFTER INSERT ON sentences
 FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sentences';

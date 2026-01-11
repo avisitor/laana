@@ -99,6 +99,14 @@ class ElasticsearchProvider implements SearchProviderInterface {
         return $this->client->getSentencesIndexName();
     }
 
+    public function getSentenceWordCounts(array $options = []): array {
+        return $this->client->getSentenceWordCounts($options);
+    }
+
+    public function getDocumentWordCounts(array $options = []): array {
+        return $this->client->getDocumentWordCounts($options);
+    }
+
     protected function documentToSentenceMode( $mode ) {
         $pattern = $mode;
         if( strpos($mode, 'sentence') !== false ) {

@@ -103,6 +103,7 @@
         "index": true,
         "similarity": "cosine"
       },
+      "word_count": {"type": "integer"},
       "sentence_count": {"type": "integer"},
       "entity_count": {"type": "integer"},
       "boilerplate_score": {"type": "float"}

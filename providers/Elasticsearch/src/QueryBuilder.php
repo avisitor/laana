@@ -806,6 +806,62 @@ class QueryBuilder
         return $params;
     }
 
+    public function buildSentenceWordCountsQuery(array $options = []): array
+    {
+        $sentencesIndex = $options['sentencesIndex'] ?? 'sentences';
+        
+        $params = [
+            'index' => $sentencesIndex,
+            'body' => [
+                'size' => 0,
+                'aggs' => [
+                    'word_counts' => [
+                        'terms' => [
+                            'field' => 'word_count',
+                            'size' => 1000, // Should be enough for sentence word counts
+                            'order' => [
+                                '_key' => 'asc'
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->print("buildSentenceWordCountsQuery: queryBody: " .
+            json_encode($params, JSON_PRETTY_PRINT));
+            
+        return $params;
+    }
+
+    public function buildDocumentWordCountsQuery(array $options = []): array
+    {
+        $documentsIndex = $options['documentsIndex'] ?? 'documents';
+        
+        $params = [
+            'index' => $documentsIndex,
+            'body' => [
+                'size' => 0,
+                'aggs' => [
+                    'word_counts' => [
+                        'terms' => [
+                            'field' => 'word_count',
+                            'size' => 10000, // Documents vary more in word count
+                            'order' => [
+                                '_key' => 'asc'
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->print("buildDocumentWordCountsQuery: queryBody: " .
+            json_encode($params, JSON_PRETTY_PRINT));
+            
+        return $params;
+    }
+
     /**
      * Extract simple terms from regex patterns that can be used for highlighting
      * This is a basic implementation that handles common patterns

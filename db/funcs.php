@@ -401,6 +401,20 @@ class Laana extends DB {
         return $results;
     }
     
+    public function getSentenceWordCounts(): array { 
+        $sql = "SELECT wordCount, COUNT(*) AS c FROM sentences GROUP BY wordCount order by wordCount";
+        $this->debuglog( $sql, "getSentenceWordCounts" );
+        $rows = $this->getDBRows( $sql );
+        return $rows;
+    }
+    
+    public function getDocumentWordCounts(): array { 
+        $sql = "SELECT wordCount, COUNT(*) AS c FROM contents GROUP BY wordCount order by wordCount";
+        $this->debuglog( $sql, "getSentenceWordCounts" );
+        $rows = $this->getDBRows( $sql );
+        return $rows;
+    }
+    
     public function getSource( $sourceid ) {
         //$sql = "select * from sources o where sourceid = :sourceid";
         $sql = "select sources.*,count(*) sentencecount from sources left join sentences on sources.sourceid = sentences.sourceid where sources.sourceid = :sourceid";

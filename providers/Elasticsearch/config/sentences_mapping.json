@@ -34,6 +34,7 @@
     },
     "properties": {
       "created_at": {"type": "date"},
+      "word_count": {"type": "integer"},
       "sentence_id": {"type": "keyword"},
       "doc_id": {"type": "keyword"},
       "text": {

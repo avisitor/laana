@@ -97,6 +97,14 @@ class MySQLProvider implements SearchProviderInterface
     public function getSentence($sentenceid) { return $this->laana->getSentence($sentenceid); }
     public function getMatchingSentenceCount( $term, $pattern, $pageNumber = -1, $options = [] ) { return $this->laana->getMatchingSentenceCount( $term, $pattern, $pageNumber, $options ); }
     
+    public function getSentenceWordCounts(): array {
+        return $this->laana->getSentenceWordCounts();
+    }
+
+    public function getDocumentWordCounts(): array {
+        return $this->laana->getDocumentWordCounts();
+    }
+
     // Search stats methods
     public function addSearchStat( string $searchterm, string $pattern, int $results, string $order, float $elapsed ): bool { 
         return (bool)$this->laana->addSearchStat( $searchterm, $pattern, $results, $order, $elapsed ); 

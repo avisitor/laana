@@ -92,4 +92,14 @@ interface SearchProviderInterface
      * Get the timestamp of the first search
      */
     public function getFirstSearchTime(): string;
+
+    /**
+     * Get sentence word counts grouped by count
+     */
+    public function getSentenceWordCounts(): array;
+
+    /**
+     * Get document word counts grouped by count
+     */
+    public function getDocumentWordCounts(): array;
 }

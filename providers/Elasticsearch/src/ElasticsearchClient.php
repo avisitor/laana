@@ -12,6 +12,7 @@ use Elastic\Transport\Exception\NoNodeAvailableException;
 use Dotenv\Dotenv;
 
 require_once __DIR__ . '/QueryBuilder.php';
+require_once __DIR__ . '/EmbeddingClient.php';
 require_once __DIR__ . '/ElasticsearchScrollIterator.php';
 require_once __DIR__ . '/SourceIterator.php';
 
@@ -932,6 +933,7 @@ class ElasticsearchClient {
             'text_vector' => $textVector,
             'text_vector_1024' => $textVector1024,
             'hawaiian_word_ratio' => $hawaiianWordRatio,
+            'word_count' => str_word_count($text),
             'sentence_count' => $sentenceCount
         ]);
 
@@ -1052,6 +1054,7 @@ class ElasticsearchClient {
                 'vector' => $sentenceVectors[$idx],
                 'sentence_hash' => $sentenceHash,
                 'frequency' => 1, // Default frequency
+                'word_count' => str_word_count($sentenceText),
                 'hawaiian_word_ratio' => $this->calculateHawaiianWordRatio($sentenceText),
                 'entity_count' => $this->calculateEntityCount($sentenceText),
                 'boilerplate_score' => $this->calculateBoilerplateScore($sentenceText),
@@ -1658,6 +1661,54 @@ class ElasticsearchClient {
                 error_log("Sentence count error: " . $e->getMessage());
             }
             return 0;
+        }
+    }
+
+    public function getSentenceWordCounts(array $options = []): array
+    {
+        $options['sentencesIndex'] = $options['sentencesIndex'] ?? $this->getSentencesIndexName();
+        $params = $this->queryBuilder->buildSentenceWordCountsQuery($options);
+
+        try {
+            $response = $this->client->search($params)->asArray();
+            $results = [];
+            
+            $buckets = $response['aggregations']['word_counts']['buckets'] ?? [];
+            foreach ($buckets as $bucket) {
+                $results[] = [
+                    'wordcount' => $bucket['key'],
+                    'c' => $bucket['doc_count']
+                ];
+            }
+            
+            return $results;
+        } catch (\Exception $e) {
+            $this->print("getSentenceWordCounts error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getDocumentWordCounts(array $options = []): array
+    {
+        $options['documentsIndex'] = $options['documentsIndex'] ?? $this->getDocumentsIndexName();
+        $params = $this->queryBuilder->buildDocumentWordCountsQuery($options);
+
+        try {
+            $response = $this->client->search($params)->asArray();
+            $results = [];
+            
+            $buckets = $response['aggregations']['word_counts']['buckets'] ?? [];
+            foreach ($buckets as $bucket) {
+                $results[] = [
+                    'wordcount' => $bucket['key'],
+                    'c' => $bucket['doc_count']
+                ];
+            }
+            
+            return $results;
+        } catch (\Exception $e) {
+            $this->print("getDocumentWordCounts error: " . $e->getMessage());
+            return [];
         }
     }
 
