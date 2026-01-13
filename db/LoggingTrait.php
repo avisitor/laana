@@ -1,5 +1,7 @@
 <?php
 namespace Noiiolelo;
+use DateTimeImmutable;
+use DateTimeZone;
 
 /**
  * LoggingTrait - Reusable logging functionality for classes
