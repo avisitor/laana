@@ -11,7 +11,9 @@ import time
 import json
 
 # 1. Load credentials
-load_dotenv('/var/www/html/noiiolelo/.env')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.realpath(os.path.join(BASE_DIR, '..', '.env'))
+load_dotenv(env_path)
 
 def get_connection(provider='Postgres'):
     if provider == 'Postgres':
@@ -42,7 +44,8 @@ def get_connection(provider='Postgres'):
 # 2. Define linguistic patterns
 # Load patterns from shared JSON file
 try:
-    with open('/var/www/html/noiiolelo/lib/grammar_patterns.json', 'r') as f:
+    pattern_path = os.path.realpath(os.path.join(BASE_DIR, '../lib', 'grammar_patterns.json'))
+    with open(pattern_path, 'r') as f:
         PATTERNS = json.load(f)
 except Exception as e:
     print(f"Error loading patterns from JSON: {e}")
