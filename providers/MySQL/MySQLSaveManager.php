@@ -3,7 +3,6 @@ namespace Noiiolelo\Providers\MySQL;
 
 require_once __DIR__ . '/../../db/funcs.php';
 require_once __DIR__ . '/../../db/parsehtml.php';
-require_once __DIR__ . '/../../scripts/parsers.php';
 require_once __DIR__ . '/../../db/LoggingTrait.php';
 
 use Laana;
@@ -32,8 +31,9 @@ class MySQLSaveManager {
 
     public function __construct($options = []) {
         $this->funcName = "__construct";
-        global $parsermap;
+        //global $parsermap;
         $this->laana = new Laana();
+        require_once __DIR__ . '/../../scripts/parsers.php';
         $this->parsers = $parsermap;
         if (isset($options['debug'])) {
             $this->setDebug($options['debug']);
@@ -54,11 +54,13 @@ class MySQLSaveManager {
         }
         $this->options = $options;
         $this->log( $this->options, "options" );
-        
+
         // Output initialization info
         $this->outputLine("MySQLSaveManager initialized");
         $this->outputLine("Database: laana");
         $this->outputLine("Processing logs: Database (processing_log table)");
+        $this->outputLine("Options: " . json_encode( $options ));
+        //$this->outputLine("Parsers: " . json_encode( $parsermap ));
         $this->outputLine("");
     }
 
