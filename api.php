@@ -67,6 +67,8 @@ if ($parts[0] === 'sources') {
     } else {
         $result = ['sourceids' => $provider->getSourceIDs($group)];
     }
+    echo json_encode($result);
+    exit;
 }
 if ($parts[0] === 'sentences' && isset($parts[1])) {
     $result = [];
