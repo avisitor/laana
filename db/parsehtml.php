@@ -293,8 +293,11 @@ class HtmlParse {
         return $fulltext;
     }
 
-    public function getContents( $url ) {
+    public function getContents( $url, $options = [] ) {
         $funcName = $this->funcName = "getContents";
+        if (!empty($options) && is_array($options)) {
+            $this->options = array_merge($this->options, $options);
+        }
         $this->print( $this->options, $url );
         $text = $this->getRawText( $url );
         $nchars = strlen( $text );
@@ -742,6 +745,23 @@ class HtmlParse {
         $this->debugPrint( "" );
         return [];
     }
+
+    public function getSourceName(string $title = '', string $url = ''): string {
+        $this->funcName = "getSourceName";
+        if ($title) {
+            return $title;
+        }
+        if (!empty($this->metadata['sourcename'])) {
+            return $this->metadata['sourcename'];
+        }
+        if (!empty($this->metadata['title'])) {
+            return $this->metadata['title'];
+        }
+        if (!empty($this->baseurl)) {
+            return $this->baseurl;
+        }
+        return $this->logName;
+    }
     
     public final function extract($dom) {
         $this->funcName = "extract";
@@ -1052,9 +1072,9 @@ class UlukauHTML extends HTMLParse {
         */
         return $pageList;
     }
-    public function getContents( $url ) {
+    public function getContents( $url, $options = [] ) {
         $url = $this->docUrl . urlencode( $url );
-        return parent::getContents( $url );
+        return parent::getContents( $url, $options );
     }
 
     public function preprocessHTML( $text ) {
@@ -1410,7 +1430,7 @@ class UlukauHTML extends HTMLParse {
                 // Apply boilerplate filtering - but be more lenient for page number patterns
                 $isPageNumber = preg_match('/^\d+$/', $line) || preg_match('/^Page \d+$/', $line);
 
-                $boilerplateCheck = $this->isBoilerplate($line);
+                $boilerplateCheck = $this->checkBoilerplate($line);
                 if (!$boilerplateCheck['is_boilerplate'] && !$isPageNumber) {
                     $line = preg_replace('/[\s\n\r]+/u', ' ', $line);
                     $line = preg_replace('/\n+([\'ʻ])\n+/u', '$1', $line);
@@ -1621,7 +1641,7 @@ class UlukauLocal extends UlukauHTML {
         return $pageList;
     }
 
-    public function getContents( $url ) {
+    public function getContents( $url, $options = [] ) {
         $this->funcName = "getContents";
         $this->print("");
         $oid = null;
@@ -2196,13 +2216,22 @@ class NupepaHTML extends HtmlParse {
     public function getDocumentList() {
         $this->funcName = "getDocumentList";
         $html = $this->getRaw( $this->baseurl );
-        $crawler = new Crawler($html);
+        $crawlerClass = '\\Symfony\\Component\\DomCrawler\\Crawler';
+        if (!class_exists($crawlerClass)) {
+            $this->print("DomCrawler not available; cannot fetch document list.");
+            return [];
+        }
+        $crawler = new $crawlerClass($html);
         $results = [];
         $crawler->filter('#datebrowserrichardtoplevelcalendar > div')->each(function ($yearBlock) use (&$results) {
             $yearBlock->filter('a[href*="a=cl&cl=CL2."]')->each(function ($linkNode) use (&$results) {
                 $monthUrl = $linkNode->attr('href');
                 $monthHtml = $this->getRaw( $this->domain . $monthUrl );
-                $monthCrawler = new Crawler($monthHtml);
+                $crawlerClass = '\\Symfony\\Component\\DomCrawler\\Crawler';
+                if (!class_exists($crawlerClass)) {
+                    return;
+                }
+                $monthCrawler = new $crawlerClass($monthHtml);
                 $monthCrawler->filter('.datebrowserrichardmonthlevelcalendardaycellcontents')->each(function ($dayCell) use (&$results) {
                     if (!$dayCell->filter('.datebrowserrichardmonthdaynumdocs')->count()) return;
                     $dateText = $dayCell->filter('b.hiddenwhennotsmall')->count() ? trim($dayCell->filter('b.hiddenwhennotsmall')->text()) : null;

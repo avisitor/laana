@@ -36,9 +36,7 @@ class APIEndpointTest extends BaseTestCase
 
     public function testApiSourcesEndpoint(): void
     {
-        $output = $this->executeApiRequest('api.php', [
-            'path' => 'sources'
-        ]);
+        $output = $this->executeApiRequest('api.php/sources');
         
         $this->assertNotEmpty($output, 'API should return output');
         
@@ -56,8 +54,7 @@ class APIEndpointTest extends BaseTestCase
      */
     public function testApiSourcesWithProvider(string $providerName): void
     {
-        $output = $this->executeApiRequest('api.php', [
-            'path' => 'sources',
+        $output = $this->executeApiRequest('api.php/sources', [
             'provider' => $providerName
         ]);
         

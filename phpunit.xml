@@ -10,6 +10,8 @@
     <testsuites>
         <testsuite name="Provider">
             <directory>tests/Provider</directory>
+            <exclude>tests/Provider/Elasticsearch/BaseTest.php</exclude>
+            <exclude>tests/Provider/OpenSearch/BaseTest.php</exclude>
         </testsuite>
         <testsuite name="Search">
             <directory>tests/Search</directory>

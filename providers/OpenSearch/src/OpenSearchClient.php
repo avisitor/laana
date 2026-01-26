@@ -30,21 +30,48 @@ class OpenSearchClient extends ElasticsearchClient
         $this->splitIndices = $options['SPLIT_INDICES'] ?? true;
         $this->vectorDimensionsValidated = false;
 
-        $apiKey = $options['apiKey'] ?? $_ENV['API_KEY'] ?? getenv('API_KEY') ?? null;
+        $apiKey = $options['apiKey']
+            ?? $_ENV['OS_API_KEY'] ?? getenv('OS_API_KEY')
+            ?? $_ENV['OPENSEARCH_API_KEY'] ?? getenv('OPENSEARCH_API_KEY')
+            ?? $_ENV['API_KEY'] ?? getenv('API_KEY')
+            ?? null;
+        $bearerToken = $options['bearerToken']
+            ?? $_ENV['OS_BEARER_TOKEN'] ?? getenv('OS_BEARER_TOKEN')
+            ?? $_ENV['OPENSEARCH_BEARER_TOKEN'] ?? getenv('OPENSEARCH_BEARER_TOKEN')
+            ?? null;
         $host = $_ENV['OS_HOST'] ?? $_ENV['ES_HOST'] ?? 'localhost';
         $port = $_ENV['OS_PORT'] ?? $_ENV['ES_PORT'] ?? 9200;
-        $user = $_ENV['OS_USER'] ?? getenv('OS_USER') ?? null;
-        $pass = $_ENV['OS_PASS'] ?? getenv('OS_PASS') ?? null;
+        $user = $options['username']
+            ?? $_ENV['OS_USER'] ?? getenv('OS_USER')
+            ?? $_ENV['ES_USER'] ?? getenv('ES_USER')
+            ?? $_ENV['ELASTIC_USER'] ?? getenv('ELASTIC_USER')
+            ?? null;
+        $pass = $options['password']
+            ?? $_ENV['OS_PASS'] ?? getenv('OS_PASS')
+            ?? $_ENV['ES_PASS'] ?? getenv('ES_PASS')
+            ?? $_ENV['ELASTIC_PASSWORD'] ?? getenv('ELASTIC_PASSWORD')
+            ?? null;
 
         $builder = ClientBuilder::create()
             ->setHosts(["https://{$host}:{$port}"])
             ->setSSLVerification(false);
 
+        $connectionParams = ['client' => ['headers' => []]];
+
         if ($user && $pass) {
-            $builder->setBasicAuthentication($user, $pass);
-        } elseif ($apiKey && strpos($apiKey, ':') !== false) {
-            list($u, $p) = explode(':', $apiKey, 2);
-            $builder->setBasicAuthentication($u, $p);
+            $builder->setBasicAuthentication(trim($user), trim($pass));
+        } elseif ($bearerToken) {
+            $connectionParams['client']['headers']['Authorization'] = 'Bearer ' . trim($bearerToken);
+        } elseif ($apiKey) {
+            $apiKey = trim($apiKey);
+            if (strpos($apiKey, ':') !== false) {
+                $apiKey = base64_encode($apiKey);
+            }
+            $connectionParams['client']['headers']['Authorization'] = 'ApiKey ' . $apiKey;
+        }
+
+        if (!empty($connectionParams['client']['headers'])) {
+            $builder->setConnectionParams($connectionParams);
         }
 
         $osClient = $builder->build();

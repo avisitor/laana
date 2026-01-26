@@ -7,6 +7,7 @@ class QueryBuilder
     public const MODES = ["matchsentence", "matchsentence_all", "termsentence", "phrasesentence", "match", "term", "phrase", "regexp", "regexpsentence", "vector", "hybrid", "vectorsentence", "hybridsentence", "knn", "knnsentence"];
 
     private EmbeddingClient $embeddingClient;
+    private bool $verbose = true;
 
     public function __construct(EmbeddingClient $embeddingClient)
     {

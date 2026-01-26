@@ -4,7 +4,9 @@ namespace Noiiolelo\Providers\Postgres;
 
 require_once __DIR__ . '/PostgresClient.php';
 require_once __DIR__ . '/PostgresSentenceIterator.php';
-require_once __DIR__ . '/MetricsComputer.php';
+require_once __DIR__ . '/../../lib/MetricsComputer.php';
+
+use Noiiolelo\MetricsComputer;
 
 class PostgresSentenceIndexer
 {

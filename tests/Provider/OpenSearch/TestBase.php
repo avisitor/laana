@@ -4,7 +4,7 @@ require_once __DIR__ . '/BaseTest.php';
 
 use HawaiianSearch\ElasticsearchClient;
 
-abstract class TestBase extends BaseTest {
+abstract class TestBase extends OpenSearchBaseTest {
     /** @var ElasticsearchClient */
     protected $client;
     protected $createdIndices = [];

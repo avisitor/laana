@@ -1,10 +1,11 @@
 <?php
 // Safe runner scaffold: Postgres-only sentence indexing, dry-run by default.
 
-require_once __DIR__ . '/../../noiiolelo/lib/PostgresClient.php';
-require_once __DIR__ . '/../../noiiolelo/lib/PostgresSentenceIndexer.php';
+require_once __DIR__ . '/../providers/Postgres/PostgresClient.php';
+require_once __DIR__ . '/../providers/Postgres/PostgresSentenceIndexer.php';
 
-use HawaiianSearch\PostgresSentenceIndexer;
+use Noiiolelo\Providers\Postgres\PostgresClient;
+use Noiiolelo\Providers\Postgres\PostgresSentenceIndexer;
 
 $config = [
     'verbose' => in_array('--verbose', $argv, true),
@@ -38,11 +39,11 @@ foreach ($argv as $i => $arg) {
 }
 
 // Report totals before running: total sentences and missing embeddings (candidates)
-$pgClient = new HawaiianSearch\PostgresClient($config);
+$pgClient = new PostgresClient($config);
 $total = $pgClient->countTotalSentences();
 $missing = $pgClient->countMissingEmbeddings();
 $willProcess = $config['MAX_RECORDS'] > 0 ? min($missing, (int)$config['MAX_RECORDS']) : $missing;
-echo "Totals: all_records=${total}, without_embeddings=${missing}, will_process=${willProcess}\n";
+echo "Totals: all_records={$total}, without_embeddings={$missing}, will_process={$willProcess}\n";
 
 // Pass planned total and out_json to indexer for progress reporting
 $config['WILL_PROCESS'] = $willProcess;
@@ -130,4 +131,4 @@ $db_ms = (int)($t['db_ms'] ?? 0);
 $proc = max(1, (int)($summary['processed'] ?? 0));
 $eps = $elapsed_ms > 0 ? sprintf('%.1f', ($proc / ($elapsed_ms / 1000.0))) : 'n/a';
 echo "Processed: {$summary['processed']}, embeddings: {$summary['embeddings']}, metrics: {$summary['metrics']}, errors: {$summary['errors']}\n";
-echo "Timing: total=${elapsed_ms}ms (embed=${embed_ms}ms, metrics=${metrics_ms}ms, db=${db_ms}ms), throughput=${eps} sent/s\n";
+echo "Timing: total={$elapsed_ms}ms (embed={$embed_ms}ms, metrics={$metrics_ms}ms, db={$db_ms}ms), throughput={$eps} sent/s\n";

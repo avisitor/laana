@@ -19,3 +19,5 @@ ops/*.json
 scripts/__pycache__
 **/*bak
 data/
+.serena/
+

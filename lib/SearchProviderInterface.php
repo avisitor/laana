@@ -18,6 +18,8 @@ interface SearchProviderInterface
      */
     public function getDocument(string $docId, string $format = 'text'): ?array;
 
+    public function getSources($groupname = '', $properties = [], $sortBy = '', $sortDir = 'asc');
+
     /**
      * Retrieves a list of all sources and their metadata.
      * @return array

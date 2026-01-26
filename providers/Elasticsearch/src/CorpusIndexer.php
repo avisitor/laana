@@ -149,7 +149,7 @@ class CorpusIndexer
 
         $this->scanner = new CorpusScanner($this->client, $config);
         $this->scanner->setHawaiianWords($this->hawaiianWordSet);
-        
+
         $this->sourceMeta = $this->initializeSourceMetadata();
         $this->httpClient = new HttpClient();
 
@@ -197,15 +197,16 @@ class CorpusIndexer
                     sleep($delay);
                     
                     // For connection refused errors, check if service is back up
-                    if ($attempt > 2 && isset($this->embeddingClient)) {
+                    if ($attempt > 2) {
                         try {
-                            $health = $this->embeddingClient->getHealth();
+                            $embeddingClient = $this->client->getEmbeddingClient();
+                            $health = $embeddingClient->getHealth();
                             if ($health && isset($health['status']) && $health['status'] === 'healthy') {
                                $this->print( "✅ Embedding service is healthy - proceeding with retry" );
                             } else {
                                 $this->print( "⚠️  Embedding service health check failed - continuing anyway" );
                             }
-                        } catch (Exception $e) {
+                        } catch (\Exception $e) {
                             $this->print( "⚠️  Could not check embedding service health: " . $e->getMessage() );
                         }
                     }
@@ -243,7 +244,7 @@ class CorpusIndexer
                     $this->print( "❌ {$operationName} failed with non-retryable error for {$context}: {$errorMsg}" );
                     break;
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 $lastException = $e;
                 $this->print( "❌ {$operationName} failed with unexpected error for {$context}: " . $e->getMessage() );
                 break;
@@ -520,7 +521,6 @@ class CorpusIndexer
             return null;
         }
 
-        
         $sourceid = (string)($source['sourceid'] ?? $source['doc_id']) ?? ''; // Handle doc_id from ES source
         if ( !$this->dryrun ) {
             if ( isset( $this->sourceMeta[$sourceid] ) ) {
@@ -550,7 +550,6 @@ class CorpusIndexer
             return null;
         }
         
-
         $text = '';
         $sentenceObjects = [];
         $docHawaiianWordRatio = 0.0;
@@ -623,18 +622,6 @@ class CorpusIndexer
                     }
                 } else {
                     $this->print("  Using existing sentence vectors for doc_id: {$sourceid}.");
-                }
-            }
-                        if (isset($s['text']) && isset($newSentenceVectors[$vectorIdx]) && 
-                            is_array($newSentenceVectors[$vectorIdx]) && !empty($newSentenceVectors[$vectorIdx])) {
-                            $s['vector'] = $newSentenceVectors[$vectorIdx];
-                            $validSentenceObjects[] = $s;
-                        } else {
-                            $this->print("⚠️ Skipping sentence with missing/invalid vector at index {$vectorIdx} for doc {$sourceid}");
-                        }
-                        $vectorIdx++;
-                    }
-                    $sentenceObjects = $validSentenceObjects; // Replace with valid sentences only
                 }
             }
 

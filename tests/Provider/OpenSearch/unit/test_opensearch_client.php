@@ -1,6 +1,8 @@
 <?php
 
-class TestOpenSearchClient extends BaseTest {
+require_once __DIR__ . '/../BaseTest.php';
+
+class TestOpenSearchClient extends OpenSearchBaseTest {
     private $client;
     
     protected function setUp() {

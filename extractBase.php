@@ -1,4 +1,8 @@
 <?php
+require_once __DIR__ . '/db/funcs.php';
+if (!defined('SOURCES')) {
+    define('SOURCES', 'sources');
+}
 $laana = new Laana();
 $title = $_GET['title'] ?: '';
 $url = $_GET['url'];

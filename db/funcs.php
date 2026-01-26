@@ -140,6 +140,16 @@ function sqlNormalizeOkina() {
 
 function normalizeString( $term ) {
     global $a, $b;
+    if (!is_array($a) || !is_array($b)) {
+        $a = [ 'ō', 'ī', 'ē', 'ū', 'ā', 'Ō', 'Ī', 'Ē', 'Ū', 'Ā', '‘', 'ʻ' ];
+        $b = [ 'o', 'i', 'e', 'u', 'a', 'O', 'I', 'E', 'U', 'A', '', '' ];
+    }
+    if ($term === null) {
+        return '';
+    }
+    if (!is_string($term)) {
+        $term = (string)$term;
+    }
     return str_replace($a, $b, $term);
 }
 

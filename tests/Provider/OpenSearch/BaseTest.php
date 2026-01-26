@@ -1,6 +1,6 @@
 <?php
 
-abstract class BaseTest {
+abstract class OpenSearchBaseTest {
 
 
     protected $testName;

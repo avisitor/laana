@@ -32,6 +32,8 @@ class ElasticsearchClient {
     protected EmbeddingClient $embeddingClient;
     protected QueryBuilder $queryBuilder;
     protected \Noiiolelo\GrammarScanner $grammarScanner;
+    protected array $queryVector = [];
+    protected string $queryTerm = '';
     private $standardIncludes =  ['sourcename', 'groupname', 'authors', 'date', 'text', 'title', 'link'];
     private ?\Exception $lastError = null;
 
@@ -82,6 +84,7 @@ class ElasticsearchClient {
         $dotenv->load();
         $DEFAULT_INDEX = 'hawaiian'; // This is just the base of the index names
 
+
         $this->indexName =
             (isset($options['indexName']) && !empty($options['indexName'])) ? $options['indexName'] : $DEFAULT_INDEX;
 
@@ -93,25 +96,58 @@ class ElasticsearchClient {
                       "sentencesIndexName: {$this->getSentencesIndexName()}, " .
                       "metadataIndexName: {$this->getMetadataName()}, " .
                       "sourcemetadataIndexName: {$this->getSourceMetadataName()}" );
-        $apiKey = $options['apiKey'] ?? $_ENV['API_KEY'] ?? getenv('API_KEY') ?? null;
+        $apiKey = $options['apiKey']
+            ?? $_ENV['ES_API_KEY'] ?? getenv('ES_API_KEY')
+            ?? $_ENV['API_KEY'] ?? getenv('API_KEY')
+            ?? null;
+        $apiKeyId = $options['apiKeyId'] ?? $_ENV['API_KEY_ID'] ?? getenv('API_KEY_ID') ?? null;
+        $apiKeySecret = $options['apiKeySecret'] ?? $_ENV['API_KEY_SECRET'] ?? getenv('API_KEY_SECRET') ?? null;
+        $user = $options['username']
+            ?? $_ENV['ES_USER'] ?? getenv('ES_USER')
+            ?? $_ENV['ELASTIC_USER'] ?? getenv('ELASTIC_USER')
+            ?? null;
+        $pass = $options['password']
+            ?? $_ENV['ES_PASS'] ?? getenv('ES_PASS')
+            ?? $_ENV['ELASTIC_PASSWORD'] ?? getenv('ELASTIC_PASSWORD')
+            ?? null;
 
-        if (!$apiKey) {
-            throw new RuntimeException('API_KEY environment variable not set.');
+        if (!$apiKey && !($apiKeyId && $apiKeySecret) && !($user && $pass)) {
+            throw new RuntimeException('Missing Elasticsearch credentials. Set API_KEY or API_KEY_ID/API_KEY_SECRET or ES_USER/ES_PASS.');
         }
 
         $host = $_ENV['ES_HOST'] ?? 'localhost';
         $port = $_ENV['ES_PORT'] ?? 9200;
 
-        $this->client = ClientBuilder::create()
+        $builder = ClientBuilder::create()
             ->setHosts(["https://{$host}:{$port}"])
-            ->setApiKey(trim($apiKey)) // Pass the key directly, trimming whitespace
             ->setSSLVerification(false)
             ->setHttpClientOptions([
                 'timeout' => 300,
                 'connect_timeout' => 30,
-                'http_errors' => false
-            ])
-            ->build();
+                'http_errors' => false,
+                'headers' => [
+                    // Force a generic content type for ES/OpenSearch versions that
+                    // don't accept the v8 compatibility media type.
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
+                ]
+            ]);
+
+        if ($user && $pass) {
+            $builder->setBasicAuthentication($user, $pass);
+        } elseif ($apiKeyId && $apiKeySecret) {
+            $builder->setApiKey(trim($apiKeySecret), trim($apiKeyId));
+        } elseif ($apiKey) {
+            $apiKey = trim($apiKey);
+            if (strpos($apiKey, ':') !== false) {
+                [$id, $key] = explode(':', $apiKey, 2);
+                $builder->setApiKey(trim($key), trim($id));
+            } else {
+                $builder->setApiKey($apiKey);
+            }
+        }
+
+        $this->client = $builder->build();
             
         $this->embeddingClient = new EmbeddingClient();
         $this->queryBuilder = new QueryBuilder($this->embeddingClient);

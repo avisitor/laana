@@ -4,9 +4,10 @@ namespace Noiiolelo\Providers\Postgres;
 
 use PDO;
 use PDOException;
+use Noiiolelo\EmbeddingClient;
 
 require_once __DIR__ . '/../db/PostgresFuncs.php';
-require_once __DIR__ . '/EmbeddingClient.php';
+require_once __DIR__ . '/../../lib/EmbeddingClient.php';
 
 class PostgresClient extends \PostgresLaana
 {

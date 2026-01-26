@@ -69,7 +69,7 @@ $docs = $parser->getDocumentList();
      <div class='box'>
          <?php
          foreach( $docs as $doc ) {
-             $title = $doc['title];
+             $title = $doc['title'];
              $sourcename = $doc['sourcename'];
              $link = $item['url'];
              $image = $item['image'];
