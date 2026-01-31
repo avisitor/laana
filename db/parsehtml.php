@@ -5,7 +5,7 @@ include_once __DIR__ . '/DomParser.php';
 include_once __DIR__ . '/TextProcessor.php';
 include_once __DIR__ . '/../lib/GrammarScanner.php';
 
-require __DIR__ . '/../../vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
@@ -830,7 +830,10 @@ class UlukauHTML extends HTMLParse {
         
         // Load Hawaiian word list once
         if (self::$hawaiianWords === null) {
-            $wordFile = __DIR__ . '/../../elasticsearch/hawaiian_words.txt';
+            $wordFile = __DIR__ . '/../hawaiian_words.txt';
+            if (!file_exists($wordFile)) {
+                $wordFile = __DIR__ . '/../../elasticsearch/hawaiian_words.txt';
+            }
             if (file_exists($wordFile)) {
                 $words = file($wordFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
                 // Create a set for fast lookup, normalize to lowercase and remove diacritics
@@ -1650,6 +1653,10 @@ class UlukauLocal extends UlukauHTML {
             parse_str($parsedUrl['query'], $params);
             // Return the 'd' parameter which contains the OID
             $oid = $params['d'] ?? null;
+        }
+        if (!$oid && isset($parsedUrl['path'])) {
+            $basename = basename($parsedUrl['path']);
+            $oid = pathinfo($basename, PATHINFO_FILENAME);
         }
         if( !$oid ) {
             $this->print( "No OID found in URL: $url" );
