@@ -3,6 +3,7 @@
 namespace Noiiolelo\Tests\Provider;
 
 use Noiiolelo\Tests\BaseTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 require_once __DIR__ . '/../../lib/provider.php';
 
@@ -13,9 +14,7 @@ class ProviderInterfaceTest extends BaseTestCase
         resetRequest();
     }
 
-    /**
-     * @dataProvider providerNamesProvider
-     */
+    #[DataProvider('providerNamesProvider')]
     public function testProviderLoads(string $providerName): void
     {
         $provider = getTestProvider($providerName);
@@ -51,9 +50,7 @@ class ProviderInterfaceTest extends BaseTestCase
         return array_map(fn($name) => [$name], self::$validProviders);
     }
 
-    /**
-     * @dataProvider providerNamesProvider
-     */
+    #[DataProvider('providerNamesProvider')]
     public function testProviderHasRequiredMethods(string $providerName): void
     {
         $provider = getTestProvider($providerName);
@@ -96,9 +93,7 @@ class ProviderInterfaceTest extends BaseTestCase
         $this->assertArrayHasKey('hybrid', $modes);
     }
 
-    /**
-     * @dataProvider providerNamesProvider
-     */
+    #[DataProvider('providerNamesProvider')]
     public function testCorpusStatsStructure(string $providerName): void
     {
         $provider = getTestProvider($providerName);
