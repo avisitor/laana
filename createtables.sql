@@ -135,9 +135,13 @@ BEGIN
         RETURN 0;
     END IF;
 
-    RETURN LENGTH(TRIM(str))
-         - LENGTH(REPLACE(TRIM(str), ' ', ''))
-         + 1;
+    SET str = TRIM(REPLACE(REPLACE(str, ',', ' '), ';', ' '));
+    IF str = '' THEN
+      RETURN 0;
+    END IF;
+    RETURN LENGTH(str)
+      - LENGTH(REPLACE(str, ' ', ''))
+      + 1;
 END;
 //
 DELIMITER ;
@@ -235,7 +239,10 @@ DELIMITER ;
 DELIMITER //
 //
 CREATE TRIGGER insert_sentences AFTER INSERT ON sentences
-FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sentences';
+FOR EACH ROW
+  INSERT INTO stats (name, value)
+  VALUES ('sentences', 1)
+  ON DUPLICATE KEY UPDATE value = value + 1;
 //
 CREATE TRIGGER delete_sentences AFTER DELETE ON sentences
 FOR EACH ROW 
@@ -245,7 +252,10 @@ BEGIN
 END;
 //
 CREATE TRIGGER insert_sources AFTER INSERT ON sources
-FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sources';
+FOR EACH ROW
+  INSERT INTO stats (name, value)
+  VALUES ('sources', 1)
+  ON DUPLICATE KEY UPDATE value = value + 1;
 //
 CREATE TRIGGER delete_sources AFTER DELETE ON sources
 FOR EACH ROW
@@ -255,13 +265,19 @@ BEGIN
 END;
 //
 CREATE TRIGGER insert_sentence_patterns AFTER INSERT ON sentence_patterns
-FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'sentence_patterns';
+FOR EACH ROW
+  INSERT INTO stats (name, value)
+  VALUES ('sentence_patterns', 1)
+  ON DUPLICATE KEY UPDATE value = value + 1;
 //
 CREATE TRIGGER delete_sentence_patterns AFTER DELETE ON sentence_patterns
 FOR EACH ROW UPDATE stats SET value = value - 1 where name = 'sentence_patterns';
 //
 CREATE TRIGGER insert_contents AFTER INSERT ON contents
-FOR EACH ROW UPDATE stats SET value = value + 1 where name = 'contents';
+FOR EACH ROW
+  INSERT INTO stats (name, value)
+  VALUES ('contents', 1)
+  ON DUPLICATE KEY UPDATE value = value + 1;
 //
 CREATE TRIGGER delete_contents AFTER DELETE ON contents
 FOR EACH ROW UPDATE stats SET value = value - 1 where name = 'contents';
