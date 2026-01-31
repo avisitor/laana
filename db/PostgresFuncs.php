@@ -40,6 +40,7 @@ class PostgresLaana extends Laana {
     public function getSentences($term, $pattern, $pageNumber = -1, $options = []) {
         $funcName = "PostgresLaana::getSentences";
         $countOnly = !empty($options['count']);
+        $nodiacriticals = !empty($options['nodiacriticals']);
         
         // 1. Session Tuning
         $this->conn->exec("SET LOCAL work_mem = '128MB'");
@@ -49,16 +50,17 @@ class PostgresLaana extends Laana {
         $offset = ($pageNumber >= 0) ? ($pageNumber * $pageSize) : 0;
         $term = trim($term, '"');
         $values = [];
+        $searchVector = $nodiacriticals ? 'hawaiian_unaccent_tsv' : 'hawaiian_tsv';
 
         // 2. Build the WHERE clause (Same logic as before)
         if ($pattern === 'any') {
             $words = array_filter(preg_split("/[\s,]+/", $term));
-            $values[':tsquery'] = implode(' | ', $words);
-            $where = "to_tsvector('simple', hawaiiantext) @@ to_tsquery('simple', :tsquery)";
+            $values['tsquery'] = implode(' | ', $words);
+            $where = "$searchVector @@ to_tsquery('simple', :tsquery)";
         } else {
-            $values[':tsquery'] = $term;
+            $values['tsquery'] = $term;
             $tsFunc = ($pattern === 'all') ? "plainto_tsquery" : "phraseto_tsquery";
-            $where = "to_tsvector('simple', hawaiiantext) @@ $tsFunc('simple', :tsquery)";
+            $where = "$searchVector @@ $tsFunc('simple', :tsquery)";
         }
 
         // 3. BRANCH: COUNT vs. DATA
@@ -99,6 +101,24 @@ class PostgresLaana extends Laana {
             error_log("DB Error in PostgresLaana::refreshGrammarPatternCounts: " . $e->getMessage());
             return false;
         }
+    }
+
+    protected function getTableRowCount(string $name): int {
+        $sql = "SELECT value FROM laana.table_row_counts WHERE name = :name";
+        $row = $this->getOneDBRow($sql, ['name' => $name]);
+        return isset($row['value']) ? (int)$row['value'] : 0;
+    }
+
+    public function getSentenceCount() {
+        return $this->getTableRowCount('sentences');
+    }
+
+    public function getSourceCount() {
+        return $this->getTableRowCount('sources');
+    }
+
+    public function getNonEmptySourceCount() {
+        return $this->getTableRowCount('sources');
     }
 
     protected function getGrammarMatchesOrderSql($order) {
