@@ -3,6 +3,7 @@
 namespace Noiiolelo\Tests\Search;
 
 use Noiiolelo\Tests\BaseTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 require_once __DIR__ . '/../../lib/provider.php';
 
@@ -147,9 +148,7 @@ class SearchFunctionalityTest extends BaseTestCase
         $this->assertLessThanOrEqual($provider->pageSize, count($results));
     }
 
-    /**
-     * @dataProvider providerNamesProvider
-     */
+    #[DataProvider('providerNamesProvider')]
     public function testSearchResultStructure(string $providerName): void
     {
         $provider = getTestProvider($providerName);
@@ -165,9 +164,7 @@ class SearchFunctionalityTest extends BaseTestCase
         }
     }
 
-    /**
-     * @dataProvider providerNamesProvider
-     */
+    #[DataProvider('providerNamesProvider')]
     public function testEmptySearch(string $providerName): void
     {
         $provider = getTestProvider($providerName);
@@ -178,9 +175,7 @@ class SearchFunctionalityTest extends BaseTestCase
         $this->assertEmpty($results);
     }
 
-    /**
-     * @dataProvider providerNamesProvider
-     */
+    #[DataProvider('providerNamesProvider')]
     public function testPagination(string $providerName): void
     {
         $provider = getTestProvider($providerName);
@@ -198,9 +193,7 @@ class SearchFunctionalityTest extends BaseTestCase
         }
     }
 
-    /**
-     * @dataProvider providerNamesProvider
-     */
+    #[DataProvider('providerNamesProvider')]
     public function testMatchCount(string $providerName): void
     {
         $provider = getTestProvider($providerName);
