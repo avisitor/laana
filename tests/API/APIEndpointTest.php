@@ -3,6 +3,7 @@
 namespace Noiiolelo\Tests\API;
 
 use Noiiolelo\Tests\BaseTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class APIEndpointTest extends BaseTestCase
 {
@@ -49,9 +50,7 @@ class APIEndpointTest extends BaseTestCase
         $this->assertIsNumeric($data['sourceids'][0], 'sourceids should contain numeric IDs');
     }
 
-    /**
-     * @dataProvider providerNamesProvider
-     */
+    #[DataProvider('providerNamesProvider')]
     public function testApiSourcesWithProvider(string $providerName): void
     {
         $output = $this->executeApiRequest('api.php/sources', [
@@ -65,9 +64,7 @@ class APIEndpointTest extends BaseTestCase
         $this->assertNotEmpty($data, "$providerName provider should return sources");
     }
 
-    /**
-     * @dataProvider providerNamesProvider
-     */
+    #[DataProvider('providerNamesProvider')]
     public function testResultCountEndpoint(string $providerName): void
     {
         $searchPattern = ($providerName === 'Elasticsearch') ? 'match' : 'exact';
