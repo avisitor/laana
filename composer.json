@@ -6,7 +6,9 @@
     "nategood/httpful": "^0.3.2",
     "nlp-tools/nlp-tools": "dev-master",
     "avisitor/dbbase": "dev-master",
-    "opensearch-project/opensearch-php": "^2.5"
+    "opensearch-project/opensearch-php": "^2.5",
+    "symfony/dom-crawler": "^7.4",
+    "symfony/css-selector": "^7.4"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.0"
