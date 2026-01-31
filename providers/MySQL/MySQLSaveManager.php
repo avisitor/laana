@@ -360,10 +360,18 @@ class MySQLSaveManager {
         $sourceID = $source['sourceid'];
         $sourceName = $source['sourcename'];
         $link = $source['link'];
-        $parser = $this->getParser($source['groupname']);
+        $groupname = $source['groupname'] ?? '';
+        if (!$groupname) {
+            $this->outBoth($source, "Missing groupname for $sourceName");
+            if ($this->batchLogID) {
+                $this->laana->completeProcessingLog($this->batchLogID, 'failed', 0, 'Missing groupname');
+            }
+            return;
+        }
+        $parser = $this->parser ?: $this->getParser($groupname);
         
         if (!$parser) {
-            $this->outBoth("Error: No parser found for groupname '{$source['groupname']}'");
+            $this->outBoth("Error: No parser found for groupname '{$groupname}'");
             if ($this->batchLogID) {
                 $this->laana->completeProcessingLog($this->batchLogID, 'failed', 0, 'Parser not found');
             }
@@ -447,9 +455,17 @@ class MySQLSaveManager {
         }
 
         $this->verboseLog($source, "page");
-        $parser = $this->getParser($source['groupname']);
+        $groupname = $source['groupname'] ?? $doc['groupname'] ?? $doc['group'] ?? $doc['groupName'] ?? '';
+        if (!$groupname) {
+            $this->outBoth($doc, "Missing groupname for $sourceName");
+            return 0;
+        }
+        if (empty($source['groupname'])) {
+            $source['groupname'] = $groupname;
+        }
+        $parser = $this->parser ?: $this->getParser($groupname);
         if (!$parser) {
-            $this->outBoth($source['groupname'], "parser not found for");
+            $this->outBoth($groupname, "parser not found for");
             return 0;
         }
         $this->verbosePrint( "Initializing parser from $link\n" );
@@ -535,7 +551,7 @@ class MySQLSaveManager {
             $source = $this->laana->getSource($remoteID);
             $link = $source['link'] ?? '';
             if( $link ) {
-                $parser = $this->getParser($source['groupname']);
+                $parser = $this->parser ?: $this->getParser($source['groupname']);
                 $parser->initialize( $link );
                 $this->updateSource( $parser->metadata, $source );
             }
@@ -581,6 +597,17 @@ class MySQLSaveManager {
             }
         } else if ($parser) {
             $docs = $parser->getDocumentList();
+            if (!empty($docs)) {
+                if (!property_exists($parser, 'groupname') || empty($parser->groupname)) {
+                    throw new Exception("Parser {$parser->logName} missing required groupname property");
+                }
+                foreach ($docs as $doc) {
+                    if (empty($doc['groupname'])) {
+                        $this->log($doc, "Parser returned doc without groupname ({$parser->logName})");
+                        throw new Exception("Parser returned doc without groupname ({$parser->logName})");
+                    }
+                }
+            }
         } else if ($local || (isset($this->options['minsourceid']) && $this->options['minsourceid'] > 0 && isset($this->options['maxsourceid']) && $this->options['maxsourceid'] < PHP_INT_MAX)) {
             $items = $this->laana->getSources();
         }
