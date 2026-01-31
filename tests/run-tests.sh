@@ -5,11 +5,18 @@
 
 set -euo pipefail
 
+SERVER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-REPORT_DIR="tests/reports"
+REPORT_DIR="$SERVER_DIR/tests/reports"
 TEXT_REPORT="$REPORT_DIR/test-report-$TIMESTAMP.txt"
 XML_REPORT="$REPORT_DIR/junit-$TIMESTAMP.xml"
 JSON_REPORT="$REPORT_DIR/test-report-$TIMESTAMP.json"
+VIEW_DIR="https://noiiolelo.worldspot.org/tests/"
+PHPUNIT=$SERVER_DIR/vendor/bin/phpunit
+
+cd $SERVER_DIR
 
 # Create reports directory if it doesn't exist
 mkdir -p "$REPORT_DIR"
@@ -28,7 +35,7 @@ run_tests() {
         echo ""
         
         # Run with all output visible (no JUnit XML in verbose mode)
-        php vendor/bin/phpunit --testdox 2>&1 | tee "$TEXT_REPORT"
+        php $PHPUNIT --testdox 2>&1 | tee "$TEXT_REPORT"
         EXIT_CODE=${PIPESTATUS[0]}
         
         echo ""
@@ -42,7 +49,8 @@ run_tests() {
         
         # Run with JUnit XML output (capture exit code but don't exit on failure)
         set +e
-        timeout 120 php vendor/bin/phpunit --log-junit "$XML_REPORT" --testdox > "$TEXT_REPORT" 2>&1
+        #timeout 120 php $PHPUNIT --log-junit "$XML_REPORT" --testdox > "$TEXT_REPORT" 2>&1
+        php $PHPUNIT --log-junit "$XML_REPORT" --testdox > "$TEXT_REPORT" 2>&1
         EXIT_CODE=$?
         set -e
         
@@ -65,7 +73,7 @@ run_tests() {
 
     # Generate JSON report from JUnit XML
     if [ -f "$XML_REPORT" ]; then
-        echo "📝 Generating JSON report..."
+        echo "📝 Generating JSON report from $XML_REPORT..."
         
         python3 - "$XML_REPORT" "$JSON_REPORT" <<'PYTHON_SCRIPT'
 import sys
@@ -202,7 +210,7 @@ PYTHON_SCRIPT
     echo "📄 Text report: $TEXT_REPORT"
     if [ -f "$JSON_REPORT" ]; then
         echo "📊 JSON report: $JSON_REPORT"
-        echo "🌐 View in browser: tests/index.php"
+        echo "🌐 View in browser: $VIEW_DIR"
     fi
     echo ""
 
