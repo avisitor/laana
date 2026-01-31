@@ -19,7 +19,7 @@ class DomParser {
         libxml_use_internal_errors(true);
 
         // Ensure the HTML is properly encoded and has a basic structure.
-        $html = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
+        $html = mb_encode_numericentity($html, [0x80, 0x10FFFF, 0, 0xFFFFFF], 'UTF-8');
 
         $prefix = "";
         if (strpos($html, "<!DOCTYPE ") === false) {
