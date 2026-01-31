@@ -75,26 +75,30 @@ class GrammarScanner {
      * Saves pattern matches for a sentence to the database.
      */
     public function savePatterns($sentenceId, $matches) {
-        if (!$this->db || empty($matches)) return;
-        
+        if (!$this->db || empty($matches)) return 0;
+
         $driver = $this->db->conn->getAttribute(\PDO::ATTR_DRIVER_NAME);
-        
+        $placeholders = [];
+        $values = [];
+
         foreach ($matches as $match) {
-            if ($driver === 'pgsql') {
-                $sql = "INSERT INTO sentence_patterns (sentenceid, pattern_type, signature) 
-                        VALUES (:sentenceid, :pattern_type, :signature)
-                        ON CONFLICT (sentenceid, pattern_type) DO NOTHING";
-            } else {
-                $sql = "INSERT IGNORE INTO sentence_patterns (sentenceid, pattern_type, signature) 
-                        VALUES (:sentenceid, :pattern_type, :signature)";
-            }
-            
-            $this->db->executePrepared($sql, [
-                'sentenceid' => $sentenceId,
-                'pattern_type' => $match['pattern_type'],
-                'signature' => $match['signature']
-            ]);
+            $placeholders[] = '(?, ?, ?)';
+            $values[] = $sentenceId;
+            $values[] = $match['pattern_type'];
+            $values[] = $match['signature'];
         }
+
+        if ($driver === 'pgsql') {
+            $sql = "INSERT INTO sentence_patterns (sentenceid, pattern_type, signature) VALUES "
+                 . implode(',', $placeholders)
+                 . " ON CONFLICT (sentenceid, pattern_type) DO NOTHING";
+        } else {
+            $sql = "INSERT IGNORE INTO sentence_patterns (sentenceid, pattern_type, signature) VALUES "
+                 . implode(',', $placeholders);
+        }
+
+        $this->db->executePrepared($sql, $values);
+        return count($matches);
     }
     
     /**
@@ -102,7 +106,7 @@ class GrammarScanner {
      */
     public function scanAndSave($sentenceId, $text) {
         $matches = $this->scanSentence($text);
-        $this->savePatterns($sentenceId, $matches);
+        return $this->savePatterns($sentenceId, $matches);
     }
 
     /**
@@ -167,5 +171,72 @@ class GrammarScanner {
             }
         }
         return $count;
+    }
+
+    public function getPatternSummary(): array {
+        if (!$this->db) return [];
+        $sql = "SELECT pattern_type, COUNT(*) AS count FROM sentence_patterns GROUP BY pattern_type ORDER BY count DESC";
+        return $this->db->getDBRows($sql);
+    }
+
+    /**
+     * Delta-aware scan by sentence ID ranges.
+     * Returns an array with totals: [sentences, patterns, max_id]
+     */
+    public function updateAllPatternsDelta(bool $force = false, int $batchSize = 5000, ?callable $progress = null): array {
+        if (!$this->db) return ['sentences' => 0, 'patterns' => 0, 'max_id' => 0];
+
+        if ($force) {
+            $this->db->executePrepared("TRUNCATE TABLE sentence_patterns");
+        }
+
+        $row = $this->db->getOneDBRow("SELECT MAX(sentenceid) AS max_id FROM sentences");
+        $maxId = (int)($row['max_id'] ?? 0);
+
+        $currentId = 0;
+        $totalNewProcessed = 0;
+        $totalNewPatterns = 0;
+
+        while ($currentId <= $maxId) {
+            $endId = $currentId + $batchSize;
+            $sql = "SELECT s.sentenceid, s.hawaiiantext 
+                    FROM sentences s
+                    WHERE s.sentenceid > :start AND s.sentenceid <= :end";
+            $params = ['start' => $currentId, 'end' => $endId];
+            if (!$force) {
+                $sql .= " AND NOT EXISTS (SELECT 1 FROM sentence_patterns p WHERE p.sentenceid = s.sentenceid)";
+            }
+
+            $rows = $this->db->getDBRows($sql, $params);
+
+            if (empty($rows)) {
+                $currentId = $endId;
+                if ($progress) {
+                    $progress($currentId, $maxId, $totalNewProcessed, $totalNewPatterns, true);
+                }
+                continue;
+            }
+
+            foreach ($rows as $row) {
+                $totalNewProcessed++;
+                if (empty($row['hawaiiantext'])) {
+                    continue;
+                }
+                $matches = $this->scanSentence($row['hawaiiantext']);
+                $totalNewPatterns += count($matches);
+                $this->savePatterns($row['sentenceid'], $matches);
+            }
+
+            $currentId = $endId;
+            if ($progress) {
+                $progress($currentId, $maxId, $totalNewProcessed, $totalNewPatterns, false);
+            }
+        }
+
+        return [
+            'sentences' => $totalNewProcessed,
+            'patterns' => $totalNewPatterns,
+            'max_id' => $maxId,
+        ];
     }
 }
