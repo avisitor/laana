@@ -13,10 +13,11 @@ use Noiiolelo\ProviderFactory;
 use Noiiolelo\GrammarScanner;
 
 // Parse command line arguments
-$options = getopt("", ["force", "sourceid:", "provider:"]);
+$options = getopt("", ["force", "sourceid:", "provider:", "batch:"]);
 $force = isset($options['force']);
 $targetSourceId = isset($options['sourceid']) ? (int)$options['sourceid'] : null;
 $providerName = isset($options['provider']) ? strtolower($options['provider']) : 'mysql';
+$batchSize = isset($options['batch']) ? max(100, (int)$options['batch']) : 5000;
 
 try {
     $provider = ProviderFactory::create($providerName, ['verbose' => true]);
@@ -118,8 +119,43 @@ if ($providerName === 'elasticsearch' || $providerName === 'es') {
         $count = $scanner->updateSourcePatterns($targetSourceId, $force);
         echo "Processed $count sentences.\n";
     } else {
-        echo "Processing all sources...\n";
-        $count = $scanner->updateAllPatterns($force);
-        echo "Processed $count sentences.\n";
+        echo "Delta scanning all sentences (batch size: {$batchSize})...\n";
+        $startTime = microtime(true);
+        $result = $scanner->updateAllPatternsDelta($force, $batchSize, function($currentId, $maxId, $newSentences, $newPatterns, $skipped) use ($startTime) {
+            $elapsed = microtime(true) - $startTime;
+            $rate = $elapsed > 0 ? ($currentId / $elapsed) : 0;
+            $pct = $maxId > 0 ? ($currentId / $maxId) * 100 : 100;
+            $label = $skipped ? 'Skipping processed block' : 'Progress';
+            echo sprintf("%s: %d/%d (%.1f%%) | New Sentences: %d | New Patterns: %d | Rate: %.0f IDs/sec\r",
+                $label, $currentId, $maxId, $pct, $newSentences, $newPatterns, $rate
+            );
+            flush();
+        });
+        echo "\nDone. Sentences newly analyzed: {$result['sentences']}. Pattern records created: {$result['patterns']}.\n";
+    }
+
+    echo "\n--- Current Pattern Distribution (Full Table) ---\n";
+    $summary = $scanner->getPatternSummary();
+    if (!$summary) {
+        echo "No patterns found.\n";
+    } else {
+        echo str_pad('Pattern Type', 25) . " | " . str_pad('Count', 10) . "\n";
+        echo str_repeat('-', 40) . "\n";
+        foreach ($summary as $row) {
+            echo str_pad($row['pattern_type'], 25) . " | " . str_pad($row['count'], 10) . "\n";
+        }
+    }
+
+    echo "\nRefreshing grammar_pattern_counts...\n";
+    if (method_exists($laana, 'refreshGrammarPatternCounts')) {
+        $ok = $laana->refreshGrammarPatternCounts();
+        echo $ok ? "grammar_pattern_counts refreshed.\n" : "Failed to refresh grammar_pattern_counts.\n";
+    } else {
+        try {
+            $laana->executePrepared("CALL refresh_grammar_counts()");
+            echo "grammar_pattern_counts refreshed.\n";
+        } catch (Throwable $e) {
+            echo "Failed to refresh grammar_pattern_counts: {$e->getMessage()}\n";
+        }
     }
 }
