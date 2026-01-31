@@ -124,7 +124,7 @@ class MySQLProvider implements SearchProviderInterface
     public function getCorpusStats(): array {
         return [
             'sentence_count' => $this->laana->getSentenceCount(),
-            'source_count' => $this->laana->getSourceCount()
+            'source_count' => $this->laana->getNonEmptySourceCount()
         ];
     }
     public function search(string $query, string $mode, int $limit = 10, int $offset = 0): array {
