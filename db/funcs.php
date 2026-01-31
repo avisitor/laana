@@ -75,7 +75,8 @@ class DB extends Common\DB\DBBase {
     }
 
     public function connect() {
-        $env = loadEnv(__DIR__ . '/../.env');
+        $envFile = getenv('NOIIOLELO_ENV_FILE') ?: __DIR__ . '/../.env';
+        $env = loadEnv($envFile);
         $env['port'] = $env['port'] ?? $env['DB_PORT'] ?? '3306';
         $env['username'] = $env['username'] ?? $env['DB_USER'] ?? '';
         $env['password'] = $env['password'] ?? $env['DB_PASSWORD'] ?? '';
@@ -389,6 +390,12 @@ class Laana extends DB {
         return $row['c'];
     }
     
+    public function getNonEmptySourceCount() {
+        $sql = "select count(distinct sourceid) c from sentences";
+        $row = $this->getOneDBRow( $sql );
+        return $row['c'];
+    }
+    
     public function getSourceGroupCounts() {
         $sql = "SELECT g.groupname, COUNT(DISTINCT s.sourceid) AS c FROM sources g JOIN sentences s ON g.sourceid = s.sourceid GROUP BY g.groupname";
         $this->debuglog( $sql, "getSourceGroupCounts" );
@@ -573,6 +580,8 @@ class Laana extends DB {
         }
         if( !$params['date'] ) {
             $params['date'] = '1970-01-01';
+        } elseif( strlen( $params['date'] ) == 4 ) {
+            $params['date'] .= '-01-01';
         }
         if( !isset( $params['sourceid'] ) ) {
             $row = $this->getSourceByName( $name );
