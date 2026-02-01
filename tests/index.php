@@ -40,6 +40,28 @@ $failedTests = array_filter($reportData['test_cases'], fn($test) => $test['statu
 $errorTests = array_filter($reportData['test_cases'], fn($test) => $test['status'] === 'error');
 $skippedTests = array_filter($reportData['test_cases'], fn($test) => $test['status'] === 'skipped');
 
+// Extract all warnings and issues from test outputs
+$warningsAndIssues = [];
+foreach ($reportData['test_cases'] as $test) {
+    if (!empty($test['output'])) {
+        $output = $test['output'];
+        // Look for common warning/error patterns
+        if (strpos($output, 'failed:') !== false ||
+            strpos($output, 'SQLSTATE') !== false ||
+            strpos($output, 'Warning:') !== false ||
+            strpos($output, 'Notice:') !== false ||
+            strpos($output, 'Error:') !== false ||
+            strpos($output, 'Update failed:') !== false) {
+            $warningsAndIssues[] = [
+                'test' => $test['name'],
+                'class' => $test['class'],
+                'status' => $test['status'],
+                'message' => $output
+            ];
+        }
+    }
+}
+
 // Get slowest tests
 $slowestTests = $reportData['test_cases'];
 usort($slowestTests, fn($a, $b) => $b['time'] <=> $a['time']);
@@ -330,6 +352,12 @@ if ($interval->days > 0) {
                 <div class="stat-number skipped"><?= count($skippedTests) ?></div>
                 <div class="stat-label">Skipped</div>
             </div>
+            <?php if (!empty($warningsAndIssues)): ?>
+            <div class="stat-card">
+                <div class="stat-number" style="color: #fd7e14;"><?= count($warningsAndIssues) ?></div>
+                <div class="stat-label">Warnings</div>
+            </div>
+            <?php endif; ?>
             <div class="stat-card">
                 <div class="stat-number success-rate"><?= $reportData['success_rate'] ?>%</div>
                 <div class="stat-label">Success Rate</div>
@@ -392,6 +420,41 @@ if ($interval->days > 0) {
                 </table>
             </div>
             <?php endif; ?>
+
+            <?php if (!empty($warningsAndIssues)): ?>
+            <div class="section">
+                <h2>⚠️ Warnings & Issues (<?= count($warningsAndIssues) ?>)</h2>
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                    <p style="margin: 0; color: #856404;">
+                        <strong>🔍 Found <?= count($warningsAndIssues) ?> test(s) with warnings or issues that should be reviewed:</strong>
+                    </p>
+                </div>
+                <table class="test-table">
+                    <thead>
+                        <tr>
+                            <th>Test Name</th>
+                            <th>Class</th>
+                            <th>Status</th>
+                            <th>Warning/Issue Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($warningsAndIssues as $issue): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($issue['test']) ?></td>
+                            <td><?= htmlspecialchars(basename(str_replace('\\', '/', $issue['class']))) ?></td>
+                            <td><span class="status-badge status-<?= $issue['status'] ?>"><?= $issue['status'] ?></span></td>
+                            <td>
+                                <div class="warning-output" style="background: #fff3cd; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 0.8em; color: #856404; border-left: 3px solid #ffc107;">
+                                    <?= htmlspecialchars($issue['message']) ?>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
             
             <?php if (!empty($failedTests) || !empty($errorTests)): ?>
             <div class="section">
@@ -447,6 +510,7 @@ if ($interval->days > 0) {
                             <th>Status</th>
                             <th>Time</th>
                             <th>Assertions</th>
+                            <th>Output</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -457,6 +521,13 @@ if ($interval->days > 0) {
                             <td><span class="status-badge status-<?= $test['status'] ?>"><?= $test['status'] ?></span></td>
                             <td><span class="time-badge"><?= round($test['time'], 3) ?>s</span></td>
                             <td><span class="assertion-count"><?= $test['assertions'] ?></span></td>
+                            <td>
+                                <?php if (!empty($test['output'])): ?>
+                                    <div class="test-output"><?= htmlspecialchars($test['output']) ?></div>
+                                <?php else: ?>
+                                    <span class="text-muted">-</span>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>

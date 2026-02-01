@@ -149,57 +149,63 @@ if ($viewReport && file_exists($reportsDir . '/' . $viewReport)) {
                 <table class="reports-table">
                     <thead>
                         <tr>
-                            <th>Report</th>
-                            <th>Timestamp</th>
-                            <th>Results</th>
-                            <th>Status</th>
+                            <th>Report File</th>
+                            <th>Generated</th>
+                            <th>Tests</th>
+                            <th>Success Rate</th>
+                            <th>Execution Time</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($jsonFiles as $jsonFile): 
-                            $data = json_decode(file_get_contents($jsonFile), true);
-                            $basename = basename($jsonFile);
-                            $timestamp = new DateTime($data['timestamp']);
-                            
-                            // Determine status class
-                            if ($data['failures'] == 0 && $data['errors'] == 0) {
-                                $statusClass = 'status-good';
-                                $statusText = '✓ All Passed';
-                            } elseif ($data['failures'] > 0 && $data['errors'] == 0) {
-                                $statusClass = 'status-issues';
-                                $statusText = '⚠ Some Failures';
+                        <?php foreach ($jsonFiles as $index => $file): ?>
+                            <?php
+                            $filename = basename($file);
+                            $data = json_decode(file_get_contents($file), true);
+
+                            if (!$data) continue;
+
+                            // Extract timestamp from filename and handle timezone properly
+                            preg_match('/test-report-(\d{8})-(\d{6})\.json/', $filename, $matches);
+                            if ($matches) {
+                                $timestamp = DateTime::createFromFormat('Ymd-His', $matches[1] . '-' . $matches[2]);
+                                $timeAgo = $timestamp ? $timestamp->format('M j, Y H:i') : 'Unknown';
                             } else {
-                                $statusClass = 'status-bad';
-                                $statusText = '✗ Errors';
+                                // Fallback to file modification time if filename parsing fails
+                                $timeAgo = date('M j, Y H:i', filemtime($file));
                             }
-                        ?>
-                        <tr>
-                            <td>
-                                <a href="index.php?report=<?= urlencode($basename) ?>" class="report-link">
-                                    <?= htmlspecialchars($basename) ?>
-                                </a>
-                            </td>
-                            <td><?= $timestamp->format('Y-m-d H:i:s T') ?></td>
-                            <td>
-                                <span class="quick-stats">
-                                    <span class="status-good"><?= $data['passed'] ?> ✓</span>
-                                    <?php if ($data['failures'] > 0): ?>
-                                        <span class="status-issues"><?= $data['failures'] ?> ✗</span>
+
+                            $successRate = $data['success_rate'] ?? 0;
+                            $statusClass = $successRate == 100 ? 'status-good' :
+                                          ($successRate >= 80 ? 'status-issues' : 'status-bad');
+
+                            $isLatest = ($index === 0); // First item is latest due to rsort
+                            ?>
+                            <tr>
+                                <td>
+                                    <a href="?report=<?= urlencode($filename) ?>" class="report-link"><?= htmlspecialchars($filename) ?></a>
+                                    <?php if ($isLatest): ?>
+                                        <span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.7em; margin-left: 8px;">LATEST</span>
                                     <?php endif; ?>
-                                    <?php if ($data['errors'] > 0): ?>
-                                        <span class="status-bad"><?= $data['errors'] ?> ⚠</span>
+                                </td>
+                                <td><?= $timeAgo ?></td>
+                                <td>
+                                    <?= $data['tests'] ?? 0 ?> tests
+                                    <span class="quick-stats"><?= number_format($data['assertions'] ?? 0) ?> assertions</span>
+                                </td>
+                                <td class="<?= $statusClass ?>">
+                                    <?= $successRate ?>%
+                                    <?php if (($data['failures'] ?? 0) > 0): ?>
+                                        <span style="color: #dc3545;">(<?= $data['failures'] ?> failed)</span>
                                     <?php endif; ?>
-                                    (<?= $data['success_rate'] ?>%)
-                                </span>
-                            </td>
-                            <td><span class="<?= $statusClass ?>"><?= $statusText ?></span></td>
-                            <td>
-                                <a href="index.php?report=<?= urlencode($basename) ?>">View</a>
-                                |
-                                <a href="reports/<?= urlencode($basename) ?>" download>Download</a>
-                            </td>
-                        </tr>
+                                </td>
+                                <td><?= round($data['time'] ?? 0, 2) ?>s</td>
+                                <td>
+                                    <a href="?report=<?= urlencode($filename) ?>" style="color: #6366f1; text-decoration: none;">View</a>
+                                    |
+                                    <a href="reports/<?= urlencode($filename) ?>" style="color: #6c757d; text-decoration: none;" target="_blank">Raw</a>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
