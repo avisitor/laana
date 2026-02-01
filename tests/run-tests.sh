@@ -92,6 +92,12 @@ run_tests() {
     echo "=========================================="
     echo "📄 Text report: $TEXT_REPORT"
     if [ -f "$JSON_REPORT" ]; then
+        if [ -f "$TEST_DIR/diagnose.sh" ]; then
+            echo "🔎 Running diagnostics..."
+            bash "$TEST_DIR/diagnose.sh" "$JSON_REPORT"
+        else
+            echo "⚠️  Diagnostics script not found: $TEST_DIR/diagnose.sh"
+        fi
         echo "📊 JSON report: $JSON_REPORT"
         echo "🌐 View in browser: $VIEW_DIR"
     fi
