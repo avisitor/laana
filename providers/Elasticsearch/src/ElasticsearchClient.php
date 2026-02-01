@@ -9,7 +9,9 @@ use Elastic\Elasticsearch\Exception\ClientResponseException;
 use Elastic\Elasticsearch\Exception\MissingParameterException;
 use Elastic\Elasticsearch\Exception\ServerResponseException;
 use Elastic\Transport\Exception\NoNodeAvailableException;
-use Dotenv\Dotenv;
+
+require_once __DIR__ . '/../../../env-loader.php';
+require_once __DIR__ . '/../../../lib/utils.php';
 
 require_once __DIR__ . '/QueryBuilder.php';
 require_once __DIR__ . '/EmbeddingClient.php';
@@ -36,6 +38,78 @@ class ElasticsearchClient {
     protected string $queryTerm = '';
     private $standardIncludes =  ['sourcename', 'groupname', 'authors', 'date', 'text', 'title', 'link'];
     private ?\Exception $lastError = null;
+
+    private function applyBlockedGroupFilter(array $params): array
+    {
+        if (!function_exists('getBlockedSourceGroups')) {
+            return $params;
+        }
+
+        $blockedGroups = getBlockedSourceGroups();
+        if (empty($blockedGroups)) {
+            return $params;
+        }
+
+        $blockedTerms = array_values(array_filter($blockedGroups));
+        if (empty($blockedTerms)) {
+            return $params;
+        }
+
+        $mustNot = [
+            ['terms' => ['groupname.keyword' => $blockedTerms]],
+            ['terms' => ['groupname' => $blockedTerms]]
+        ];
+
+        if (isset($params['body']['knn']) && is_array($params['body']['knn'])) {
+            $existingFilter = $params['body']['knn']['filter'] ?? null;
+            if ($existingFilter) {
+                $params['body']['knn']['filter'] = [
+                    'bool' => [
+                        'must' => [$existingFilter],
+                        'must_not' => $mustNot
+                    ]
+                ];
+            } else {
+                $params['body']['knn']['filter'] = [
+                    'bool' => [
+                        'must_not' => $mustNot
+                    ]
+                ];
+            }
+            return $params;
+        }
+
+        if (!isset($params['body']['query'])) {
+            $params['body']['query'] = [
+                'bool' => [
+                    'must' => [
+                        ['match_all' => (object)[]]
+                    ],
+                    'must_not' => $mustNot
+                ]
+            ];
+            return $params;
+        }
+
+        if (!isset($params['body']['query']['bool'])) {
+            $params['body']['query'] = [
+                'bool' => [
+                    'must' => [$params['body']['query']],
+                    'must_not' => $mustNot
+                ]
+            ];
+        } else {
+            if (!isset($params['body']['query']['bool']['must_not'])) {
+                $params['body']['query']['bool']['must_not'] = [];
+            }
+            $params['body']['query']['bool']['must_not'] = array_merge(
+                $params['body']['query']['bool']['must_not'],
+                $mustNot
+            );
+        }
+
+        return $params;
+    }
 
     protected function getArrayResponse($response) {
         if (is_array($response)) {
@@ -80,8 +154,9 @@ class ElasticsearchClient {
     private const EXPECTED_MODEL = 'intfloat/multilingual-e5-large-instruct';
 
     public function __construct(array $options = []) {
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
-        $dotenv->load();
+        if (function_exists('loadEnv')) {
+            loadEnv();
+        }
         $DEFAULT_INDEX = 'hawaiian'; // This is just the base of the index names
 
 
@@ -1423,6 +1498,7 @@ class ElasticsearchClient {
                 ]
             ]
         ];
+        $params = $this->applyBlockedGroupFilter($params);
 
         try {
             $response = $this->client->search($params);
@@ -1564,6 +1640,7 @@ class ElasticsearchClient {
                 'size' => 0 // We only need aggregations
             ]
         ];
+        $params = $this->applyBlockedGroupFilter($params);
 
         try {
             $response = $this->client->search($params)->asArray();
@@ -1607,6 +1684,7 @@ class ElasticsearchClient {
                 'size' => 0 // We only need aggregations
             ]
         ];
+        $params = $this->applyBlockedGroupFilter($params);
 
         try {
             $response = $this->client->search($params)->asArray();
@@ -1646,6 +1724,7 @@ class ElasticsearchClient {
                 'size' => 0 // We only need aggregations
             ]
         ];
+        $params = $this->applyBlockedGroupFilter($params);
 
         try {
             $response = $this->client->search($params)->asArray();
@@ -1682,6 +1761,8 @@ class ElasticsearchClient {
             return -1;
         }
 
+        $params = $this->applyBlockedGroupFilter($params);
+
         $this->printVerbose(
             "--- Elasticsearch Count Query ---\n" .
             json_encode($params, JSON_PRETTY_PRINT) .
@@ -1704,6 +1785,7 @@ class ElasticsearchClient {
     {
         $options['sentencesIndex'] = $options['sentencesIndex'] ?? $this->getSentencesIndexName();
         $params = $this->queryBuilder->buildSentenceWordCountsQuery($options);
+        $params = $this->applyBlockedGroupFilter($params);
 
         try {
             $response = $this->client->search($params)->asArray();
@@ -1728,6 +1810,7 @@ class ElasticsearchClient {
     {
         $options['documentsIndex'] = $options['documentsIndex'] ?? $this->getDocumentsIndexName();
         $params = $this->queryBuilder->buildDocumentWordCountsQuery($options);
+        $params = $this->applyBlockedGroupFilter($params);
 
         try {
             $response = $this->client->search($params)->asArray();
@@ -1753,7 +1836,9 @@ class ElasticsearchClient {
         // Use simple GET count without body to avoid POST requests (for read-only nginx proxies)
         $index = $this->getSentencesIndexName();
         try {
-            $response = $this->client->count(['index' => $index])->asArray();
+            $params = ['index' => $index];
+            $params = $this->applyBlockedGroupFilter($params);
+            $response = $this->client->count($params)->asArray();
             return $response['count'] ?? 0;
         } catch (\Exception $e) {
             if ($this->verbose) {
@@ -1767,7 +1852,9 @@ class ElasticsearchClient {
     {
         $index = empty($indexName) ? $this->getDocumentsIndexName() : $indexName;
         try {
-            $response = $this->client->count(['index' => $index])->asArray();
+            $params = ['index' => $index];
+            $params = $this->applyBlockedGroupFilter($params);
+            $response = $this->client->count($params)->asArray();
             return $response['count'] ?? 0;
         } catch (\Exception $e) {
             if ($this->verbose) {
@@ -1804,6 +1891,8 @@ class ElasticsearchClient {
             }
             $params['body']['query'] = $filter;
         }
+
+        $params = $this->applyBlockedGroupFilter($params);
 
         try {
             $response = $this->client->search($params)->asArray();
@@ -1875,6 +1964,8 @@ class ElasticsearchClient {
             ];
         }
 
+        $params = $this->applyBlockedGroupFilter($params);
+
         try {
             $response = $this->client->search($params)->asArray();
             $hits = $response['hits']['hits'] ?? [];
@@ -1915,6 +2006,7 @@ class ElasticsearchClient {
 
         // Compose an elastic search query
         $params = $this->queryBuilder->build($mode, $query, $options);
+        $params = $this->applyBlockedGroupFilter($params);
 
         $this->printVerbose(
             "--- Elasticsearch Query ---\n" .

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../env-loader.php';
+require_once __DIR__ . '/../lib/utils.php';
 
 $home ="/" . basename(__DIR__);
 
@@ -65,6 +66,54 @@ class DB extends Common\DB\DBBase {
 
     public function setDebugLogLevel( $level ) {
         $this->noisyLogLevel = $level;
+    }
+
+    protected function getBlockedGroups(): array
+    {
+        if (!function_exists('getBlockedSourceGroups')) {
+            return [];
+        }
+        $blocked = getBlockedSourceGroups();
+        return array_values(array_filter(is_array($blocked) ? $blocked : []));
+    }
+
+    protected function buildBlockedGroupPlaceholders(array $blocked, array &$values, string $prefix = 'blocked_group_'): string
+    {
+        $placeholders = [];
+        foreach ($blocked as $i => $group) {
+            $key = $prefix . $i;
+            $placeholders[] = ':' . $key;
+            $values[$key] = $group;
+        }
+        return implode(',', $placeholders);
+    }
+
+    protected function appendBlockedGroupWhereWithGroupAlias(string $sql, array &$values, string $groupAlias): string
+    {
+        $blocked = $this->getBlockedGroups();
+        if (empty($blocked)) {
+            return $sql;
+        }
+        $in = $this->buildBlockedGroupPlaceholders($blocked, $values);
+        $clause = "$groupAlias.groupname not in ($in)";
+        if (stripos($sql, ' where ') !== false) {
+            return $sql . " and $clause";
+        }
+        return $sql . " where $clause";
+    }
+
+    protected function appendBlockedGroupWhereWithSourceAlias(string $sql, array &$values, string $sourceAlias): string
+    {
+        $blocked = $this->getBlockedGroups();
+        if (empty($blocked)) {
+            return $sql;
+        }
+        $in = $this->buildBlockedGroupPlaceholders($blocked, $values);
+        $clause = "$sourceAlias.sourceid not in (select sourceid from sources where groupname in ($in))";
+        if (stripos($sql, ' where ') !== false) {
+            return $sql . " and $clause";
+        }
+        return $sql . " where $clause";
     }
 
     public function debuglog( $msg, $prefix="", $logLevel = 5 ) {
@@ -225,12 +274,16 @@ class Laana extends DB {
         // Strip quotes if present - user wants exact match either way
         $term = trim($term, '"');
         $booleanMode = "";
+        $groupAlias = null;
+        $sourceAlias = null;
         if( $pattern == 'regex' ) {
             if( $countOnly ) {
                 $sql = "select $targets from sentences s where $search REGEXP :term";
+                $sourceAlias = 's';
             } else {
                 $targets = "o.authors,o.date,o.sourceName,o.sourceID,o.link,s.hawaiianText,s.sentenceid";
                 $sql = "select $targets from sentences s, sources o where $search REGEXP :term and s.sourceID = o.sourceID";
+                $groupAlias = 'o';
             }
             $term = preg_replace( '/\\\/', '\\\\', $term );
             $values = [
@@ -246,9 +299,11 @@ class Laana extends DB {
                 ];
                 if( $countOnly ) {
                     $sql = "select $targets from sentences o where o.$search REGEXP :term";
+                    $sourceAlias = 'o';
                 } else {
                     $targets = "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid";
                     $sql = "select $targets from sentences o inner join sources s on s.sourceID = o.sourceID where o.$search REGEXP :term";
+                    $groupAlias = 's';
                 }
             } else if( $pattern == 'all' ) {
                 // Boolean mode: all words required
@@ -264,14 +319,17 @@ class Laana extends DB {
                 ];
                 if( $countOnly ) {
                     $sql = "select $targets from sentences o where match(o.$search) against (:term $booleanMode)";
+                    $sourceAlias = 'o';
                 } else {
                     $targets = "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid";
                     $sql = "select $targets from sentences o inner join sources s on s.sourceID = o.sourceID where match(o.$search) against (:term $booleanMode)";
+                    $groupAlias = 's';
                 }
             } else if( $pattern == 'clause' ) {
                 // Direct SQL clause
                 $targets = "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid";
                 $sql = "select $targets from sentences o inner join sources s on s.sourceID = o.sourceID where $term";
+                $groupAlias = 's';
                 $values = [
                 ];
             } else {
@@ -281,11 +339,18 @@ class Laana extends DB {
                 ];
                 if( $countOnly ) {
                     $sql = "select $targets from sentences o where match(o.$search) against (:term)";
+                    $sourceAlias = 'o';
                 } else {
                     $targets = "s.authors,s.date,s.sourceName,s.sourceID,s.link,o.hawaiianText,o.sentenceid";
                     $sql = "select $targets from sentences o inner join sources s on s.sourceID = o.sourceID where match(o.$search) against (:term)";
+                    $groupAlias = 's';
                 }
             }
+        }
+        if ($groupAlias) {
+            $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, $groupAlias);
+        } else if ($sourceAlias) {
+            $sql = $this->appendBlockedGroupWhereWithSourceAlias($sql, $values, $sourceAlias);
         }
         // NUll dates show up as first
         if( isset( $options['orderby'] ) && preg_match( '/^date/', $options['orderby'] ) ) {
@@ -330,6 +395,7 @@ class Laana extends DB {
         $values = [
             'sourceid' => $sourceid,
         ];
+        $sql = $this->appendBlockedGroupWhereWithSourceAlias($sql, $values, 'sentences');
         $row = $this->getOneDBRow( $sql, $values );
         $this->debuglog( $row['cnt'], "Sentence count");
         return $row['cnt'];
@@ -341,6 +407,10 @@ class Laana extends DB {
             'sourceid' => $sourceid,
         ];
         $results = $this->getSource( $sourceid );
+        if (empty($results)) {
+            return [];
+        }
+        $sql = $this->appendBlockedGroupWhereWithSourceAlias($sql, $values, 'sentences');
         $results['sentences'] = $this->getDBRows( $sql, $values );
         //echo "getSource: " . var_export( $results, true ) . "\n";
         return $results;
@@ -361,6 +431,10 @@ class Laana extends DB {
         if( sizeof($properties) < 1 ) {
             $properties = ["*"];
         }
+        $blockedGroups = $this->getBlockedGroups();
+        if ($groupname && !empty($blockedGroups) && in_array($groupname, $blockedGroups, true)) {
+            return [];
+        }
         if( !$groupname ) {
             for( $i = 0; $i < sizeof( $properties ); $i++ ) {
                 $properties[$i] = "o." . $properties[$i];
@@ -370,14 +444,19 @@ class Laana extends DB {
         $selection = implode( ",", $properties );
         if( !$groupname ) {
             //$sql = "select $selection,count(sentenceID) sentencecount from sources o,sentences s where o.sourceID = s.sourceID group by o.sourceID order by sourceName";
-            $sql = "select $selection,count(sentenceID) sentencecount from sources o left join sentences s on o.sourceID = s.sourceID group by o.sourceID $criteria order by sourceName";
+            $sql = "select $selection,count(sentenceID) sentencecount from sources o left join sentences s on o.sourceID = s.sourceID";
+            $values = [];
+            $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, 'o');
+            $sql .= " group by o.sourceID $criteria order by sourceName";
             //echo $sql;
-            $rows = $this->getDBRows( $sql );
+            $rows = $this->getDBRows( $sql, $values );
         } else {
-            $sql = "select $selection from (select o.*,count(sentenceID) sentencecount from sources o  left join sentences s on o.sourceID = s.sourceID  group by o.sourceID $criteria order by date,sourceName) h where groupname = :groupname";
+            $sql = "select $selection from (select o.*,count(sentenceID) sentencecount from sources o  left join sentences s on o.sourceID = s.sourceID";
             $values = [
                 'groupname' => $groupname,
             ];
+            $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, 'o');
+            $sql .= "  group by o.sourceID $criteria order by date,sourceName) h where groupname = :groupname";
             //echo $sql;
             $rows = $this->getDBRows( $sql, $values );
         }
@@ -385,21 +464,28 @@ class Laana extends DB {
     }
     
     public function getSourceCount() {
-        $sql = "select count(distinct sourceid) c from sentences";
-        $row = $this->getOneDBRow( $sql );
+        $sql = "select count(distinct s.sourceid) c from sentences s";
+        $values = [];
+        $sql = $this->appendBlockedGroupWhereWithSourceAlias($sql, $values, 's');
+        $row = $this->getOneDBRow( $sql, $values );
         return $row['c'];
     }
     
     public function getNonEmptySourceCount() {
-        $sql = "select count(distinct sourceid) c from sentences";
-        $row = $this->getOneDBRow( $sql );
+        $sql = "select count(distinct s.sourceid) c from sentences s";
+        $values = [];
+        $sql = $this->appendBlockedGroupWhereWithSourceAlias($sql, $values, 's');
+        $row = $this->getOneDBRow( $sql, $values );
         return $row['c'];
     }
     
     public function getSourceGroupCounts() {
-        $sql = "SELECT g.groupname, COUNT(DISTINCT s.sourceid) AS c FROM sources g JOIN sentences s ON g.sourceid = s.sourceid GROUP BY g.groupname";
+        $sql = "SELECT g.groupname, COUNT(DISTINCT s.sourceid) AS c FROM sources g JOIN sentences s ON g.sourceid = s.sourceid";
+        $values = [];
+        $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, 'g');
+        $sql .= " GROUP BY g.groupname";
         $this->debuglog( $sql, "getSourceGroupCounts" );
-        $rows = $this->getDBRows( $sql );
+        $rows = $this->getDBRows( $sql, $values );
         $results = [];
         foreach( $rows as $row ) {
             $results[$row['groupname']] = $row['c'];
@@ -408,9 +494,12 @@ class Laana extends DB {
     }
     
     public function getTotalSourceGroupCounts() {
-        $sql = "SELECT groupname, COUNT(DISTINCT sourceid) AS c FROM sources GROUP BY groupname";
+        $sql = "SELECT groupname, COUNT(DISTINCT sourceid) AS c FROM sources";
+        $values = [];
+        $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, 'sources');
+        $sql .= " GROUP BY groupname";
         $this->debuglog( $sql, "getTotalSourceGroupCounts" );
-        $rows = $this->getDBRows( $sql );
+        $rows = $this->getDBRows( $sql, $values );
         $results = [];
         foreach( $rows as $row ) {
             $results[$row['groupname']] = $row['c'];
@@ -419,16 +508,22 @@ class Laana extends DB {
     }
     
     public function getSentenceWordCounts(): array { 
-        $sql = "SELECT wordCount, COUNT(*) AS c FROM sentences GROUP BY wordCount order by wordCount";
+        $sql = "SELECT wordCount, COUNT(*) AS c FROM sentences s";
+        $values = [];
+        $sql = $this->appendBlockedGroupWhereWithSourceAlias($sql, $values, 's');
+        $sql .= " GROUP BY wordCount order by wordCount";
         $this->debuglog( $sql, "getSentenceWordCounts" );
-        $rows = $this->getDBRows( $sql );
+        $rows = $this->getDBRows( $sql, $values );
         return $rows;
     }
     
     public function getDocumentWordCounts(): array { 
-        $sql = "SELECT wordCount, COUNT(*) AS c FROM contents GROUP BY wordCount order by wordCount";
+        $sql = "SELECT wordCount, COUNT(*) AS c FROM contents c";
+        $values = [];
+        $sql = $this->appendBlockedGroupWhereWithSourceAlias($sql, $values, 'c');
+        $sql .= " GROUP BY wordCount order by wordCount";
         $this->debuglog( $sql, "getSentenceWordCounts" );
-        $rows = $this->getDBRows( $sql );
+        $rows = $this->getDBRows( $sql, $values );
         return $rows;
     }
     
@@ -438,6 +533,7 @@ class Laana extends DB {
         $values = [
             'sourceid' => $sourceid,
         ];
+        $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, 'sources');
         $row = $this->getOneDBRow( $sql, $values );
         $this->debuglog( $row, 'returning source');
         return $row;
@@ -462,8 +558,11 @@ class Laana extends DB {
     }
     
     public function getLatestSourceDates() {
-        $sql = "select groupname,max(date) date from sources o group by groupname";
-        $rows = $this->getDBRows( $sql );
+        $sql = "select groupname,max(date) date from sources o";
+        $values = [];
+        $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, 'o');
+        $sql .= " group by groupname";
+        $rows = $this->getDBRows( $sql, $values );
         return $rows;
     }
 
@@ -493,14 +592,23 @@ class Laana extends DB {
     }
 
     public function getSourceIDs( $groupname = '' ) {
+        $blockedGroups = $this->getBlockedGroups();
+        if ($groupname && !empty($blockedGroups) && in_array($groupname, $blockedGroups, true)) {
+            return [];
+        }
         if( !$groupname ) {
-            $sql = "select sourceID from sources order by sourceID";
-            $rows = $this->getDBRows( $sql );
+            $sql = "select sourceID from sources";
+            $values = [];
+            $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, 'sources');
+            $sql .= " order by sourceID";
+            $rows = $this->getDBRows( $sql, $values );
         } else {
-            $sql = "select sourceID from sources where groupname = :groupname order by sourceID";
+            $sql = "select sourceID from sources where groupname = :groupname";
             $values = [
                 'groupname' => $groupname,
             ];
+            $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, 'sources');
+            $sql .= " order by sourceID";
             $rows = $this->getDBRows( $sql, $values );
         }
         $sourceIDs = [];

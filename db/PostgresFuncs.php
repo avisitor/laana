@@ -66,7 +66,8 @@ class PostgresLaana extends Laana {
         // 3. BRANCH: COUNT vs. DATA
         if ($countOnly) {
             // High-speed count. We don't join sources or metrics here.
-            $sql = "SELECT count(*) as count FROM sentences WHERE $where";
+            $sql = "SELECT count(*) as count FROM sentences s WHERE $where";
+            $sql = $this->appendBlockedGroupWhereWithSourceAlias($sql, $values, 's');
         } else {
             // Fast data retrieval with LIMIT inside the subquery
             $sql = "SELECT s.authors, s.date, s.sourcename, s.sourceid, s.link, 
@@ -82,6 +83,7 @@ class PostgresLaana extends Laana {
                     INNER JOIN sources s ON s.sourceid = matched.sourceid
                     LEFT JOIN sentence_metrics m ON m.sentenceid = matched.sentenceid
                     ORDER BY matched.sentenceid DESC";
+            $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, 's');
         }
 
         try {

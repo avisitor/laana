@@ -2,6 +2,7 @@
 namespace Noiiolelo\Providers\MySQL;
 
 require_once __DIR__ . '/../../db/funcs.php';
+require_once __DIR__ . '/../../lib/utils.php';
 
 use Noiiolelo\SearchProviderInterface;
 
@@ -32,6 +33,8 @@ class MySQLProvider implements SearchProviderInterface
     public function getLatestSourceDates() { return $this->laana->getLatestSourceDates(); }
     public function getSources($groupname = '', $properties = [], $sortBy = '', $sortDir = 'asc') { 
         $sources = $this->laana->getSources($groupname);
+
+        $sources = filterSourcesByBlockedGroups($sources);
         
         // Apply sorting if specified
         if ($sortBy) {
@@ -82,7 +85,8 @@ class MySQLProvider implements SearchProviderInterface
     }
     public function getTotalSourceGroupCounts() {
         //$this->debuglog( "MySQLProvider::getTotalSourceGroupCounts" );
-        return $this->laana->getTotalSourceGroupCounts();
+        $counts = $this->laana->getTotalSourceGroupCounts();
+        return filterSourceGroupCounts(is_array($counts) ? $counts : []);
     }
     public function getSource( $sourceid ) { return $this->laana->getSource( $sourceid ); }    
     public function getSourceIDs( $groupname ) { return $this->laana->getSourceIDs( $groupname ); }    
@@ -326,7 +330,8 @@ class MySQLProvider implements SearchProviderInterface
 
     public function getSourceGroupCounts() {
         //$this->debuglog( "MySQLProvider::getSourceGroupCounts" );
-        return $this->laana->getSourceGroupCounts();
+        $counts = $this->laana->getSourceGroupCounts();
+        return filterSourceGroupCounts(is_array($counts) ? $counts : []);
     }
 
     public function getRandomWord() {

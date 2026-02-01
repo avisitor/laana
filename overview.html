@@ -52,15 +52,15 @@ is inspired by the <a class="fancy"href="https://laana.org">Laana</a> website of
 </div>
 <h3>Where do the sentences come from?</h3>
 <ul>
-  <li><a class="fancy"target="_blank" href="https://puke.ulukau.org/ulukau-books/?a=p&p=bookbrowser&e=-------en-20--1--txt-txPT-----------">Ulukau</a> (all Hawaiian-language books - <span id='ulukau-groupcount'></span> documents)</li>
-  <li><a class="fancy"target="_blank" href="https://nupepa.org/gsdl2.5/cgi-bin/nupepa?e=p-0nupepa--00-0-0--010---4-----text---0-1l--1haw-Zz-1---20-about---0003-1-0000utfZz-8-00&a=d&cl=CL2">Nupepa</a> (all newspaper issues that have been transcribed - <span id='nupepa-groupcount'></span> issues out of <?=$nupepaTotalCount?> total)</li>
-  <li><a class="fancy"target="_blank" href="https://keaolama.org/">Ke Aolama</a> (all articles to <?=$groupdates['keaolama']?> - <span id='keaolama-groupcount'></span> dates)</li>
-  <li><a class="fancy"target="_blank" href="https://www.civilbeat.org/projects/ka-ulana-pilina/">Ka Ulana Pilina</a> (Civil Beat, all articles to  <?=$groupdates['kaulanapilina']?> - <span id='kaulanapilina-groupcount'></span> articles)</li>
-  <li><a class="fancy"target="_blank" href="https://www.staradvertiser.com/category/editorial/kauakukalahale/">Kauakukalahale</a> (Honolulu Star Advertiser, all articles to  <?=$groupdates['kauakukalahale']?> - <span id='kauakukalahale-groupcount'></span> articles)</li>
-  <li><a class="fancy"target="_blank" href="https://www2.hawaii.edu/~kroddy/moolelo/">Ka Paa Moolelo</a> (all mo‘olelo - <span id='kapaamoolelo-groupcount'></span> documents)</li>
-  <li><a class="fancy"target="_blank" href="https://baibala.org/cgi-bin/bible?e=d-1off-01994-bible--00-1-0--01994v2-0--4--Sec---1--1en-Zz-1-other---20000-frameset-search-browse----011-01994v1--210-0-2-escapewin&cl=&d=NULL.2.1.1&cid=&bible=&d2=1&toc=0&gg=text#a1-">Baibala (full bible, 2012 edition)</a> (New and Old Testament, <span id='baibala-groupcount'></span> books)</li>
-  <li><a class="fancy"target="_blank" href="https://ehooululahui.maui.hawaii.edu/">Ehooululahui</a> (UHMC - <span id='ehooululahui-groupcount'></span> mo‘olelo)</li>
-  <li><a class="fancy"target="_blank" href="https://kaiwakiloumoku.ksbe.edu/">Kaiwakuloumoku</a> (Kamehameha Schools - <span id='kaiwakiloumoku-groupcount'></span> mo‘olelo)</li>
+  <li data-group="ulukau" style="display:none;"><a class="fancy"target="_blank" href="https://puke.ulukau.org/ulukau-books/?a=p&p=bookbrowser&e=-------en-20--1--txt-txPT-----------">Ulukau</a> (all Hawaiian-language books - <span id='ulukau-groupcount'></span> documents)</li>
+  <li data-group="nupepa" style="display:none;"><a class="fancy"target="_blank" href="https://nupepa.org/gsdl2.5/cgi-bin/nupepa?e=p-0nupepa--00-0-0--010---4-----text---0-1l--1haw-Zz-1---20-about---0003-1-0000utfZz-8-00&a=d&cl=CL2">Nupepa</a> (all newspaper issues that have been transcribed - <span id='nupepa-groupcount'></span> issues out of <?=$nupepaTotalCount?> total)</li>
+  <li data-group="keaolama" style="display:none;"><a class="fancy"target="_blank" href="https://keaolama.org/">Ke Aolama</a> (all articles to <?=$groupdates['keaolama']?> - <span id='keaolama-groupcount'></span> dates)</li>
+  <li data-group="kaulanapilina" style="display:none;"><a class="fancy"target="_blank" href="https://www.civilbeat.org/projects/ka-ulana-pilina/">Ka Ulana Pilina</a> (Civil Beat, all articles to  <?=$groupdates['kaulanapilina']?> - <span id='kaulanapilina-groupcount'></span> articles)</li>
+  <li data-group="kauakukalahale" style="display:none;"><a class="fancy"target="_blank" href="https://www.staradvertiser.com/category/editorial/kauakukalahale/">Kauakukalahale</a> (Honolulu Star Advertiser, all articles to  <?=$groupdates['kauakukalahale']?> - <span id='kauakukalahale-groupcount'></span> articles)</li>
+  <li data-group="kapaamoolelo" style="display:none;"><a class="fancy"target="_blank" href="https://www2.hawaii.edu/~kroddy/moolelo/">Ka Paa Moolelo</a> (all mo‘olelo - <span id='kapaamoolelo-groupcount'></span> documents)</li>
+  <li data-group="baibala" style="display:none;"><a class="fancy"target="_blank" href="https://baibala.org/cgi-bin/bible?e=d-1off-01994-bible--00-1-0--01994v2-0--4--Sec---1--1en-Zz-1-other---20000-frameset-search-browse----011-01994v1--210-0-2-escapewin&cl=&d=NULL.2.1.1&cid=&bible=&d2=1&toc=0&gg=text#a1-">Baibala (full bible, 2012 edition)</a> (New and Old Testament, <span id='baibala-groupcount'></span> books)</li>
+  <li data-group="ehooululahui" style="display:none;"><a class="fancy"target="_blank" href="https://ehooululahui.maui.hawaii.edu/">Ehooululahui</a> (UHMC - <span id='ehooululahui-groupcount'></span> mo‘olelo)</li>
+  <li data-group="kaiwakiloumoku" style="display:none;"><a class="fancy"target="_blank" href="https://kaiwakiloumoku.ksbe.edu/">Kaiwakuloumoku</a> (Kamehameha Schools - <span id='kaiwakiloumoku-groupcount'></span> mo‘olelo)</li>
   <li>Various other individual documents</li>
 </ul>
 <h4>Questions or concerns?</h4>
@@ -77,9 +77,20 @@ is inspired by the <a class="fancy"href="https://laana.org">Laana</a> website of
 
           const groupcounts = await response.json();
           console.log( groupcounts );
+            document.querySelectorAll("li[data-group]").forEach((li) => {
+              li.style.display = "none";
+            });
           const keys = Object.keys( groupcounts );
           for (const key of keys) {
-              $("#" + key + "-groupcount").text( groupcounts[key].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") );
+              const count = Number(groupcounts[key] ?? 0);
+              if (!Number.isFinite(count) || count <= 0) {
+                continue;
+              }
+              const li = document.querySelector("li[data-group=\"" + key + "\"]");
+              if (li) {
+                li.style.display = "";
+              }
+              $("#" + key + "-groupcount").text( count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") );
           }
       } catch (error) {
           console.error(error.message);

@@ -6,6 +6,7 @@ use OpenSearch\ClientBuilder;
 use HawaiianSearch\OpenSearchQueryBuilder;
 
 require_once __DIR__ . '/OpenSearchQueryBuilder.php';
+require_once __DIR__ . '/../../../env-loader.php';
 
 class OpenSearchClient extends ElasticsearchClient
 {
@@ -15,8 +16,9 @@ class OpenSearchClient extends ElasticsearchClient
     {
         // Load environment variables if not already loaded
         if (!isset($_ENV['OS_HOST'])) {
-            $dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/../../../');
-            $dotenv->safeLoad();
+            if (function_exists('loadEnv')) {
+                loadEnv();
+            }
         }
 
         // We don't call parent::__construct because it initializes the Elasticsearch client

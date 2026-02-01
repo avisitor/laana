@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../BaseTest.php';
+require_once __DIR__ . '/../../../../env-loader.php';
 
 /**
  * Pre-flight checks to ensure test environment is properly configured
@@ -51,8 +52,9 @@ class TestPrerequisites extends BaseTest
         }
         
         try {
-            $dotenv = \Dotenv\Dotenv::createImmutable(TEST_BASE_PATH);
-            $dotenv->safeLoad();
+            if (function_exists('loadEnv')) {
+                loadEnv($envFile);
+            }
         } catch (\Exception $e) {
             // Might already be loaded, that's okay
         }

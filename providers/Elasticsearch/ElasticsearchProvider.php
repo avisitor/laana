@@ -6,7 +6,9 @@ use HawaiianSearch\ElasticsearchClient;
 use HawaiianSearch\EmbeddingClient;
 use HawaiianSearch\MetadataCache;
 use Noiiolelo\Providers\Elasticsearch\ElasticsearchProcessingLogger;
-use Dotenv\Dotenv;
+
+require_once __DIR__ . '/../../env-loader.php';
+require_once __DIR__ . '/../../lib/utils.php';
 
 class ElasticsearchProvider implements SearchProviderInterface {
     protected $client;
@@ -16,10 +18,9 @@ class ElasticsearchProvider implements SearchProviderInterface {
     protected bool $quiet = true;
 
     public function __construct( $options ) {
-        /*
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
-        $dotenv->load();
-         */
+        if (function_exists('loadEnv')) {
+            loadEnv();
+        }
         $this->verbose = $options['verbose'] ?? false;
         $this->client = new ElasticsearchClient([
             'verbose' => $this->verbose,
@@ -337,7 +338,8 @@ class ElasticsearchProvider implements SearchProviderInterface {
 
     public function getTotalSourceGroupCounts(): array
     {
-        return $this->client->getTotalSourceGroupCounts();
+        $counts = $this->client->getTotalSourceGroupCounts();
+        return filterSourceGroupCounts(is_array($counts) ? $counts : []);
     }
 
     public function logQuery(array $params): void
@@ -438,12 +440,15 @@ class ElasticsearchProvider implements SearchProviderInterface {
     }
 
     public function getSourceGroupCounts() {
-        return $this->client->getSourceGroupCounts();
+        $counts = $this->client->getSourceGroupCounts();
+        return filterSourceGroupCounts(is_array($counts) ? $counts : []);
     }
 
     public function getSources( $groupname = '', $properties = [], $sortBy = '', $sortDir = 'asc' ) {
         $sources = $this->client->getAllRecords( $this->client->getSourceMetadataName() );
         $sources = array_column( $sources, "_source" );
+
+        $sources = filterSourcesByBlockedGroups($sources);
         
         // Filter by groupname if specified
         if ($groupname) {
