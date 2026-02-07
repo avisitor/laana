@@ -454,7 +454,14 @@ async function loadTimelineStats(allPatterns) {
 // 3. Load Document Stats
 async function loadDocumentStats() {
     try {
-        const response = await fetch('api.php/sources?details&properties=date');
+        const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '';
+        const apiBase = `${window.location.origin}${basePath}/api.php`;
+        const params = new URLSearchParams({
+            path: 'sources',
+            details: '1',
+            properties: 'date'
+        });
+        const response = await fetch(`${apiBase}?${params.toString()}`);
         const data = await response.json();
         
         if (data.error) throw new Error(data.error);
