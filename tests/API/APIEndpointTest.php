@@ -7,7 +7,17 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 class APIEndpointTest extends BaseTestCase
 {
-    private $baseUrl = 'https://noiiolelo.worldspot.org/';
+    private string $baseUrl;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $baseUrl = getenv('NOIIOLELO_TEST_BASE_URL');
+        if (!$baseUrl) {
+            throw new \RuntimeException('NOIIOLELO_TEST_BASE_URL must be set for API tests.');
+        }
+        $this->baseUrl = rtrim((string)$baseUrl, '/') . '/';
+    }
 
     /**
      * Execute API endpoint via HTTP request
@@ -22,9 +32,18 @@ class APIEndpointTest extends BaseTestCase
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         $output = curl_exec($ch);
+        $error = curl_error($ch);
         curl_close($ch);
-        
-        return $output !== false ? $output : '';
+
+        if ($output === false) {
+            return '';
+        }
+
+        if ($output === '' && $error) {
+            return '';
+        }
+
+        return $output;
     }
 
     /**
