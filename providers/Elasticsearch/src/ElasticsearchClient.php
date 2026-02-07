@@ -1271,7 +1271,19 @@ class ElasticsearchClient {
      */
     public function calculateGrammarPatterns(string $text): array
     {
-        return $this->grammarScanner->scanSentence($text);
+        $matches = $this->grammarScanner->scanSentence($text);
+        if (empty($matches)) {
+            return [];
+        }
+
+        $patterns = [];
+        foreach ($matches as $match) {
+            if (isset($match['pattern_type']) && $match['pattern_type'] !== '') {
+                $patterns[] = $match['pattern_type'];
+            }
+        }
+
+        return array_values(array_unique($patterns));
     }
 
     private function validateVectorDimensions( $actions ) {
