@@ -227,14 +227,23 @@ function cumulativeFromBuckets(buckets) {
 
 const urlParams = new URLSearchParams(window.location.search);
 const provider = urlParams.get('provider');
+const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '';
+const apiBase = `${window.location.origin}${basePath}/api.php`;
 const charts = {};
 
 async function loadDataForType(type, canvasId, config) {
     const endpoint = (type === 'documents') ? 'documents/wordcounts' : 'sentences/wordcounts';
-    const url = `https://noiiolelo.worldspot.org/api/${endpoint}` + (provider ? `?provider=${provider}` : "");
+    const params = new URLSearchParams({ path: endpoint });
+    if (provider) {
+        params.set('provider', provider);
+    }
+    const url = `${apiBase}?${params.toString()}`;
 
     try {
         const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
         let rows = await response.json();
         
         rows = rows.map(r => ({
