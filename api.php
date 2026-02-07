@@ -30,6 +30,11 @@ $scriptName = $_SERVER['SCRIPT_NAME']; // e.g., /noiiolelo/api.php
 // If called via rewrite (e.g., /noiiolelo/api/providers), PATH_INFO might be set
 $path = $_SERVER['PATH_INFO'] ?? '';
 
+// Support query-based routing for servers without PATH_INFO
+if (!$path) {
+    $path = $_REQUEST['path'] ?? $_REQUEST['endpoint'] ?? '';
+}
+
 if (!$path) {
     // Fallback: look for /api/ in the URI and take everything after it
     $apiPos = strpos($requestUri, '/api/');
@@ -41,7 +46,7 @@ if (!$path) {
 }
 
 $path = trim($path, '/');
-$parts = explode('/', $path);
+$parts = $path ? explode('/', $path) : [''];
 error_log( 'parts: ' . var_export( $parts, true ) );
 
 function error_response($msg, $code = 400) {
