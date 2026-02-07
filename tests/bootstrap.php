@@ -15,8 +15,14 @@ ini_set('error_log', __DIR__ . '/../tests/debug.log');
 // Load composer autoloader
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// Load existing .env handling
+require_once __DIR__ . '/../env-loader.php';
+
 // Set test environment variables
 $_ENV['PROVIDER'] = 'MySQL'; // Default for tests
+if (!getenv('NOIIOLELO_TEST_BASE_URL')) {
+    throw new RuntimeException('NOIIOLELO_TEST_BASE_URL must be set for API tests.');
+}
 
 /**
  * Helper function to get test provider
