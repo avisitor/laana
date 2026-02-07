@@ -79,7 +79,16 @@ if ($providerName === 'elasticsearch' || $providerName === 'es') {
         $bulkParams = ['body' => []];
         foreach ($hits as $hit) {
             $text = $hit['_source']['text'];
-            $patterns = $scanner->scanSentence($text);
+            $matches = $scanner->scanSentence($text);
+            $patterns = [];
+            if (!empty($matches)) {
+                foreach ($matches as $match) {
+                    if (isset($match['pattern_type']) && $match['pattern_type'] !== '') {
+                        $patterns[] = $match['pattern_type'];
+                    }
+                }
+                $patterns = array_values(array_unique($patterns));
+            }
             
             $bulkParams['body'][] = [
                 'update' => [
