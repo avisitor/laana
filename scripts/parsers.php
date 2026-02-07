@@ -1,16 +1,16 @@
 <?php
 $parsermap = [
-    'kaulanapilina' => new CBHtml(),
-    //'ulukau' => new UlukauHTML(),
-    'ulukau' => new UlukauHTML(),
-    'ulukaulocal' => new UlukauLocal(),
-    'keaolama' => new AoLamaHTML(),
-    'kauakukalahale' => new KauakukalahaleHTML(),
-    'nupepa' => new NupepaHTML(),
-    'kapaamoolelo' => new KaPaaMooleloHTML(),
-    'baibala' => new BaibalaHTML(),
-    'ehooululahui' => new EhoouluLahuiHTML(),
-    'kaiwakiloumoku' => new KaiwakiloumokuHTML(),
+    'kaulanapilina' => new \CBHtml(),
+    //'ulukau' => new \UlukauHTML(),
+    'ulukau' => new \UlukauHTML(),
+    'ulukaulocal' => new \UlukauLocal(),
+    'keaolama' => new \AoLamaHTML(),
+    'kauakukalahale' => new \KauakukalahaleHTML(),
+    'nupepa' => new \NupepaHTML(),
+    'kapaamoolelo' => new \KaPaaMooleloHTML(),
+    'baibala' => new \BaibalaHTML(),
+    'ehooululahui' => new \EhoouluLahuiHTML(),
+    'kaiwakiloumoku' => new \KaiwakiloumokuHTML(),
 ];
 $urlmap = [
     'kaulanapilina' => 'https://www.civilbeat.org/2022/05/%CA%BBo-na-mea-a-ka-limu-e-ho%CA%BBike-aku-ai-e-pili-ana-i-ko-kakou-%CA%BBaina-ma-hawai%CA%BBi/',
@@ -25,4 +25,8 @@ $urlmap = [
     'ehooululahui' => 'https://ehooululahui.maui.hawaii.edu/?page_id=67',
 ];
 $parserkey = null;
+
+// Ensure parser maps are available globally regardless of include namespace
+$GLOBALS['parsermap'] = $parsermap;
+$GLOBALS['urlmap'] = $urlmap;
 ?>
