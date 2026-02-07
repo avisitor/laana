@@ -49,7 +49,11 @@ class ElasticsearchSaveManager {
             'SPLIT_INDICES' => true
         ]);
         
-        $this->parsers = $parsermap;
+        if (isset($GLOBALS['parsermap']) && is_array($GLOBALS['parsermap'])) {
+            $this->parsers = $GLOBALS['parsermap'];
+        } else {
+            $this->parsers = is_array($parsermap) ? $parsermap : [];
+        }
         
         if (isset($options['debug'])) {
             $this->setDebug($options['debug']);
@@ -138,8 +142,12 @@ class ElasticsearchSaveManager {
     }
     
     public function getParser($key) {
-        if (isset($this->parsers[$key])) {
-            $parser = $this->parsers[$key];
+        $normalizedKey = is_string($key) ? strtolower(trim($key)) : $key;
+        if (is_string($normalizedKey) && $normalizedKey === '') {
+            $normalizedKey = null;
+        }
+        if ($normalizedKey !== null && isset($this->parsers[$normalizedKey])) {
+            $parser = $this->parsers[$normalizedKey];
             // Set debug flag on parser if manager has it enabled
             if ($this->debug && method_exists($parser, 'setDebug')) {
                 $parser->setDebug($this->debug);
@@ -147,6 +155,15 @@ class ElasticsearchSaveManager {
             return $parser;
         }
         return null;
+    }
+
+    public function getDocumentListForParser(string $parserKey): array
+    {
+        $parser = $this->getParser($parserKey);
+        if (!$parser) {
+            return [];
+        }
+        return $parser->getDocumentList();
     }
 
     /**
@@ -182,6 +199,15 @@ class ElasticsearchSaveManager {
      */
     public function outLine($message) {
         $this->outputLine($message);
+    }
+
+    protected function buildSummary($parserName, $documentsProcessed, $documentsNewOrUpdated, $sentencesNew) {
+        return [
+            'parser' => $parserName,
+            'documents_processed' => (int)$documentsProcessed,
+            'documents_new_or_updated' => (int)$documentsNewOrUpdated,
+            'sentences_new' => (int)$sentencesNew,
+        ];
     }
     
     /**
@@ -590,9 +616,12 @@ class ElasticsearchSaveManager {
             $this->log("No parser specified or found - skipping document processing");
             // If only checking orphans, that's fine - no actual indexing needed
             if (empty($this->options['check-orphans'])) {
+                $availableParsers = implode(', ', array_keys($this->parsers ?? []));
                 $this->outputLine("ERROR: Parser is required for document indexing");
+                $this->outputLine("Provided parser: " . ($parserkey ?: '[none]'));
+                $this->outputLine("Available parsers: " . ($availableParsers ?: '[none]'));
             }
-            return;
+            return $this->buildSummary($parserkey ?: null, 0, 0, 0);
         }
 
         // Get document list from parser
@@ -604,7 +633,7 @@ class ElasticsearchSaveManager {
             if (!$sourceMetadata) {
                 $this->log("No source metadata found for sourceID $singleSourceID");
                 $this->outputLine("ERROR: Source $singleSourceID not found in Elasticsearch");
-                return;
+                return $this->buildSummary($parser->logName ?? ($parserkey ?: null), 0, 0, 0);
             }
             
             // Add to sources array for processing
@@ -612,9 +641,14 @@ class ElasticsearchSaveManager {
             $docs = [$sourceMetadata];
             $this->outputLine("Processing single source: {$sourceMetadata['sourcename']} (ID: $singleSourceID)");
         } else {
-            // Get all documents from parser
-            $this->outputLine("Fetching document list from parser {$parser->logName}...");
-            $docs = $parser->getDocumentList();
+            if (!empty($this->options['documents']) && is_array($this->options['documents'])) {
+                $docs = $this->options['documents'];
+                $this->outputLine("Using provided document list (" . count($docs) . " items)");
+            } else {
+                // Get all documents from parser
+                $this->outputLine("Fetching document list from parser {$parser->logName}...");
+                $docs = $parser->getDocumentList();
+            }
         }
 
         $this->outputLine(sizeof($docs) . " documents found");
@@ -623,6 +657,8 @@ class ElasticsearchSaveManager {
         $indexed = 0;
         $skipped = 0;
         $errors = 0;
+        $documentsNewOrUpdated = 0;
+        $sentencesNew = 0;
         $i = 0;
 
         foreach ($docs as $source) {
@@ -661,6 +697,7 @@ class ElasticsearchSaveManager {
             $title = $source['title'] ?? '';
             $author = $source['author'] ?? $source['authors'] ?? '';
             
+            $wasCreated = false;
             if (!$sourceID) {
                 // New source - need to create it
                 $this->output("[" . ($i + 1) . "/" . sizeof($docs) . "] New source: $sourceName... ");
@@ -680,6 +717,7 @@ class ElasticsearchSaveManager {
                     $this->log("Added sourceID $sourceID");
                     $source['sourceid'] = $sourceID;
                     $source['_newly_created'] = true; // Mark as newly created to force processing
+                    $wasCreated = true;
                     $this->output("Created ID: $sourceID... ");
                 } else {
                     $this->outputLine("FAILED to create source");
@@ -718,10 +756,12 @@ class ElasticsearchSaveManager {
             // Wrap all processing in try-catch to clean up newly created sources if anything fails
             try {
                 $count = $this->saveContents($parser, $sourceID);
+                $sentencesNew += (int)$count;
                 
                 if ($count > 0) {
                     $this->outputLine("SUCCESS ($count sentences)");
                     $indexed++;
+                    $documentsNewOrUpdated++;
                 } else {
                     // Check if sentences already exist
                     $sentenceCount = $this->getSentenceCount($sourceID);
@@ -752,6 +792,9 @@ class ElasticsearchSaveManager {
                                 // Successfully processed but no sentences found (empty marker stored)
                                 $this->outputLine(" - source processed but has no Hawaiian sentences");
                                 $this->log("Source $sourceID was successfully processed but contains no Hawaiian sentences");
+                                if ($wasCreated) {
+                                    $documentsNewOrUpdated++;
+                                }
                             }
                         } else {
                             $this->outputLine("");
@@ -793,6 +836,9 @@ class ElasticsearchSaveManager {
         $this->outputLine("Indexed: $indexed");
         $this->outputLine("Skipped: $skipped");
         $this->outputLine("Errors: $errors");
+
+        $parserName = $parser->logName ?? ($parserkey ?: null);
+        return $this->buildSummary($parserName, $i, $documentsNewOrUpdated, $sentencesNew);
     }
 
     /**

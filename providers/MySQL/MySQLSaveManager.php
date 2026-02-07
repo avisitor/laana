@@ -76,6 +76,15 @@ class MySQLSaveManager {
         return null;
     }
 
+    public function getDocumentListForParser(string $parserKey): array
+    {
+        $parser = $this->getParser($parserKey);
+        if (!$parser) {
+            return [];
+        }
+        return $parser->getDocumentList();
+    }
+
     public function verboseLog( $message = '', $prefix = '' ) {
         if( $this->verbose ) {
             $this->log( $message, $prefix );
@@ -129,6 +138,15 @@ class MySQLSaveManager {
         }
         $this->outputLine($msg);
         $this->log($message, $prefix);
+    }
+
+    protected function buildSummary($parserName, $documentsProcessed, $documentsNewOrUpdated, $sentencesNew) {
+        return [
+            'parser' => $parserName,
+            'documents_processed' => (int)$documentsProcessed,
+            'documents_new_or_updated' => (int)$documentsNewOrUpdated,
+            'sentences_new' => (int)$sentencesNew,
+        ];
     }
 
     private function saveRaw($parser, $source) {
@@ -353,7 +371,7 @@ class MySQLSaveManager {
             if ($this->batchLogID) {
                 $this->laana->completeProcessingLog($this->batchLogID, 'failed', 0, 'Source not found');
             }
-            return;
+            return $this->buildSummary(null, 0, 0, 0);
         }
         $this->verbosePrint( $source, "Source" );
         
@@ -366,7 +384,7 @@ class MySQLSaveManager {
             if ($this->batchLogID) {
                 $this->laana->completeProcessingLog($this->batchLogID, 'failed', 0, 'Missing groupname');
             }
-            return;
+            return $this->buildSummary(null, 0, 0, 0);
         }
         $parser = $this->parser ?: $this->getParser($groupname);
         
@@ -375,7 +393,7 @@ class MySQLSaveManager {
             if ($this->batchLogID) {
                 $this->laana->completeProcessingLog($this->batchLogID, 'failed', 0, 'Parser not found');
             }
-            return;
+            return $this->buildSummary($groupname, 0, 0, 0);
         }
         
         $this->verbosePrint( "Initializing parser from $link\n" );
@@ -387,6 +405,7 @@ class MySQLSaveManager {
         
         $this->out("[0] Processing $sourceName (ID: $sourceID)... ");
         $count = 0;
+        $updatedSource = false;
         try {
             $updatedSource = $this->updateSource($parser->metadata, $source);
             if ($updatedSource) {
@@ -410,6 +429,10 @@ class MySQLSaveManager {
         
         $this->outputLine("");
         $this->outputLine("getAllDocuments: processed 1 document with $count sentences");
+
+        $parserName = $parser->logName ?? ($groupname ?: null);
+        $documentsNewOrUpdated = $updatedSource ? 1 : 0;
+        return $this->buildSummary($parserName, 1, $documentsNewOrUpdated, $count);
     }
 
     public function processOneDocument( $doc, $i ) {
@@ -555,7 +578,7 @@ class MySQLSaveManager {
                 $parser->initialize( $link );
                 $this->updateSource( $parser->metadata, $source );
             }
-            return 0;
+            return $this->buildSummary($parserkey ?: null, 0, 0, 0);
         }
         
         // Start processing log for the batch operation (debug output suppressed)
@@ -588,6 +611,9 @@ class MySQLSaveManager {
 
         $docs = []; // Sources in the wild
         $items = []; // Sources in the DB
+        if (!empty($this->options['documents']) && is_array($this->options['documents'])) {
+            $docs = $this->options['documents'];
+        }
         if ($parserkey && $local) {
             $items = $this->laana->getSources($parserkey);
             if (sizeof($items) > 0 && isset($items[0]['sourceid'])) {
@@ -595,7 +621,7 @@ class MySQLSaveManager {
                     return $a['sourceid'] <=> $b['sourceid'];
                 });
             }
-        } else if ($parser) {
+        } else if ($parser && empty($docs)) {
             $docs = $parser->getDocumentList();
             if (!empty($docs)) {
                 if (!property_exists($parser, 'groupname') || empty($parser->groupname)) {
@@ -648,6 +674,9 @@ class MySQLSaveManager {
         }
         
         $this->outputLine("$this->funcName: updated {$this->updates} source definitions, {$this->docCount} documents and {$this->sentenceCount} sentences");
+
+        $parserName = $parser ? ($parser->logName ?? ($parserkey ?: null)) : ($parserkey ?: 'mixed');
+        return $this->buildSummary($parserName, $i, $this->updates, $this->sentenceCount);
     }
 
     public function deleteByGroupname($groupname) {
