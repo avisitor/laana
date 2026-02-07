@@ -13,6 +13,7 @@ if [[ $# -lt 1 ]]; then
     exit 1
 fi
 
+OPEN_CODE="/home/rweltman/.opencode/bin/opencode"
 REPORTFILE="$1"
 MODE="run"
 
@@ -91,5 +92,5 @@ fi
 MODEL=opencode/big-pickle
 MODEL=opencode/gpt-5-nano
 PROMPT="OpenCode, open $SIMPLIFIED and walk through each test that failed, had a warning or was skipped. For each one, locate the corresponding test file and source file, and explain what’s going wrong and how to fix it in the test or in the code or configuration. Propose specific code changes but do not make any changes."
-opencode --model $MODEL run $PROMPT
+$OPEN_CODE --model $MODEL run $PROMPT
 
