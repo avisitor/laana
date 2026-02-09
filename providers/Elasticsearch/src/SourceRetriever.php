@@ -23,7 +23,7 @@ use GuzzleHttp\Exception\RequestException;
 
         protected function print( $msg ) {
             if (!isset($this->config["quiet"]) || !$this->config["quiet"]) {
-                echo "SourceRetriever: " . "$msg\n";
+                error_log("SourceRetriever: $msg");
             }
         }
         
@@ -74,9 +74,9 @@ use GuzzleHttp\Exception\RequestException;
                         });
                         
                         if (empty($this->sources)) {
-                            echo "❌ Source ID {$sourceId} not found among " . count($allSources) . " available sources.\n";
+                            $this->print("❌ Source ID {$sourceId} not found among " . count($allSources) . " available sources.");
                         } else {
-                            echo "✅ Found specific Source ID: {$sourceId}.\n";
+                            $this->print("✅ Found specific Source ID: {$sourceId}.");
                         }
                     } else {
                         // Use all sources
@@ -84,7 +84,7 @@ use GuzzleHttp\Exception\RequestException;
                         echo "✅ Fetched " . count($this->sources) . " sources.\n";
                     }
                 } catch (\Exception $e) {
-                    echo "❌ Failed to fetch sources: " . $e->getMessage() . "\n";
+                    $this->print("❌ Failed to fetch sources: " . $e->getMessage() );
                     $this->sources = [];
                 }
             } else {
@@ -96,7 +96,7 @@ use GuzzleHttp\Exception\RequestException;
                 if( !$this->client ) {
                     $msg .= " No Elasticsearch client available.";
                 }
-                echo "$msg\n";
+                $this->print($msg );
             }
             return $this->sources;
         }

@@ -24,6 +24,10 @@ function formatLogMessage( $msg, $intro = "" ) {
 }
 
 function printObject( $obj, $intro = '' ) {
+    // Only output in CLI context, not during web requests or tests
+    if (php_sapi_name() !== 'cli' || defined('PHPUNIT_RUNNING')) {
+        return;
+    }
     $msg = formatLogMessage( $obj, $intro );
     echo "$msg \n";
 }
@@ -135,8 +139,7 @@ class DB extends Common\DB\DBBase {
         try {
             return $this->createConnection( $env );
         } catch(PDOException $e) {
-            echo "Connection failed: " . $e->getMessage();
-            $this->debuglog(  $e->getMessage(), "Connection failed: " );
+            $this->debuglog($e->getMessage(), "Connection failed");
             return null;
         }
     }

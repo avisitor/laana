@@ -1423,8 +1423,7 @@ class ElasticsearchClient {
         if (isset($response['errors']) && $response['errors'] === true) {
             foreach ($response['items'] as $item) {
                 if (isset($item['index']['error'])) {
-                    echo "Error indexing document " . $item['index']['_id'] . ": ";
-                    print_r($item['index']['error']);
+                    error_log("Error indexing document " . $item['index']['_id'] . ": " . json_encode($item['index']['error']));
                 }
             }
         }
@@ -1599,8 +1598,7 @@ class ElasticsearchClient {
         if (isset($response['errors']) && $response['errors'] === true) {
             foreach ($response['items'] as $item) {
                 if (isset($item['index']['error'])) {
-                    echo "Error indexing document " . $item['index']['_id'] . ": ";
-                    print_r($item['index']['error']);
+                    error_log("Error indexing document " . $item['index']['_id'] . ": " . json_encode($item['index']['error']));
                 }
             }
         }

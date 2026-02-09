@@ -80,6 +80,11 @@ run_tests() {
             --json "$JSON_REPORT" \
             || echo "⚠️  Python3 not available for JSON conversion"
 
+        if [ -f "$JSON_REPORT" ]; then
+            rm -f "$REPORT_DIR/latest.json"
+            ln -s "$(basename "$JSON_REPORT")" "$REPORT_DIR/latest.json"
+        fi
+
         # Remove intermediate XML file
         rm -f "$XML_REPORT"
     else

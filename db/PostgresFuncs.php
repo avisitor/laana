@@ -30,8 +30,8 @@ class PostgresLaana extends Laana {
             debuglog([ 'dsn' => $dsn, 'user' => $user, 'db' => $db, 'host' => $host, 'port' => $port ], 'PostgresLaana::connect');
             return $conn;
         } catch (PDOException $e) {
-            echo "Postgres connection failed: " . $e->getMessage();
             debuglog("Postgres connection failed: " . $e->getMessage());
+            return null;
         }
     }
 

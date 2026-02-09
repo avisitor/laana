@@ -24,7 +24,10 @@ class APIEndpointTest extends BaseTestCase
      */
     private function executeApiRequest(string $endpoint, array $params = []): string
     {
-        $url = $this->baseUrl . $endpoint . '?' . http_build_query($params);
+        // Use query parameter routing (path=endpoint) for compatibility with servers
+        // that don't have AcceptPathInfo enabled
+        $params['path'] = $endpoint;
+        $url = $this->baseUrl . 'api.php?' . http_build_query($params);
         
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -51,12 +54,31 @@ class APIEndpointTest extends BaseTestCase
      */
     private function executeOpsRequest(string $endpoint, array $params = []): string
     {
-        return $this->executeApiRequest('ops/' . $endpoint, $params);
+        $url = $this->baseUrl . 'ops/' . $endpoint . '?' . http_build_query($params);
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $output = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($output === false) {
+            return '';
+        }
+
+        if ($output === '' && $error) {
+            return '';
+        }
+
+        return $output;
     }
 
     public function testApiSourcesEndpoint(): void
     {
-        $output = $this->executeApiRequest('api.php/sources');
+        $output = $this->executeApiRequest('sources');
         
         $this->assertNotEmpty($output, 'API should return output');
         
@@ -72,7 +94,7 @@ class APIEndpointTest extends BaseTestCase
     #[DataProvider('providerNamesProvider')]
     public function testApiSourcesWithProvider(string $providerName): void
     {
-        $output = $this->executeApiRequest('api.php/sources', [
+        $output = $this->executeApiRequest('sources', [
             'provider' => $providerName
         ]);
         
