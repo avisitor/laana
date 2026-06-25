@@ -2,6 +2,8 @@
 
 namespace Noiiolelo;
 
+use HawaiianSearch\WordCleanupStore;
+
 class MetricsComputer
 {
     private const MIN_DOC_HAWAIIAN_WORD_RATIO = 0.1;
@@ -24,9 +26,14 @@ class MetricsComputer
         if (!is_readable($path)) return $set;
         $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         foreach ($lines as $w) {
-            $set[mb_strtolower(trim($w))] = true;
+            $word = trim($w);
+            if ($word === '' || $word[0] === '-' || mb_strtolower($word) === 'raw_head') {
+                continue;
+            }
+
+            $set[WordCleanupStore::normalizeWord($word)] = true;
         }
-        return $set;
+        return WordCleanupStore::applyToWordSet($set);
     }
 
     public function calculateHawaiianWordRatio(string $text): float

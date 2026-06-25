@@ -14,6 +14,20 @@ class RemoteDocumentCatalogingTest extends BaseTestCase
     private static string $testEnvFile = '';
     private static ?PDO $adminPdo = null;
 
+    private function isVerboseCataloging(): bool
+    {
+        $flag = $_ENV['VERBOSE'] ?? getenv('VERBOSE') ?? $_ENV['CATALOG_TEST_VERBOSE'] ?? getenv('CATALOG_TEST_VERBOSE') ?? '0';
+        return in_array(strtolower((string)$flag), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function logCatalogStep(string $message): void
+    {
+        if (!$this->isVerboseCataloging()) {
+            return;
+        }
+        fwrite(STDOUT, '[catalog-test ' . date('H:i:s') . '] ' . $message . PHP_EOL);
+    }
+
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
@@ -124,7 +138,9 @@ class RemoteDocumentCatalogingTest extends BaseTestCase
         }
 
         $parserKey = $_ENV['CATALOG_TEST_PARSER'] ?? 'keaolama';
-        $docLimit = (int)($_ENV['CATALOG_TEST_DOC_LIMIT'] ?? 1);
+        $docLimit = max(1, (int)($_ENV['CATALOG_TEST_DOC_LIMIT'] ?? 5));
+
+        $this->logCatalogStep("Starting remote cataloging test (provider=$provider, parser=$parserKey, docLimit=$docLimit)");
 
         $manager = new MySQLSaveManager([
             'parserkey' => $parserKey,
@@ -132,11 +148,17 @@ class RemoteDocumentCatalogingTest extends BaseTestCase
             'verbose' => false,
         ]);
 
+        $t0 = microtime(true);
         $parser = $manager->getParser($parserKey);
+        $this->logCatalogStep('Parser loaded in ' . round((microtime(true) - $t0), 3) . 's');
         $this->assertNotNull($parser, "Parser {$parserKey} must be configured");
 
+        $t0 = microtime(true);
+        $this->logCatalogStep('Fetching remote document list...');
         $docs = $parser->getDocumentList();
+        $this->logCatalogStep('Fetched ' . count($docs) . ' documents in ' . round((microtime(true) - $t0), 3) . 's');
         $this->assertNotEmpty($docs, 'Remote document list should not be empty');
+        $this->assertGreaterThanOrEqual($docLimit, count($docs), "Expected at least {$docLimit} documents from remote catalog");
 
         $limit = min($docLimit, count($docs));
         for ($i = 0; $i < $limit; $i++) {
@@ -146,19 +168,28 @@ class RemoteDocumentCatalogingTest extends BaseTestCase
             $this->assertNotEmpty($doc['sourcename'] ?? null, 'Catalog entry missing sourcename');
         }
 
-        $firstDoc = $docs[0];
-        $this->assertNotEmpty($firstDoc['groupname'] ?? null, 'First catalog entry missing groupname');
-
-        $manager->processOneDocument($firstDoc, 0);
-
-        $link = $firstDoc['url'] ?? $firstDoc['link'] ?? '';
-        $this->assertNotEmpty($link, 'First document link missing');
-
         $laana = $manager->getLaana();
-        $source = $laana->getSourceByLink($link);
-        $this->assertNotEmpty($source['sourceid'] ?? null, 'Source was not persisted to test database');
+        $processed = 0;
+        for ($i = 0; $i < $limit; $i++) {
+            $doc = $docs[$i];
+            $link = $doc['url'] ?? $doc['link'] ?? '';
+            $this->assertNotEmpty($link, "Document #{$i} link missing");
 
-        $raw = $laana->getRawText($source['sourceid']);
-        $this->assertNotEmpty($raw, 'Raw HTML was not saved for acquired document');
+            $this->logCatalogStep('Processing remote document #' . ($i + 1) . ': ' . ($doc['sourcename'] ?? '(unknown)') . ' | ' . $link);
+            $t0 = microtime(true);
+            $manager->processOneDocument($doc, $i);
+            $this->logCatalogStep('Document #' . ($i + 1) . ' processing completed in ' . round((microtime(true) - $t0), 3) . 's');
+
+            $this->logCatalogStep('Verifying persistence for document #' . ($i + 1) . ' link: ' . $link);
+            $source = $laana->getSourceByLink($link);
+            $this->assertNotEmpty($source['sourceid'] ?? null, 'Source was not persisted to test database');
+
+            $raw = $laana->getRawText($source['sourceid']);
+            $this->assertNotEmpty($raw, 'Raw HTML was not saved for acquired document');
+            $this->logCatalogStep('Persistence checks passed for sourceid=' . ($source['sourceid'] ?? 'unknown'));
+            $processed++;
+        }
+
+        $this->assertSame($limit, $processed, "Expected to process {$limit} documents");
     }
 }

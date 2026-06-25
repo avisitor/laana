@@ -1,8 +1,14 @@
 <IfModule mod_rewrite.c>
 RewriteEngine On
 
+# Avoid MultiViews guessing that can interfere with extensionless endpoint routing.
+Options -MultiViews
+
 # Handle /api and /api/ requests - rewrite to api.php and preserve path and query string
 RewriteRule ^api(/.*)?$ api.php$1 [L,QSA]
+
+# Explicitly map extensionless ops pages.
+RewriteRule ^ops/(neo4j_qa|word_cleanup|graphs|graph_refresh)$ ops/$1.php [L,QSA]
 
 # Generic rule: append .php to requests for non-existent files/directories
 RewriteCond %{REQUEST_FILENAME} !-f

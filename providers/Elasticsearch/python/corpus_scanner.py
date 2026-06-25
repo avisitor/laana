@@ -1,5 +1,7 @@
 import argparse
 import hashlib
+import json
+import os
 from collections import defaultdict
 from spacy import load as load_spacy
 from elasticsearchclient import ElasticsearchDB
@@ -26,9 +28,45 @@ class CorpusScanner:
         # Remove okina and apostrophe, and convert macrons to plain vowels
         return word.lower().replace("‘", "").replace("'", "").replace("ā", "a").replace("ē", "e").replace("ī", "i").replace("ō", "o").replace("ū", "u")
 
+    def _load_cleanup_overrides(self):
+        script_dir = os.path.dirname(__file__)
+        candidates = [
+            os.path.abspath(os.path.join(script_dir, '..', '..', '..', 'data', 'word_cleanup_overrides.json')),
+            os.path.abspath(os.path.join(script_dir, '..', '..', '..', 'word_cleanup_overrides.json')),
+        ]
+
+        for path in candidates:
+            if not os.path.exists(path):
+                continue
+
+            try:
+                with open(path, 'r', encoding='utf-8') as handle:
+                    payload = json.load(handle)
+                if isinstance(payload, dict) and isinstance(payload.get('entries'), list):
+                    return payload['entries']
+            except Exception:
+                return []
+
+        return []
+
     def load_hawaiian_words(self):
         try:
-            with open("hawaiian_words.txt", "r") as f:
+            script_dir = os.path.dirname(__file__)
+            candidates = [
+                os.path.abspath(os.path.join(script_dir, '..', '..', '..', 'hawaiian_words.txt')),
+                os.path.abspath(os.path.join(script_dir, 'hawaiian_words.txt')),
+            ]
+
+            word_file = None
+            for candidate in candidates:
+                if os.path.exists(candidate):
+                    word_file = candidate
+                    break
+
+            if word_file is None:
+                raise FileNotFoundError("hawaiian_words.txt not found")
+
+            with open(word_file, "r", encoding="utf-8") as f:
                 all_headwords = set()
                 for line in f:
                     # 1. Split by comma for multiple headwords on one line
@@ -42,7 +80,19 @@ class CorpusScanner:
                                 all_headwords.add(word)
                 
                 # 4. Normalize all collected words and return as a set for uniqueness
-                return {self._normalize_word(word) for word in all_headwords}
+                hawaiian_words = {self._normalize_word(word) for word in all_headwords}
+
+                for entry in self._load_cleanup_overrides():
+                    normalized = self._normalize_word(str(entry.get('word', '')).strip())
+                    action = str(entry.get('action', '')).strip().lower()
+                    if not normalized:
+                        continue
+                    if action in ['stopword', 'exclude', 'remove']:
+                        hawaiian_words.discard(normalized)
+                    elif action in ['include', 'hawaiian', 'add']:
+                        hawaiian_words.add(normalized)
+
+                return hawaiian_words
         except FileNotFoundError:
             print("Warning: hawaiian_words.txt not found. Hawaiian word ratio will not be calculated.")
             return set()

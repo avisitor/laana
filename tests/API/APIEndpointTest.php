@@ -108,6 +108,12 @@ class APIEndpointTest extends BaseTestCase
     #[DataProvider('providerNamesProvider')]
     public function testResultCountEndpoint(string $providerName): void
     {
+        // Elasticsearch tests follow the configured valid provider list.
+        // If Elasticsearch is enabled for this suite, run the same endpoint checks
+        // without an extra ES_TEST_ENABLED override.
+        if (strtolower($providerName) === 'elasticsearch' && !$this->isValidProvider('Elasticsearch')) {
+            $this->markTestSkipped('Elasticsearch provider not in valid provider list');
+        }
         $searchPattern = ($providerName === 'Elasticsearch') ? 'match' : 'exact';
         
         $output = $this->executeOpsRequest('resultcount.php', [

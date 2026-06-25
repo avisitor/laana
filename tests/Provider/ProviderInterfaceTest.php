@@ -54,7 +54,7 @@ class ProviderInterfaceTest extends BaseTestCase
     public function testProviderHasRequiredMethods(string $providerName): void
     {
         $provider = getTestProvider($providerName);
-        
+
         $this->assertTrue(method_exists($provider, 'getSentences'));
         $this->assertTrue(method_exists($provider, 'getMatchingSentenceCount'));
         $this->assertTrue(method_exists($provider, 'getSources'));
@@ -70,7 +70,7 @@ class ProviderInterfaceTest extends BaseTestCase
 
         $provider = getTestProvider('MySQL');
         $modes = $provider->getAvailableSearchModes();
-        
+
         $this->assertIsArray($modes);
         $this->assertArrayHasKey('exact', $modes);
         $this->assertArrayHasKey('any', $modes);
@@ -86,7 +86,7 @@ class ProviderInterfaceTest extends BaseTestCase
 
         $provider = getTestProvider('Elasticsearch');
         $modes = $provider->getAvailableSearchModes();
-        
+
         $this->assertIsArray($modes);
         $this->assertArrayHasKey('match', $modes);
         $this->assertArrayHasKey('phrase', $modes);
@@ -98,7 +98,7 @@ class ProviderInterfaceTest extends BaseTestCase
     {
         $provider = getTestProvider($providerName);
         $stats = $provider->getCorpusStats();
-        
+
         $this->assertIsArray($stats);
         $this->assertArrayHasKey('sentence_count', $stats);
         $this->assertArrayHasKey('source_count', $stats);

@@ -33,6 +33,55 @@ def extract_testsuite_stats(element):
     }
 
 
+def _get_property_value(element, names: set) -> Optional[str]:
+    properties = element.find('properties')
+    if properties is None:
+        return None
+
+    for prop in properties.findall('property'):
+        name = prop.get('name')
+        if name in names:
+            value = prop.get('value')
+            if value:
+                return value
+            if prop.text and prop.text.strip():
+                return prop.text.strip()
+
+    return None
+
+
+def _extract_provider_from_output(output: str) -> Optional[str]:
+    if not output:
+        return None
+
+    patterns = [
+        r'getProviderType\(\):\s*([A-Za-z0-9_\-]+)',
+        r'Provider type:\s*([A-Za-z0-9_\-]+)',
+        r'Created provider:\s*([A-Za-z0-9_\-]+)',
+        r'Invoked provider:\s*([A-Za-z0-9_\-]+)',
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, output, re.IGNORECASE)
+        if match:
+            return match.group(1)
+
+    return None
+
+
+def extract_provider_name(testcase, testsuite, system_out_text: str) -> Optional[str]:
+    for element in (testcase, testsuite):
+        provider = element.get('provider')
+        if provider:
+            return provider
+
+        provider = _get_property_value(element, {'provider', 'provider_name', 'providerName'})
+        if provider:
+            return provider
+
+    return _extract_provider_from_output(system_out_text or '')
+
+
 def _read_source_line(file_path: str, line_number: int, context: int = 2) -> list:
     if not file_path or not os.path.isfile(file_path):
         return []
@@ -198,6 +247,11 @@ def build_summary(xml_report_path: str, summary_only: bool) -> dict:
             error = testcase.find('error')
             skipped = testcase.find('skipped')
             system_out = testcase.find('system-out')
+            system_out_text = system_out.text if system_out is not None else ''
+
+            provider_name = extract_provider_name(testcase, testsuite, system_out_text)
+            if provider_name:
+                case_info['provider'] = provider_name
 
             if failure is not None:
                 case_info['status'] = 'failed'
@@ -219,15 +273,18 @@ def build_summary(xml_report_path: str, summary_only: bool) -> dict:
                         testcase.get('name')
                     )
                 case_info['skip_message'] = skip_message
-                skipped_tests.append({
+                skipped_entry = {
                     'name': case_info['name'],
                     'class': case_info['class'],
                     'suite': case_info['suite'],
                     'skip_message': skip_message,
-                })
+                }
+                if provider_name:
+                    skipped_entry['provider'] = provider_name
+                skipped_tests.append(skipped_entry)
 
-            if system_out is not None and system_out.text:
-                output = system_out.text.strip()
+            if system_out is not None and system_out_text:
+                output = system_out_text.strip()
                 if len(output) > 200:
                     output = output[:200] + '...'
                 case_info['output'] = output

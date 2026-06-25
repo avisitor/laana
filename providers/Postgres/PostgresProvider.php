@@ -86,6 +86,7 @@ class PostgresProvider extends MySQLProvider implements SearchProviderInterface
         // Fallback to parent implementation
         return parent::searchDocuments($query, $mode, $limit, $offset);
     }
+    
 }
 
 ?>

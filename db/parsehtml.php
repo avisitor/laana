@@ -845,6 +845,7 @@ class UlukauHTML extends HTMLParse {
                         self::$hawaiianWords[$normalized] = true;
                     }
                 }
+                self::$hawaiianWords = \HawaiianSearch\WordCleanupStore::applyToWordSet(self::$hawaiianWords);
             } else {
                 self::$hawaiianWords = [];
             }
@@ -1771,6 +1772,26 @@ class CBHtml extends HtmlParse {
 
 class AoLamaHTML extends HtmlParse {
     private $basename = "Ke Aolama";
+
+    private function getCatalogDocLimit(): int {
+        $raw = $_ENV['CATALOG_TEST_DOC_LIMIT'] ?? getenv('CATALOG_TEST_DOC_LIMIT') ?? '0';
+        $limit = (int)$raw;
+        return ($limit > 0) ? $limit : 0;
+    }
+
+    private function isCatalogVerbose(): bool {
+        $flag = $_ENV['VERBOSE'] ?? getenv('VERBOSE') ?? $_ENV['CATALOG_TEST_VERBOSE'] ?? getenv('CATALOG_TEST_VERBOSE') ?? '0';
+        $value = strtolower((string)$flag);
+        return in_array($value, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function logCatalogProgress(string $message): void {
+        if (!$this->isCatalogVerbose()) {
+            return;
+        }
+        fwrite(STDOUT, '[keaolama-parser ' . date('H:i:s') . '] ' . $message . PHP_EOL);
+    }
+
     public function __construct( $options = ['preprocess' => false,] ) {
         parent::__construct($options);
         $this->urlBase = 'https://keaolama.org/';
@@ -1808,20 +1829,32 @@ class AoLamaHTML extends HtmlParse {
         $page = 0;
         $pages = [];
         $seen = [];
+        $limit = $this->getCatalogDocLimit();
+        if ($limit > 0) {
+            $this->logCatalogProgress('Discovery limit set to ' . $limit . ' documents');
+        }
         while( true ) {
+            $requestStart = microtime(true);
+            $this->logCatalogProgress('Fetching discovery page ' . $page . ' ...');
             $contents = $this->getRaw( $this->baseurl . $page, false );
+            $elapsed = round(microtime(true) - $requestStart, 3);
+            $this->logCatalogProgress('Fetched discovery page ' . $page . ' in ' . $elapsed . 's');
             $response = json_decode( $contents );
-            if( $response->type != 'success' ) {
+            if( !$response || !isset($response->type) || $response->type != 'success' ) {
+                $type = ($response && isset($response->type)) ? (string)$response->type : 'invalid-json';
+                $this->logCatalogProgress('Stopping discovery at page ' . $page . ' (response=' . $type . ')');
                 break;
             }
             $urls = array_keys( (array)$response->postflair );
+            $this->logCatalogProgress('Page ' . $page . ' returned ' . count($urls) . ' URLs');
             foreach( $urls as $u ) {
-                $p = new AoLamaHTML();
-                $p->initialize( $u );
-                $p->extractMetadata();
-                $date = $p->metadata['date'];
-                $sourcename = $p->metadata['sourcename'];
-                $title = $p->metadata['title'];
+                $date = $this->getDateFromUrl( $u );
+                if (!$date) {
+                    $this->logCatalogProgress('Skipping URL with no date metadata: ' . $u);
+                    continue;
+                }
+                $sourcename = $this->basename . ': ' . $date;
+                $title = $this->basename . ' ' . $date;
                 if( isset( $seen[$sourcename] ) ) {
                     //echo "Already processed $sourcename\n";
                     continue;
@@ -1836,9 +1869,16 @@ class AoLamaHTML extends HtmlParse {
                     'authors' => $this->authors,
                 ];
                 $seen[$sourcename] = $u;
+
+                if ($limit > 0 && count($pages) >= $limit) {
+                    $this->logCatalogProgress('Reached discovery limit (' . $limit . '), stopping early');
+                    break 2;
+                }
             }
+            $this->logCatalogProgress('Unique documents so far: ' . count($pages));
             $page++;
         }
+        $this->logCatalogProgress('Discovery complete. Total unique documents: ' . count($pages));
         return $pages;
     }
 }

@@ -5,6 +5,9 @@
     "nategood/httpful": "^0.3.2",
     "nlp-tools/nlp-tools": "dev-master",
     "avisitor/dbbase": "dev-master",
+    "avisitor/dbuser": "dev-master",
+    "avisitor/authz-client": "dev-master",
+    "avisitor/idp-client": "dev-main",
     "opensearch-project/opensearch-php": "^2.5",
     "symfony/dom-crawler": "^7.4",
     "symfony/css-selector": "^7.4"
@@ -23,21 +26,43 @@
     "repositories": [
         {
             "type": "vcs",
+            "url": "https://github.com/avisitor/idp-client"
+        },
+        {
+            "type": "vcs",
             "url": "https://github.com/avisitor/dbbase.git"
+    },
+        {
+            "type": "vcs",
+            "url": "https://github.com/avisitor/dbuser.git"
+    },
+        {
+            "type": "vcs",
+            "url": "https://github.com/avisitor/authorization.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/avisitor/authz-client"
         }
     ],
-  "scripts": {
+    "scripts": {
     "test": "phpunit --configuration tests/phpunit.xml",
     "test-json": "phpunit --configuration tests/phpunit.xml --log-json tests/results.json",
     "post-install-cmd": [
-      "@setup-ulukau"
+      "@setup-ulukau",
+      "@install-auth-bin"
     ],
     "post-update-cmd": [
-      "@setup-ulukau"
+      "@setup-ulukau",
+      "@install-auth-bin"
     ],
     "setup-ulukau": [
       "cd db/ulukau && npm install",
       "mkdir -p db/ulukau/output"
+    ],
+    "install-auth-bin": [
+      "mkdir -p bin",
+      "ln -sf ../vendor/avisitor/authz-client/bin/auth bin/auth"
     ]
   },
   "config": {

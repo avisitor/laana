@@ -42,6 +42,8 @@ $doclistSave = $options['doclist-save'] ?? null;
 $doclistFile = $options['doclist-file'] ?? null;
 $doclistOnly = isset($options['doclist-only']);
 
+$providerLabel = $providerName;
+
 $managerOptions = [
     'parserkey' => $parserKey,
     'sourceid' => $sourceId,
@@ -71,6 +73,12 @@ if ($doclistFile) {
         echo "Error: invalid doclist JSON in $doclistFile\n";
         exit(1);
     }
+        foreach ($doclistData as &$doc) {
+            if (is_array($doc) && (!isset($doc['provider']) || $doc['provider'] === '')) {
+                $doc['provider'] = $providerLabel;
+            }
+        }
+        unset($doc);
     $managerOptions['documents'] = $doclistData;
 }
 
@@ -97,6 +105,12 @@ try {
             echo "Error: parser returned empty document list\n";
             exit(1);
         }
+        foreach ($doclist as &$doc) {
+            if (is_array($doc) && (!isset($doc['provider']) || $doc['provider'] === '')) {
+                $doc['provider'] = $providerLabel;
+            }
+        }
+        unset($doc);
         file_put_contents($doclistPath, json_encode($doclist, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         echo "Saved document list to $doclistPath\n";
         if ($doclistOnly) {
@@ -111,6 +125,9 @@ try {
     }
 
     if (is_array($summary)) {
+        if (!isset($summary['provider']) || $summary['provider'] === '') {
+            $summary['provider'] = $providerLabel;
+        }
         echo "Summary: " . json_encode($summary, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
     }
 } catch (\Exception $e) {

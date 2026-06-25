@@ -5,8 +5,9 @@ require_once __DIR__ . '/../../db/funcs.php';
 require_once __DIR__ . '/../../lib/utils.php';
 
 use Noiiolelo\SearchProviderInterface;
+use Noiiolelo\AbstractSearchProvider;
 
-class MySQLProvider implements SearchProviderInterface
+class MySQLProvider extends AbstractSearchProvider implements SearchProviderInterface
 {
     protected $laana;
     public int $pageSize;
@@ -170,16 +171,6 @@ class MySQLProvider implements SearchProviderInterface
         error_log("LaanaSearchProvider::getDocument getText returned " . strlen($content) . " chars");
         return ['content' => $content];
     }
-    public function logQuery(array $params): void {
-        $this->addSearchStat(
-            $params['searchterm'],
-            $params['pattern'],
-            $params['results'],
-            $params['sort'],
-            $params['elapsed']
-        );
-    }
-
     public function getAvailableSearchModes(): array
     {
         return [
@@ -197,22 +188,6 @@ class MySQLProvider implements SearchProviderInterface
     public function getGrammarMatches( $pattern, $limit, $offset, $options = [] ): array {
         return $this->laana->getGrammarMatches( $pattern, $limit, $offset, $options );
     }
-    public function providesHighlights(): bool
-    {
-        // The MySql search client provides no highlights for matches
-        return false;
-    }
-
-    public function providesNoDiacritics(): bool
-    {
-        // The MySql search client provides no support for diacritic insensitivity
-        return false;
-    }
-    public function formatLogMessage( $msg, $intro = "" )
-    {
-        return formatLogMessage( $msg, $intro );
-    }
-    
     public function debuglog( $msg, $intro = "" )
     {
         return $this->laana->debuglog( $msg, $intro );

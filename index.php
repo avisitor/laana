@@ -1,4 +1,14 @@
 <?php
+// Nginx can route extensionless paths to this front controller; dispatch selected ops pages explicitly.
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+if (preg_match('~^/ops/(neo4j_qa|word_cleanup|graphs|graph_refresh)$~', $requestPath, $matches) === 1) {
+    $opsFile = __DIR__ . '/ops/' . $matches[1] . '.php';
+    if (is_file($opsFile)) {
+        require $opsFile;
+        exit;
+    }
+}
+
 require_once __DIR__ . '/lib/provider.php';
 $provider = getProvider();
 //require_once __DIR__ . '/lib/utils.php';

@@ -43,7 +43,7 @@ class HawaiianWordLoader
             }
         }
         
-        return $wordSet;
+        return WordCleanupStore::applyToWordSet($wordSet);
     }
     
     /**

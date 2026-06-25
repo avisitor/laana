@@ -1,7 +1,7 @@
 <?php
 namespace Noiiolelo\Providers\Elasticsearch;
 
-use Noiiolelo\SearchProviderInterface;
+use Noiiolelo\AbstractSearchProvider;
 use HawaiianSearch\ElasticsearchClient;
 use HawaiianSearch\EmbeddingClient;
 use HawaiianSearch\MetadataCache;
@@ -10,7 +10,7 @@ use Noiiolelo\Providers\Elasticsearch\ElasticsearchProcessingLogger;
 require_once __DIR__ . '/../../env-loader.php';
 require_once __DIR__ . '/../../lib/utils.php';
 
-class ElasticsearchProvider implements SearchProviderInterface {
+class ElasticsearchProvider extends AbstractSearchProvider {
     protected $client;
     protected $processingLogger;
     public int $pageSize = 5;
@@ -95,6 +95,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
     public function getRawClient() {
         return $this->client->getRawClient();
     }
+
 
     public function getSentencesIndexName() {
         return $this->client->getSentencesIndexName();
@@ -292,7 +293,7 @@ class ElasticsearchProvider implements SearchProviderInterface {
         $this->print( "getSourceMetadata" );
         try {
             $params = [
-                'index' => $this->index,
+                'index' => $this->client->getSourceMetadataName(),
                 'body' => [
                     'size' => 0,
                     'aggs' => [
@@ -342,29 +343,6 @@ class ElasticsearchProvider implements SearchProviderInterface {
         return filterSourceGroupCounts(is_array($counts) ? $counts : []);
     }
 
-    public function logQuery(array $params): void
-    {
-        $this->addSearchStat(
-            $params['searchterm'],
-            $params['pattern'],
-            $params['results'],
-            $params['sort'],
-            $params['elapsed']
-        );
-    }
-
-    public function getAvailableSearchModes(): array
-    {
-        return [
-            'match' => 'Match any of the words', 
-            'matchall' => 'Match all words in any order', 
-            'phrase' => 'Match exact phrase',
-            'regex' => 'Regular expression search',
-            'hybrid' => 'Hybrid semantic search on sentences',
-            'hybriddoc' => 'Hybrid semantic search on documents',
-       ];
-    }
-
     public function getGrammarPatterns( $options = [] ): array {
         return $this->client->getGrammarPatterns( $options );
     }
@@ -389,33 +367,6 @@ class ElasticsearchProvider implements SearchProviderInterface {
         // The elastic search client provides support for diacritic insensitivity
         return true;
     }
-    public function formatLogMessage( $msg, $intro = "" )
-    {
-        if( is_object( $msg ) || is_array( $msg ) ) {
-            $msg = var_export( $msg, true );
-        }
-        $defaultTimezone = 'Pacific/Honolulu';
-        $now = new \DateTimeImmutable( "now", new \DateTimeZone( $defaultTimezone ) );
-        $now = $now->format( 'Y-m-d H:i:s' );
-        $out = "$now " . $_SERVER['SCRIPT_NAME'];
-        if( $intro ) {
-            $out .= " $intro:";
-        }
-        return "$out $msg";
-   }
-    
-    public function debuglog( $msg, $intro = "" )
-    {
-        if (!defined('PHPUNIT_RUNNING') || !PHPUNIT_RUNNING) {
-            $msg = $this->formatLogMessage( $msg, $intro );
-            error_log( "$msg\n" );
-        }
-    }
-
-    public function checkStripped( $hawaiianText ) {
-        return true;
-    }
-
     public function processText( $hawaiiantext ) {
         // Replace elastic search highlight markup with our own
         $text = str_replace( ['<mark>', '</mark>'], ['<span class="match">', '</span>'], $hawaiiantext );
@@ -423,17 +374,6 @@ class ElasticsearchProvider implements SearchProviderInterface {
         return $text;
     }
     
-    public function normalizeString( $term ) {
-        $a = array( 'ō', 'ī', 'ē', 'ū', 'ā', 'Ō', 'Ī', 'Ē', 'Ū', 'Ā', '‘', 'ʻ' );
-        $b = array('o', 'i', 'e', 'u', 'a', 'O', 'I', 'E', 'U', 'A', '', '' );
-        return str_replace($a, $b, $term);
-    }
-    
-    // Mapping between mysql search modes and elastic search modes for pattern matching
-    public function normalizeMode( $mode ) {
-        return $mode;
-    }
-
     // Fix this
     public function getRandomWord() {
         return $this->client->getRandomWord();

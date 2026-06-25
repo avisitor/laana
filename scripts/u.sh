@@ -46,21 +46,17 @@ updateGrammarPatterns() {
     done
 }
 
+filter() {
+    grep Summary: $LOG
+    echo ""
+    grep -A 33 -B 1 'Using provider: Postgres' $LOG | grep -v -E 'Delta|Skipping'
+    #grep -A 20 'Sentences newly analyzed' $LOG
+}
+
 summarize() {
     grep Summary: $LOG > $TMPLOG
     echo "" >> $TMPLOG
-    #grep -A 20 'Sentences newly analyzed' $LOG >> $TMPLOG
-    grep -A 33 -B 1 'Using provider: Postgres' $LOG | grep -v -E 'Delta|Skipping' >> $TMPLOG
-}
-
-setSubject() {
-    local total
-    total=$(grep '^Summary:' "$TMPLOG" | grep -o '"documents_new_or_updated":[0-9]*' | grep -o '[0-9]*$' | awk '{sum+=$1} END {print sum+0}')
-    if [ "$total" -eq 0 ]; then
-        SUBJECT="$SUBJECT: no changes"
-    else
-        SUBJECT="$SUBJECT: $total doc(s) new/updated"
-    fi
+    grep -A 20 'Sentences newly analyzed' $LOG >> $TMPLOG
 }
 
 sendReport() {
@@ -72,12 +68,12 @@ sendReport() {
     fi
 }
 
-initialize
-getUpdates
-updateGrammarPatterns
-summarize
-setSubject
-sendReport
+#initialize
+#getUpdates
+#updateGrammarPatterns
+#summarize
+#sendReport
+filter
 
 
 

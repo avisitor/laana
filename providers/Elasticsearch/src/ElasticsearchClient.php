@@ -2002,8 +2002,12 @@ class ElasticsearchClient {
         }
     }
 
-    public function search(string $query, string $mode, array $options = []): ?array
+    public function search($query, string $mode = '', array $options = []): ?array
     {
+        if(is_array($query)) {
+            $query = json_encode($query);
+        }
+
         $this->queryTerm = $query;
         
         // `from` is not allowed when `search_after` is used

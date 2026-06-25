@@ -775,7 +775,7 @@ class Laana extends DB {
             $sentences
         ));
 
-        file_put_contents("/tmp/debug_output-$sourceID.txt", $text);
+        //file_put_contents("/tmp/debug_output-$sourceID.txt", $text);
         $values = [
             'sourceID' => $sourceID,
             'text' => $text,

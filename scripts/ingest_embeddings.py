@@ -484,7 +484,13 @@ def main():
     if hawaiian_words_file and os.path.exists(hawaiian_words_file):
         try:
             with open(hawaiian_words_file, 'r', encoding='utf-8') as f:
-                hawaiian_word_set = set(w.strip() for w in f if w.strip())
+                hawaiian_word_set = set()
+                for raw_word in f:
+                    word = raw_word.strip()
+                    if not word or word.startswith('-') or word.lower() == 'raw_head':
+                        continue
+                    normalized = word.lower().replace('‘', '').replace("'", '').replace('ā', 'a').replace('ē', 'e').replace('ī', 'i').replace('ō', 'o').replace('ū', 'u')
+                    hawaiian_word_set.add(normalized)
             print(f"Loaded {len(hawaiian_word_set)} Hawaiian words for ratio calculation")
         except Exception as e:
             print(f"Could not load Hawaiian words list: {e}", file=sys.stderr)
@@ -495,6 +501,31 @@ def main():
     if hawaiian_word_set is None or len(hawaiian_word_set) == 0:
          print("Fatal: Hawaiian word dictionary missing or empty. Aborting metrics backfill to avoid garbage ratios.", file=sys.stderr)
          sys.exit(1)
+
+    overrides_candidates = [
+        os.path.abspath(os.path.join(script_dir, '..', '..', '..', 'data', 'word_cleanup_overrides.json')),
+        os.path.abspath(os.path.join(script_dir, '..', '..', '..', 'word_cleanup_overrides.json')),
+    ]
+    for overrides_file in overrides_candidates:
+        if not os.path.exists(overrides_file):
+            continue
+        try:
+            with open(overrides_file, 'r', encoding='utf-8') as f:
+                overrides_payload = json.load(f)
+            if isinstance(overrides_payload, dict) and isinstance(overrides_payload.get('entries'), list):
+                for entry in overrides_payload['entries']:
+                    normalized = str(entry.get('word', '')).strip().lower().replace('‘', '').replace("'", '').replace('ā', 'a').replace('ē', 'e').replace('ī', 'i').replace('ō', 'o').replace('ū', 'u')
+                    action = str(entry.get('action', '')).strip().lower()
+                    if not normalized:
+                        continue
+                    if action in ['stopword', 'exclude', 'remove']:
+                        hawaiian_word_set.discard(normalized)
+                    elif action in ['include', 'hawaiian', 'add']:
+                        hawaiian_word_set.add(normalized)
+                print(f"Applied cleanup overrides from {overrides_file}")
+                break
+        except Exception as e:
+            print(f"Could not load cleanup overrides from {overrides_file}: {e}", file=sys.stderr)
 
 
     # 9. CRITICAL: Initialize shared state manager for process communication
