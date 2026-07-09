@@ -158,6 +158,46 @@ class WordCleanupStore
         return $summary;
     }
 
+    public static function listOverrideFiles(): array
+    {
+        $dataDir = dirname(self::DEFAULT_OVERRIDES_FILE);
+        $files = [];
+        $pattern = $dataDir . '/word_cleanup_overrides*.json';
+
+        foreach (glob($pattern) as $path) {
+            $files[] = [
+                'filename' => basename($path),
+                'path' => $path,
+                'modified' => filemtime($path),
+            ];
+        }
+
+        usort($files, fn($a, $b) => $b['modified'] <=> $a['modified']);
+
+        return $files;
+    }
+
+    public static function createNewFile(string $filename): string
+    {
+        $dataDir = dirname(self::DEFAULT_OVERRIDES_FILE);
+        if (!preg_match('/^word_cleanup_overrides/', $filename)) {
+            $filename = 'word_cleanup_overrides_' . $filename;
+        }
+        if (!str_ends_with($filename, '.json')) {
+            $filename .= '.json';
+        }
+
+        $path = $dataDir . '/' . $filename;
+
+        if (file_exists($path)) {
+            throw new \RuntimeException("File already exists: {$filename}");
+        }
+
+        self::saveOverrides([], $path);
+
+        return $path;
+    }
+
     private static function buildEntry(string $word, string $action, string $category = '', string $note = ''): array
     {
         $trimmed = trim($word);
