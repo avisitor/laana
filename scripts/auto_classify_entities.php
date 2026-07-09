@@ -8,7 +8,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use HawaiianSearch\NameListManager;
 use HawaiianSearch\WordCleanupStore;
 
-$args = getopt(['file:', 'dry-run', 'help']);
+$args = getopt('', ['file:', 'dry-run', 'help']);
 
 if (isset($args['help'])) {
     echo "Usage: php auto_classify_entities.php --file=<override_file> [--dry-run]\n";
