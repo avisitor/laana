@@ -164,13 +164,17 @@ class WordCleanupStore
         $files = [];
         $pattern = $dataDir . '/word_cleanup_overrides*.json';
 
-        foreach (glob($pattern) as $path) {
+        $matches = glob($pattern) ?: [];
+        foreach ($matches as $path) {
             $files[] = [
                 'filename' => basename($path),
                 'path' => $path,
                 'modified' => filemtime($path),
             ];
         }
+
+        $files = array_filter($files, fn($f) => !str_ends_with($f['filename'], '.tmp'));
+        $files = array_values($files);
 
         usort($files, fn($a, $b) => $b['modified'] <=> $a['modified']);
 
@@ -179,8 +183,13 @@ class WordCleanupStore
 
     public static function createNewFile(string $filename): string
     {
+        $filename = basename($filename);
+        if ($filename === '' || $filename === '.') {
+            throw new \RuntimeException('Invalid filename.');
+        }
+
         $dataDir = dirname(self::DEFAULT_OVERRIDES_FILE);
-        if (!preg_match('/^word_cleanup_overrides/', $filename)) {
+        if (!str_starts_with($filename, 'word_cleanup_overrides')) {
             $filename = 'word_cleanup_overrides_' . $filename;
         }
         if (!str_ends_with($filename, '.json')) {
