@@ -41,7 +41,11 @@ class NameListManager
     private function download(string $url, string $cacheName): string
     {
         $path = $this->cachePath($cacheName);
-        $response = $this->http->get($url);
+        try {
+            $response = $this->http->get($url);
+        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
+            throw new \RuntimeException("Failed to download {$url}: " . $e->getMessage(), 0, $e);
+        }
         file_put_contents($path, $response->getBody()->getContents());
         return $path;
     }
@@ -53,7 +57,7 @@ class NameListManager
         if ($json === false) {
             throw new \RuntimeException("Failed to encode JSON for {$name}");
         }
-        file_put_contents($path, $json . PHP_EOL);
+        file_put_contents($path, $json . PHP_EOL, LOCK_EX);
     }
 
     private function loadJson(string $name): array
@@ -69,7 +73,8 @@ class NameListManager
 
     private function recursiveRemove(string $dir): void
     {
-        if (!is_dir($dir)) {
+        $realDir = realpath($dir);
+        if ($realDir === false) {
             return;
         }
         $items = new \RecursiveIteratorIterator(
@@ -77,13 +82,17 @@ class NameListManager
             \RecursiveIteratorIterator::CHILD_FIRST
         );
         foreach ($items as $item) {
+            $realPath = $item->getRealPath();
+            if ($realPath === false || !str_starts_with($realPath, $realDir)) {
+                continue;
+            }
             if ($item->isDir()) {
-                rmdir($item->getRealPath());
+                rmdir($realPath);
             } else {
-                unlink($item->getRealPath());
+                unlink($realPath);
             }
         }
-        rmdir($dir);
+        rmdir($realDir);
     }
 
     // ---------------------------------------------------------------
@@ -108,19 +117,19 @@ class NameListManager
 
     private function downloadSsaNames(): void
     {
-        $zipPath = $this->cachePath('ssa_names.zip');
-        $this->download('https://www.ssa.gov/oact/babynames/names.zip', 'ssa_names.zip');
+        $zipPath = $this->download('https://www.ssa.gov/oact/babynames/names.zip', 'ssa_names.zip');
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath) !== true) {
+            @unlink($zipPath);
+            throw new \RuntimeException('Failed to open SSA names ZIP');
+        }
 
         $extractDir = $this->cachePath('ssa_names_extracted');
         if (is_dir($extractDir)) {
             $this->recursiveRemove($extractDir);
         }
         mkdir($extractDir, 0775, true);
-
-        $zip = new \ZipArchive();
-        if ($zip->open($zipPath) !== true) {
-            throw new \RuntimeException("Failed to open SSA names ZIP");
-        }
         $zip->extractTo($extractDir);
         $zip->close();
 
@@ -208,7 +217,11 @@ class NameListManager
         $url = 'https://geodata.hawaii.gov/arcgis/rest/services/HistoricCultural/MapServer/2/query'
             . '?where=1%3D1&outFields=NAME,FEATURE_CLASS&f=json&resultRecordCount=10000';
         $response = $this->http->get($url);
-        $payload = json_decode($response->getBody()->getContents(), true);
+        $data = json_decode($response->getBody()->getContents(), true);
+        if (!is_array($data) || !isset($data['features'])) {
+            throw new \RuntimeException('Invalid GNIS API response');
+        }
+        $payload = $data;
 
         $places = [];
         if (isset($payload['features']) && is_array($payload['features'])) {
