@@ -36,7 +36,7 @@ $nodiacriticalsparam = ($nodiacriticals) ? "&nodiacriticals=1" : "";
 $order = isset($_GET['order']) ? $_GET['order'] : "rand";
 $provider->debuglog( "pattern: $pattern; word: $word; order: $order; nodiacriticals: $nodiacriticals" );
 $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
-//error_log( var_export( $_SERVER, true ) );
+//\Avisitor\Monolog\Logger::logError( var_export( $_SERVER, true ) );
 ?>
 <!DOCTYPE html>
 <html lang="en" class="">

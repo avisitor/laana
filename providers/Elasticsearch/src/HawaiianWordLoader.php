@@ -13,13 +13,13 @@ class HawaiianWordLoader
     public static function loadAsHashSet(string $filePath): array
     {
         if (!file_exists($filePath)) {
-            error_log("Hawaiian words file not found: {$filePath}");
+            \Avisitor\Monolog\Logger::logError("Hawaiian words file not found: {$filePath}");
             return [];
         }
         
         $words = file_get_contents($filePath);
         if ($words === false) {
-            error_log("Failed to read Hawaiian words file: {$filePath}");
+            \Avisitor\Monolog\Logger::logError("Failed to read Hawaiian words file: {$filePath}");
             return [];
         }
         

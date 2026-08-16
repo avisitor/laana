@@ -47,7 +47,7 @@ if (!$path) {
 
 $path = trim($path, '/');
 $parts = $path ? explode('/', $path) : [''];
-error_log( 'parts: ' . var_export( $parts, true ) );
+\Avisitor\Monolog\Logger::logError( 'parts: ' . var_export( $parts, true ) );
 
 function error_response($msg, $code = 400) {
     http_response_code($code);

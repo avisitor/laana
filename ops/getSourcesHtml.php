@@ -22,9 +22,9 @@ $allSources = $provider->getSources($groupname, [], $sortBy, $sortDir);
 
 // Debug output
 if (empty($allSources)) {
-    error_log("getSourcesHtml: No sources returned for groupname='$groupname', provider='{$provider->getName()}'");
+    \Avisitor\Monolog\Logger::logError("getSourcesHtml: No sources returned for groupname='$groupname', provider='{$provider->getName()}'");
 } else {
-    error_log("getSourcesHtml: Got " . count($allSources) . " sources for groupname='$groupname'");
+    \Avisitor\Monolog\Logger::logError("getSourcesHtml: Got " . count($allSources) . " sources for groupname='$groupname'");
 }
 
 // Apply search filter if provided
@@ -80,4 +80,4 @@ foreach ($sources as $row) {
 
 echo '</tbody>';
 
-error_log("getSourcesHtml: Generated HTML for " . count($sources) . " sources (offset=$offset, pageSize=$pageSize)");
+\Avisitor\Monolog\Logger::logError("getSourcesHtml: Generated HTML for " . count($sources) . " sources (offset=$offset, pageSize=$pageSize)");

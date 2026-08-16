@@ -161,14 +161,14 @@ class MySQLProvider extends AbstractSearchProvider implements SearchProviderInte
         return $docs;
     }
     public function getDocument(string $docId, string $format = 'text'): ?array {
-        error_log("LaanaSearchProvider::getDocument called with docId=$docId, format=$format");
+        \Avisitor\Monolog\Logger::logError("LaanaSearchProvider::getDocument called with docId=$docId, format=$format");
         if ($format === 'html') {
             $content = $this->getRawText($docId);
-            error_log("LaanaSearchProvider::getDocument getRawText returned " . strlen($content) . " chars");
+            \Avisitor\Monolog\Logger::logError("LaanaSearchProvider::getDocument getRawText returned " . strlen($content) . " chars");
             return ['content' => $content];
         }
         $content = $this->getText($docId);
-        error_log("LaanaSearchProvider::getDocument getText returned " . strlen($content) . " chars");
+        \Avisitor\Monolog\Logger::logError("LaanaSearchProvider::getDocument getText returned " . strlen($content) . " chars");
         return ['content' => $content];
     }
     public function getAvailableSearchModes(): array

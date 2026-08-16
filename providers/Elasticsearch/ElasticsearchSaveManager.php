@@ -344,7 +344,7 @@ class ElasticsearchSaveManager {
         foreach ($sentences as $i => $sentence) {
             if (!mb_check_encoding($sentence, 'UTF-8')) {
                 $this->log("WARNING: Sentence $i has invalid UTF-8 encoding after extraction - fixing");
-                error_log("Invalid UTF-8 in sentence $i from sourceID $sourceID before fix: " . bin2hex(substr($sentence, 0, 50)));
+                \Avisitor\Monolog\Logger::logError("Invalid UTF-8 in sentence $i from sourceID $sourceID before fix: " . bin2hex(substr($sentence, 0, 50)));
                 
                 // Fix invalid UTF-8
                 $cleaned = @iconv('UTF-8', 'UTF-8//IGNORE', $sentence);
@@ -355,7 +355,7 @@ class ElasticsearchSaveManager {
                     $sentences[$i] = mb_convert_encoding($sentence, 'UTF-8', 'UTF-8');
                 }
                 
-                error_log("Fixed UTF-8 in sentence $i: " . substr($sentences[$i], 0, 50));
+                \Avisitor\Monolog\Logger::logError("Fixed UTF-8 in sentence $i: " . substr($sentences[$i], 0, 50));
             }
         }
 

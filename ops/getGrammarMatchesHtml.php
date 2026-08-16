@@ -102,7 +102,7 @@ try {
     echo $output;
     
 } catch (Exception $e) {
-    error_log("Error in getGrammarMatchesHtml.php: " . $e->getMessage());
-    error_log($e->getTraceAsString());
+    \Avisitor\Monolog\Logger::logError("Error in getGrammarMatchesHtml.php: " . $e->getMessage());
+    \Avisitor\Monolog\Logger::logError($e->getTraceAsString());
     echo "<!-- Error: " . htmlspecialchars($e->getMessage()) . " -->";
 }

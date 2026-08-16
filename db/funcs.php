@@ -34,8 +34,8 @@ function printObject( $obj, $intro = '' ) {
 function debuglog( $msg, $intro = "" ) {
     if (!defined('PHPUNIT_RUNNING') || !PHPUNIT_RUNNING) {
         $msg = formatLogMessage( $msg, $intro );
-        //logError( "$msg \n", 3, "/tmp/php_errorlog" );
-        logError( $msg );
+        //\Avisitor\Monolog\Logger::logError( "$msg \n", 3, "/tmp/php_errorlog" );
+        \Avisitor\Monolog\Logger::logError( $msg );
     }
     return;
 }

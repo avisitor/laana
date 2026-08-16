@@ -27,7 +27,7 @@ $cmd = "cd " . escapeshellarg($basedir) . " && /usr/bin/node " . escapeshellarg(
 passthru($cmd, $return_value);
 
 if ($return_value !== 0) {
-    error_log("ulukaupages.php: Script failed with exit code $return_value");
+    \Avisitor\Monolog\Logger::logError("ulukaupages.php: Script failed with exit code $return_value");
     http_response_code(500);
     echo json_encode(['error' => 'Script execution failed', 'exit_code' => $return_value]);
 }

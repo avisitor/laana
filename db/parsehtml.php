@@ -640,7 +640,7 @@ class HtmlParse {
                     }
                 }
             }
-            error_log("DEBUG process(): About to filter " . count($lines) . " lines");
+            \Avisitor\Monolog\Logger::logError("DEBUG process(): About to filter " . count($lines) . " lines");
             foreach ($lines as $line) {
                 if ($this->checkSentence($line)) {
                     $line = preg_replace('/
@@ -653,10 +653,10 @@ class HtmlParse {
                         break;
                     }
                     $finalLines[] = $line;
-                    error_log("ACCEPTED: " . substr($line, 0, 100));
+                    \Avisitor\Monolog\Logger::logError("ACCEPTED: " . substr($line, 0, 100));
                 } else {
                     $this->discarded[] = $line;
-                    error_log("REJECTED by checkSentence: " . substr($line, 0, 100));
+                    \Avisitor\Monolog\Logger::logError("REJECTED by checkSentence: " . substr($line, 0, 100));
                 }
             }
         }

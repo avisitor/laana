@@ -94,7 +94,7 @@ class PostgresLaana extends Laana {
         try {
             return $this->getDBRows($sql, $values);
         } catch (Exception $e) {
-            logError("DB Error in $funcName: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("DB Error in $funcName: " . $e->getMessage());
             return [];
         }
     }
@@ -105,7 +105,7 @@ class PostgresLaana extends Laana {
             $this->conn->exec($sql);
             return true;
         } catch (Exception $e) {
-            logError("DB Error in PostgresLaana::refreshGrammarPatternCounts: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("DB Error in PostgresLaana::refreshGrammarPatternCounts: " . $e->getMessage());
             return false;
         }
     }

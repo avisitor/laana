@@ -17,7 +17,7 @@ class QueryBuilder
 
     protected function print( $msg ) {
         if( $this->verbose ) {
-            error_log("QueryBuilder:$msg");
+            \Avisitor\Monolog\Logger::logError("QueryBuilder:$msg");
         }
     }
 
@@ -33,7 +33,7 @@ class QueryBuilder
         try {
             return $this->embeddingClient->embedText($text, 'query: ', $model);
         } catch (\Exception $e) {
-            error_log("Embedding failed: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("Embedding failed: " . $e->getMessage());
             return null;
         }
     }

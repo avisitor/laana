@@ -145,7 +145,7 @@ trait LoggingTrait {
     protected function debuglog($msg, $intro = "") {
         if (!defined('PHPUNIT_RUNNING') || !PHPUNIT_RUNNING) {
             // Log to error log file (configured in php.ini)
-            error_log( $this->formatLogMessage( $msg, $intro ) );
+            \Avisitor\Monolog\Logger::logError( $this->formatLogMessage( $msg, $intro ) );
         }
         return;
     }

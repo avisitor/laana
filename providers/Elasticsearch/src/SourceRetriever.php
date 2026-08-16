@@ -23,7 +23,7 @@ use GuzzleHttp\Exception\RequestException;
 
         protected function print( $msg ) {
             if (!isset($this->config["quiet"]) || !$this->config["quiet"]) {
-                error_log("SourceRetriever: $msg");
+                \Avisitor\Monolog\Logger::logError("SourceRetriever: $msg");
             }
         }
         

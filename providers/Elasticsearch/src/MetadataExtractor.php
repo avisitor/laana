@@ -129,7 +129,7 @@ class MetadataExtractor
             }
             
         } catch (\Exception $e) {
-            error_log("Failed to bulk save sentence metadata: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("Failed to bulk save sentence metadata: " . $e->getMessage());
         }
     }
     
@@ -183,7 +183,7 @@ class MetadataExtractor
             }
             
         } catch (\Exception $e) {
-            error_log("Failed to create metadata index: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("Failed to create metadata index: " . $e->getMessage());
             throw $e;
         }
     }

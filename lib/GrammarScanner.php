@@ -167,7 +167,7 @@ class GrammarScanner {
             $this->scanAndSave($row['sentenceid'], $row['hawaiiantext']);
             $count++;
             if ($count % 1000 == 0) {
-                error_log("Processed $count sentences...");
+                \Avisitor\Monolog\Logger::logError("Processed $count sentences...");
             }
         }
         return $count;

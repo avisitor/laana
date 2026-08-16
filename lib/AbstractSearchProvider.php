@@ -97,7 +97,7 @@ abstract class AbstractSearchProvider implements SearchProviderInterface
     {
         if (!defined('PHPUNIT_RUNNING') || !PHPUNIT_RUNNING) {
             $msg = $this->formatLogMessage($msg, $intro);
-            error_log("$msg\n");
+            \Avisitor\Monolog\Logger::logError("$msg\n");
         }
     }
 

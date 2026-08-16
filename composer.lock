@@ -207,12 +207,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:avisitor/monolog-context.git",
-                "reference": "526f4666059aaaa7e150e7d3f1381d1de26913c2"
+                "reference": "ca0271eb05ff0bfaa250c953a4a75c74c826b032"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/avisitor/monolog-context/zipball/526f4666059aaaa7e150e7d3f1381d1de26913c2",
-                "reference": "526f4666059aaaa7e150e7d3f1381d1de26913c2",
+                "url": "https://api.github.com/repos/avisitor/monolog-context/zipball/ca0271eb05ff0bfaa250c953a4a75c74c826b032",
+                "reference": "ca0271eb05ff0bfaa250c953a4a75c74c826b032",
                 "shasum": ""
             },
             "require": {
@@ -225,18 +225,16 @@
             "default-branch": true,
             "type": "library",
             "autoload": {
-                "files": [
-                    "src/fileutils.php",
-                    "src/monolog.php",
-                    "src/DebugLogger.php"
-                ]
+                "psr-4": {
+                    "Avisitor\\Monolog\\": "src/"
+                }
             },
             "description": "Tenant-aware Monolog logger with context sanitization",
             "support": {
-                "source": "https://github.com/avisitor/monolog-context/tree/v1.0.1",
+                "source": "https://github.com/avisitor/monolog-context/tree/v2.0.0",
                 "issues": "https://github.com/avisitor/monolog-context/issues"
             },
-            "time": "2026-08-16T07:50:56+00:00"
+            "time": "2026-08-16T10:26:41+00:00"
         },
         {
             "name": "elastic/transport",

@@ -18,10 +18,10 @@ try {
     $patterns = $provider->getGrammarPatterns($options);
     
     echo json_encode($patterns);
-    error_log("getGrammarPatterns.php: Returned " . count($patterns) . " patterns for provider '" . $provider->getName() . "'");
+    \Avisitor\Monolog\Logger::logError("getGrammarPatterns.php: Returned " . count($patterns) . " patterns for provider '" . $provider->getName() . "'");
     
 } catch (Exception $e) {
-    error_log("Error in getGrammarPatterns.php: " . $e->getMessage());
+    \Avisitor\Monolog\Logger::logError("Error in getGrammarPatterns.php: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);
 }

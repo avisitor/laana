@@ -38,7 +38,7 @@ class ElasticsearchProcessingLogger {
             $this->client->index($logDoc, $logId, $this->indexName);
             return $logId;
         } catch (\Exception $e) {
-            error_log("Failed to start processing log: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("Failed to start processing log: " . $e->getMessage());
             return null;
         }
     }
@@ -61,13 +61,13 @@ class ElasticsearchProcessingLogger {
                 $this->client->index($existing, $logID, $this->indexName);
             } else {
                 // Document doesn't exist, just log the error
-                error_log("Processing log document $logID not found for update");
+                \Avisitor\Monolog\Logger::logError("Processing log document $logID not found for update");
                 return false;
             }
             
             return true;
         } catch (\Exception $e) {
-            error_log("Failed to complete processing log: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("Failed to complete processing log: " . $e->getMessage());
             return false;
         }
     }
@@ -113,7 +113,7 @@ class ElasticsearchProcessingLogger {
             }, $hits);
             
         } catch (\Exception $e) {
-            error_log("Failed to get processing logs: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("Failed to get processing logs: " . $e->getMessage());
             return [];
         }
     }

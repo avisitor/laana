@@ -59,7 +59,7 @@ class EmbeddingClient {
             return $data['embedding'] ?? null;
         } catch (GuzzleException $e) {
             // Log the error with context for debugging
-            error_log("EmbeddingClient::embedText failed for text length " . strlen($text) . " using model $modelName: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("EmbeddingClient::embedText failed for text length " . strlen($text) . " using model $modelName: " . $e->getMessage());
             throw $e;
         }
     }
@@ -94,7 +94,7 @@ class EmbeddingClient {
             return $data['embeddings'] ?? null;
         } catch (GuzzleException $e) {
             // Log the error with context for debugging
-            error_log("EmbeddingClient::embedSentences failed for " . count($sentences) . " sentences using model $modelName: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("EmbeddingClient::embedSentences failed for " . count($sentences) . " sentences using model $modelName: " . $e->getMessage());
             throw $e;
         }
     }
@@ -115,7 +115,7 @@ class EmbeddingClient {
             $response = $this->httpClient->post($this->baseUrl . '/analyze', $payload);
             return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
-            error_log("EmbeddingClient::analyzeSentence failed: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("EmbeddingClient::analyzeSentence failed: " . $e->getMessage());
             throw $e;
         }
     }
@@ -129,7 +129,7 @@ class EmbeddingClient {
             $response = $this->httpClient->get($this->baseUrl . '/health', ['timeout' => 10]);
             return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
-            error_log("EmbeddingClient::getHealth failed: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("EmbeddingClient::getHealth failed: " . $e->getMessage());
             return null;
         }
     }

@@ -32,7 +32,7 @@ class EmbeddingClient {
             $data = json_decode($response->getBody()->getContents(), true);
             return $data['embedding'] ?? null;
         } catch (GuzzleException $e) {
-            error_log("EmbeddingClient::embedText failed: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("EmbeddingClient::embedText failed: " . $e->getMessage());
             return null;
         }
     }
@@ -49,7 +49,7 @@ class EmbeddingClient {
             $data = json_decode($response->getBody()->getContents(), true);
             return $data['embeddings'] ?? null;
         } catch (GuzzleException $e) {
-            error_log("EmbeddingClient::embedSentences failed: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("EmbeddingClient::embedSentences failed: " . $e->getMessage());
             return null;
         }
     }

@@ -66,7 +66,7 @@ class ElasticsearchScrollIterator
             $this->size = $response['hits']['total']['value'] ?? 0;
             return $this->size;
         } catch (Exception $e) {
-            error_log("Failed to get scroll size: " . $e->getMessage());
+            \Avisitor\Monolog\Logger::logError("Failed to get scroll size: " . $e->getMessage());
             return 0;
         }
     }
