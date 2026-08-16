@@ -17,19 +17,26 @@ class PostgresLaana extends Laana {
         $pass = $env['PG_PASSWORD'] ?? getenv('PG_PASSWORD') ?? '';
         $dsnOverride = $env['PG_DSN'] ?? getenv('PG_DSN') ?? null;
 
-        $dsn = $dsnOverride ?: "pgsql:host=$host;port=$port;dbname=$db";
+        $config = [
+            'driver'   => 'pgsql',
+            'host'     => $host,
+            'port'     => $port,
+            'dbname'   => $db,
+            'username' => $user,
+            'password' => $pass,
+        ];
+        if ($dsnOverride) {
+            $config['dsn'] = $dsnOverride;
+        }
         try {
-            $conn = new PDO($dsn, $user, $pass, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            ]);
+            $conn = $this->createConnection( $config );
             // Ensure UTF-8
             $conn->exec("SET client_encoding TO 'UTF8'");
             // Set search path
             $conn->exec("SET search_path TO laana, public");
-            debuglog([ 'dsn' => $dsn, 'user' => $user, 'db' => $db, 'host' => $host, 'port' => $port ], 'PostgresLaana::connect');
+            debuglog([ 'dsn' => $dsnOverride ?: "pgsql:host=$host;port=$port;dbname=$db", 'user' => $user, 'db' => $db, 'host' => $host, 'port' => $port ], 'PostgresLaana::connect');
             return $conn;
-        } catch (PDOException $e) {
+        } catch (\Throwable $e) {
             debuglog("Postgres connection failed: " . $e->getMessage());
             return null;
         }
@@ -89,7 +96,7 @@ class PostgresLaana extends Laana {
         try {
             return $this->getDBRows($sql, $values);
         } catch (Exception $e) {
-            error_log("DB Error in $funcName: " . $e->getMessage());
+            logError("DB Error in $funcName: " . $e->getMessage());
             return [];
         }
     }
@@ -100,7 +107,7 @@ class PostgresLaana extends Laana {
             $this->conn->exec($sql);
             return true;
         } catch (Exception $e) {
-            error_log("DB Error in PostgresLaana::refreshGrammarPatternCounts: " . $e->getMessage());
+            logError("DB Error in PostgresLaana::refreshGrammarPatternCounts: " . $e->getMessage());
             return false;
         }
     }

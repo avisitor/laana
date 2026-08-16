@@ -43,15 +43,19 @@ class RemoteDocumentCatalogingTest extends BaseTestCase
         }
 
         self::$testDbName = 'noiiolelo_test_' . uniqid();
-        $dsn = "mysql:host={$host};port={$port};charset=utf8mb4";
-        self::$adminPdo = new PDO($dsn, $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        self::$adminPdo = \Common\DB\DBBase::createConnection([
+            'dsn' => "mysql:host={$host};port={$port};charset=utf8mb4",
+            'username' => $user,
+            'password' => $pass,
         ]);
         self::$adminPdo->exec("CREATE DATABASE `" . self::$testDbName . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
-        $dbDsn = "mysql:host={$host};port={$port};dbname=" . self::$testDbName . ";charset=utf8mb4";
-        $dbPdo = new PDO($dbDsn, $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        $dbPdo = \Common\DB\DBBase::createConnection([
+            'host' => $host,
+            'port' => $port,
+            'dbname' => self::$testDbName,
+            'username' => $user,
+            'password' => $pass,
         ]);
         self::createMinimalSchema($dbPdo);
 

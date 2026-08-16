@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../env-loader.php';
 
 if (php_sapi_name() !== 'cli') {
@@ -32,21 +33,18 @@ function connectMySql(): PDO {
         throw new RuntimeException('DB_DATABASE is not set.');
     }
 
-    if ($socket !== '' && file_exists($socket)) {
-        $dsn = "mysql:unix_socket={$socket};dbname={$db};charset=utf8mb4";
-    } else {
-        $dsn = "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4";
-    }
-
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    $config = [
+        'host' => $host,
+        'port' => $port,
+        'dbname' => $db,
+        'username' => $user,
+        'password' => $pass,
     ];
-    if (defined('PDO::MYSQL_ATTR_USE_BUFFERED_QUERY')) {
-        $options[PDO::MYSQL_ATTR_USE_BUFFERED_QUERY] = true;
+    if ($socket !== '' && file_exists($socket)) {
+        $config['socket'] = $socket;
     }
 
-    return new PDO($dsn, $user, $pass, $options);
+    return \Common\DB\DBBase::createConnection($config);
 }
 
 function connectPostgres(): PDO {
@@ -61,14 +59,19 @@ function connectPostgres(): PDO {
         throw new RuntimeException('PG_DATABASE (or PG_DB) is not set.');
     }
 
-    $dsn = $dsnOverride !== ''
-        ? $dsnOverride
-        : "pgsql:host={$host};port={$port};dbname={$db}";
+    $config = [
+        'driver' => 'pgsql',
+        'host' => $host,
+        'port' => $port,
+        'dbname' => $db,
+        'username' => $user,
+        'password' => $pass,
+    ];
+    if ($dsnOverride !== '') {
+        $config['dsn'] = $dsnOverride;
+    }
 
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+    $pdo = \Common\DB\DBBase::createConnection($config);
     $pdo->exec("SET client_encoding TO 'UTF8'");
     $pdo->exec("SET search_path TO laana, public");
 
