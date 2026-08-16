@@ -15,8 +15,9 @@ ini_set('error_log', __DIR__ . '/../tests/debug.log');
 // Load composer autoloader
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// Load existing .env handling
-require_once __DIR__ . '/../env-loader.php';
+// Load .env through the canonical avisitor/env-loader package (replaces the
+// previous app-local env-loader.php copy, which auto-ran loadEnv() on include).
+\Avisitor\Env\Loader::load(__DIR__ . '/../.env');
 
 // Set test environment variables
 $_ENV['PROVIDER'] = 'MySQL'; // Default for tests

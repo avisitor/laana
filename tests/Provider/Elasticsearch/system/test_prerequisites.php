@@ -1,8 +1,6 @@
 <?php
 
 require_once __DIR__ . '/../BaseTest.php';
-require_once __DIR__ . '/../../../../env-loader.php';
-
 /**
  * Pre-flight checks to ensure test environment is properly configured
  * This test should run first before any other tests
@@ -52,8 +50,8 @@ class TestPrerequisites extends BaseTest
         }
         
         try {
-            if (function_exists('loadEnv')) {
-                loadEnv($envFile);
+            if (class_exists('Avisitor\\Env\\Loader')) {
+                \Avisitor\Env\Loader::load($envFile);
             }
         } catch (\Exception $e) {
             // Might already be loaded, that's okay

@@ -8,9 +8,11 @@
     "avisitor/dbuser": "dev-master",
     "avisitor/authz-client": "dev-master",
     "avisitor/idp-client": "dev-main",
+    "avisitor/monolog-context": "dev-master",
     "opensearch-project/opensearch-php": "^2.5",
     "symfony/dom-crawler": "^7.4",
-    "symfony/css-selector": "^7.4"
+    "symfony/css-selector": "^7.4",
+    "avisitor/env-loader": "^1.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.0"
@@ -19,33 +21,44 @@
     "psr-4": {
       "Noiiolelo\\": "lib/",
       "Noiiolelo\\Providers\\": "providers/",
-      "HawaiianSearch\\": ["providers/Elasticsearch/src/", "providers/OpenSearch/src/"],
+      "HawaiianSearch\\": [
+        "providers/Elasticsearch/src/",
+        "providers/OpenSearch/src/"
+      ],
       "Noiiolelo\\Tests\\": "tests/"
     }
   },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/avisitor/idp-client"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/avisitor/dbbase.git"
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/avisitor/idp-client"
     },
-        {
-            "type": "vcs",
-            "url": "https://github.com/avisitor/dbuser.git"
+    {
+      "type": "vcs",
+      "url": "https://github.com/avisitor/monolog-context"
     },
-        {
-            "type": "vcs",
-            "url": "https://github.com/avisitor/authorization.git"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/avisitor/authz-client"
-        }
-    ],
-    "scripts": {
+    {
+      "type": "vcs",
+      "url": "https://github.com/avisitor/dbbase.git"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/avisitor/dbuser.git"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/avisitor/authorization.git"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/avisitor/authz-client"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/avisitor/env-loader.git"
+    }
+  ],
+  "scripts": {
     "test": "phpunit --configuration tests/phpunit.xml",
     "test-json": "phpunit --configuration tests/phpunit.xml --log-json tests/results.json",
     "post-install-cmd": [
@@ -70,7 +83,9 @@
       "php-http/discovery": true
     },
     "audit": {
-      "ignore": ["PKSA-4dtf-ym9h-t41j"]
+      "ignore": [
+        "PKSA-4dtf-ym9h-t41j"
+      ]
     }
   }
 }

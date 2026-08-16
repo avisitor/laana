@@ -5,7 +5,6 @@
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../env-loader.php';
 require_once __DIR__ . '/../providers/Neo4j/AdvancedEntityExtractor.php';
 require_once __DIR__ . '/../lib/ProviderFactory.php';
 
@@ -177,7 +176,7 @@ if ($documentLinkLimit <= 0) {
     exit(1);
 }
 
-loadEnv();
+\Avisitor\Env\Loader::load(__DIR__ . '/../.env');
 mapLegacyElasticsearchEnv();
 
 echo "Starting entity extraction backfill...\n";

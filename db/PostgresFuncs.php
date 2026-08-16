@@ -1,7 +1,5 @@
 <?php
 require_once __DIR__ . '/funcs.php';
-require_once __DIR__ . '/../env-loader.php';
-
 class PostgresLaana extends Laana {
     public function __construct() {
         parent::__construct();
@@ -9,7 +7,7 @@ class PostgresLaana extends Laana {
 
     public function connect($dsn = null, $options = false) {
         // Load env and read PG_* variables
-        $env = loadEnv(__DIR__ . '/../.env');
+        $env = \Avisitor\Env\Loader::load(__DIR__ . '/../.env');
         $host = $env['PG_HOST'] ?? getenv('PG_HOST') ?? 'localhost';
         $port = $env['PG_PORT'] ?? getenv('PG_PORT') ?? '5432';
         $db   = $env['PG_DATABASE'] ?? getenv('PG_DATABASE') ?? ($env['PG_DB'] ?? getenv('PG_DB') ?? '');

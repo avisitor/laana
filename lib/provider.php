@@ -1,7 +1,5 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../env-loader.php';
-
 use Noiiolelo\ProviderFactory;
 
 function getKnownProviders(): array {
@@ -36,7 +34,7 @@ function getProvider($searchProvider = null) {
     }
     
     if ($searchProvider === null) {
-        $env = loadEnv();
+        $env = \Avisitor\Env\Loader::load(__DIR__ . '/../.env');
         $searchProvider = $env['PROVIDER'] ?? null;
     }
     

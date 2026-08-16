@@ -2,8 +2,6 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../env-loader.php';
-
 if (php_sapi_name() !== 'cli') {
     echo "This script must be run from the command line.\n";
     exit(1);

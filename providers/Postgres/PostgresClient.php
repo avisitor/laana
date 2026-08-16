@@ -20,7 +20,7 @@ class PostgresClient extends \PostgresLaana
         parent::__construct();
 
         // Load endpoint from .env if present
-        $env = function_exists('loadEnv') ? loadEnv(__DIR__ . '/../.env') : [];
+        $env = class_exists('Avisitor\\Env\\Loader') ? \Avisitor\Env\Loader::load(__DIR__ . '/../.env') : [];
         $endpoint = $config['EMBEDDING_SERVICE_URL']
             ?? ($env['EMBEDDING_SERVICE_URL'] ?? null)
             ?? getenv('EMBEDDING_SERVICE_URL')

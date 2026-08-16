@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../env-loader.php';
 require_once __DIR__ . '/../lib/utils.php';
 
 $home ="/" . basename(__DIR__);
@@ -35,8 +34,8 @@ function printObject( $obj, $intro = '' ) {
 function debuglog( $msg, $intro = "" ) {
     if (!defined('PHPUNIT_RUNNING') || !PHPUNIT_RUNNING) {
         $msg = formatLogMessage( $msg, $intro );
-        //error_log( "$msg \n", 3, "/tmp/php_errorlog" );
-        error_log( $msg );
+        //logError( "$msg \n", 3, "/tmp/php_errorlog" );
+        logError( $msg );
     }
     return;
 }
@@ -129,7 +128,7 @@ class DB extends Common\DB\DBBase {
 
     public function connect() {
         $envFile = getenv('NOIIOLELO_ENV_FILE') ?: __DIR__ . '/../.env';
-        $env = loadEnv($envFile);
+        $env = \Avisitor\Env\Loader::load($envFile);
         $env['port'] = $env['port'] ?? $env['DB_PORT'] ?? '3306';
         $env['username'] = $env['username'] ?? $env['DB_USER'] ?? '';
         $env['password'] = $env['password'] ?? $env['DB_PASSWORD'] ?? '';

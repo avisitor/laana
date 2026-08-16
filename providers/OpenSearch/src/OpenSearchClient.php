@@ -6,8 +6,6 @@ use OpenSearch\ClientBuilder;
 use HawaiianSearch\OpenSearchQueryBuilder;
 
 require_once __DIR__ . '/OpenSearchQueryBuilder.php';
-require_once __DIR__ . '/../../../env-loader.php';
-
 class OpenSearchClient extends ElasticsearchClient
 {
     protected $rawOsClient;
@@ -16,8 +14,8 @@ class OpenSearchClient extends ElasticsearchClient
     {
         // Load environment variables if not already loaded
         if (!isset($_ENV['OS_HOST'])) {
-            if (function_exists('loadEnv')) {
-                loadEnv();
+            if (class_exists('Avisitor\\Env\\Loader')) {
+                \Avisitor\Env\Loader::load(__DIR__ . '/../../../.env');
             }
         }
 

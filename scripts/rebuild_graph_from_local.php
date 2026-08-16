@@ -8,7 +8,6 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../env-loader.php';
 require_once __DIR__ . '/../db/funcs.php';
 require_once __DIR__ . '/../providers/Neo4j/AdvancedEntityExtractor.php';
 require_once __DIR__ . '/../lib/ProviderFactory.php';
@@ -106,7 +105,7 @@ function parseOptions(): array
 }
 
 $cfg = parseOptions();
-loadEnv();
+\Avisitor\Env\Loader::load(__DIR__ . '/../.env');
 
 $runStartedAt = date('c');
 $started = microtime(true);

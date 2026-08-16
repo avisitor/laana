@@ -1,9 +1,6 @@
 <?php
 
 namespace Noiiolelo\Tests\Integration;
-
-require_once __DIR__ . '/../../env-loader.php';
-
 use Noiiolelo\Providers\MySQL\MySQLSaveManager;
 use Noiiolelo\Tests\BaseTestCase;
 use PDO;
@@ -32,7 +29,7 @@ class RemoteDocumentCatalogingTest extends BaseTestCase
     {
         parent::setUpBeforeClass();
 
-        $baseEnv = loadEnv(__DIR__ . '/../../.env');
+        $baseEnv = \Avisitor\Env\Loader::load(__DIR__ . '/../../.env');
         $host = $baseEnv['DB_HOST'] ?? 'localhost';
         $port = $baseEnv['DB_PORT'] ?? '3306';
         $user = $baseEnv['DB_USER'] ?? '';

@@ -9,8 +9,6 @@ use Elastic\Elasticsearch\Exception\ClientResponseException;
 use Elastic\Elasticsearch\Exception\MissingParameterException;
 use Elastic\Elasticsearch\Exception\ServerResponseException;
 use Elastic\Transport\Exception\NoNodeAvailableException;
-
-require_once __DIR__ . '/../../../env-loader.php';
 require_once __DIR__ . '/../../../lib/utils.php';
 
 require_once __DIR__ . '/QueryBuilder.php';
@@ -154,8 +152,8 @@ class ElasticsearchClient {
     private const EXPECTED_MODEL = 'intfloat/multilingual-e5-large-instruct';
 
     public function __construct(array $options = []) {
-        if (function_exists('loadEnv')) {
-            loadEnv();
+        if (class_exists('Avisitor\\Env\\Loader')) {
+            \Avisitor\Env\Loader::load(__DIR__ . '/../../../.env');
         }
         $DEFAULT_INDEX = 'hawaiian'; // This is just the base of the index names
 
@@ -360,13 +358,13 @@ class ElasticsearchClient {
     }
     
     protected function debuglog( $msg ) {
-        error_log( "ElasticSearchClient: $msg\n" );
+        logError( "ElasticSearchClient: $msg\n" );
     }
     
     protected function printVerbose( $msg ) {
         if ($this->verbose) {
             $this->print( $msg );
-            error_log( $msg );
+            logError( $msg );
         }
     }
     
@@ -1423,7 +1421,7 @@ class ElasticsearchClient {
         if (isset($response['errors']) && $response['errors'] === true) {
             foreach ($response['items'] as $item) {
                 if (isset($item['index']['error'])) {
-                    error_log("Error indexing document " . $item['index']['_id'] . ": " . json_encode($item['index']['error']));
+                    logError("Error indexing document " . $item['index']['_id'] . ": " . json_encode($item['index']['error']));
                 }
             }
         }
@@ -1572,7 +1570,7 @@ class ElasticsearchClient {
             $this->client->update($params);
         } catch (\Exception $e) {
             if ($this->verbose) {
-                error_log("Failed to update properties for doc {$docId}: " . $e->getMessage());
+                logError("Failed to update properties for doc {$docId}: " . $e->getMessage());
             }
         }
     }
@@ -1598,7 +1596,7 @@ class ElasticsearchClient {
         if (isset($response['errors']) && $response['errors'] === true) {
             foreach ($response['items'] as $item) {
                 if (isset($item['index']['error'])) {
-                    error_log("Error indexing document " . $item['index']['_id'] . ": " . json_encode($item['index']['error']));
+                    logError("Error indexing document " . $item['index']['_id'] . ": " . json_encode($item['index']['error']));
                 }
             }
         }
@@ -1655,7 +1653,7 @@ class ElasticsearchClient {
         try {
             $response = $this->client->search($params)->asArray();
             if ($this->verbose) {
-                error_log("Raw response from getLatestSourceDates: " . json_encode($response, JSON_PRETTY_PRINT));
+                logError("Raw response from getLatestSourceDates: " . json_encode($response, JSON_PRETTY_PRINT));
             }
             $latestDates = [];
             $buckets = $response['aggregations']['group_by_groupname']['buckets'] ?? [];
@@ -1670,7 +1668,7 @@ class ElasticsearchClient {
             return $latestDates;
         } catch (\Exception $e) {
             if ($this->verbose) {
-                error_log("Error in getLatestSourceDates: " . $e->getMessage());
+                logError("Error in getLatestSourceDates: " . $e->getMessage());
             }
             return [];
         }
@@ -1785,7 +1783,7 @@ class ElasticsearchClient {
             return $response['count'] ?? 0;
         } catch (Exception $e) {
             if ($this->verbose) {
-                error_log("Sentence count error: " . $e->getMessage());
+                logError("Sentence count error: " . $e->getMessage());
             }
             return 0;
         }
@@ -1852,7 +1850,7 @@ class ElasticsearchClient {
             return $response['count'] ?? 0;
         } catch (\Exception $e) {
             if ($this->verbose) {
-                error_log("Sentence count error: " . $e->getMessage());
+                logError("Sentence count error: " . $e->getMessage());
             }
             return 0;
         }
@@ -1868,7 +1866,7 @@ class ElasticsearchClient {
             return $response['count'] ?? 0;
         } catch (\Exception $e) {
             if ($this->verbose) {
-                error_log("Document count error: " . $e->getMessage());
+                logError("Document count error: " . $e->getMessage());
             }
             return 0;
         }
@@ -2052,7 +2050,7 @@ class ElasticsearchClient {
             return $results;
             
         } catch (Exception $e) {
-            error_log("Search error: " . $e->getMessage());
+            logError("Search error: " . $e->getMessage());
             return null;
         }
     }
@@ -3411,7 +3409,7 @@ private function formatResults(array $response, string $mode,
             if ($e->getCode()) {
                 $this->debuglog("  Error code: " . $e->getCode());
             }
-            error_log("ElasticsearchClient::addSource failed for '$sourceName' (link: " . ($params['link'] ?? 'none') . "): " . $e->getMessage());
+            logError("ElasticsearchClient::addSource failed for '$sourceName' (link: " . ($params['link'] ?? 'none') . "): " . $e->getMessage());
             return null;
         }
     }
@@ -3435,7 +3433,7 @@ private function formatResults(array $response, string $mode,
         } catch (\Exception $e) {
             $this->lastError = $e;
             $this->debuglog("Error deleting source metadata '$sourceId': " . $e->getMessage());
-            error_log("ElasticsearchClient::deleteSourceMetadata failed for '$sourceId': " . $e->getMessage());
+            logError("ElasticsearchClient::deleteSourceMetadata failed for '$sourceId': " . $e->getMessage());
             return false;
         }
     }
@@ -3521,7 +3519,7 @@ private function formatResults(array $response, string $mode,
             $this->index($logDoc, $logId, 'processing-logs');
             return $logId;
         } catch (\Exception $e) {
-            error_log("Failed to start processing log: " . $e->getMessage());
+            logError("Failed to start processing log: " . $e->getMessage());
             return null;
         }
     }
@@ -3553,13 +3551,13 @@ private function formatResults(array $response, string $mode,
                 $this->index($existing, $logID, 'processing-logs');
             } else {
                 // Document doesn't exist, just log the error
-                error_log("Processing log document $logID not found for update");
+                logError("Processing log document $logID not found for update");
                 return false;
             }
             
             return true;
         } catch (\Exception $e) {
-            error_log("Failed to complete processing log: " . $e->getMessage());
+            logError("Failed to complete processing log: " . $e->getMessage());
             return false;
         }
     }
@@ -3606,7 +3604,7 @@ private function formatResults(array $response, string $mode,
                 'total_logs' => $response['hits']['total']['value'] ?? 0
             ];
         } catch (\Exception $e) {
-            error_log("Failed to get processing logs metadata: " . $e->getMessage());
+            logError("Failed to get processing logs metadata: " . $e->getMessage());
             return [
                 'statuses' => [],
                 'operation_types' => [],
@@ -3700,7 +3698,7 @@ private function formatResults(array $response, string $mode,
             }, $hits);
             
         } catch (\Exception $e) {
-            error_log("Failed to get processing logs: " . $e->getMessage());
+            logError("Failed to get processing logs: " . $e->getMessage());
             return [];
         }
     }

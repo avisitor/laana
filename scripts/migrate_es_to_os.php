@@ -10,14 +10,12 @@
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../env-loader.php';
-
 use HawaiianSearch\ElasticsearchClient;
 use HawaiianSearch\OpenSearchClient;
 use HawaiianSearch\ElasticsearchScrollIterator;
 
 // Load environment
-$env = loadEnv();
+$env = \Avisitor\Env\Loader::load(__DIR__ . '/../.env');
 foreach ($env as $key => $value) {
     $_ENV[$key] = $value;
     putenv("$key=$value");

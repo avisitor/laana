@@ -6,8 +6,6 @@ use HawaiianSearch\ElasticsearchClient;
 use HawaiianSearch\EmbeddingClient;
 use HawaiianSearch\MetadataCache;
 use Noiiolelo\Providers\Elasticsearch\ElasticsearchProcessingLogger;
-
-require_once __DIR__ . '/../../env-loader.php';
 require_once __DIR__ . '/../../lib/utils.php';
 
 class ElasticsearchProvider extends AbstractSearchProvider {
@@ -18,8 +16,8 @@ class ElasticsearchProvider extends AbstractSearchProvider {
     protected bool $quiet = true;
 
     public function __construct( $options ) {
-        if (function_exists('loadEnv')) {
-            loadEnv();
+        if (class_exists('Avisitor\\Env\\Loader')) {
+            \Avisitor\Env\Loader::load(__DIR__ . '/../../.env');
         }
         $this->verbose = $options['verbose'] ?? false;
         $this->client = new ElasticsearchClient([

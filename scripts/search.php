@@ -8,8 +8,6 @@
  */
 
 require_once __DIR__ . '/../lib/provider.php';
-require_once __DIR__ . '/../env-loader.php';
-
 // ANSI color codes for output
 define('COLOR_RESET', "\033[0m");
 define('COLOR_BOLD', "\033[1m");
@@ -447,7 +445,7 @@ if (php_sapi_name() !== 'cli') {
 
 try {
     // Load environment
-    $env = loadEnv(__DIR__ . '/../.env');
+    $env = \Avisitor\Env\Loader::load(__DIR__ . '/../.env');
     $providerName = $env['PROVIDER'] ?? 'Elasticsearch';
     
     // Allow provider override via environment variable
