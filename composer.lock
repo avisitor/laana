@@ -46,12 +46,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/avisitor/dbbase.git",
-                "reference": "7ed8353dcbed6ca3d15f0200debb67eebc2a96b1"
+                "reference": "e51e775db497e7d7b1b11f045f7585ea130d6d6c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/avisitor/dbbase/zipball/7ed8353dcbed6ca3d15f0200debb67eebc2a96b1",
-                "reference": "7ed8353dcbed6ca3d15f0200debb67eebc2a96b1",
+                "url": "https://api.github.com/repos/avisitor/dbbase/zipball/e51e775db497e7d7b1b11f045f7585ea130d6d6c",
+                "reference": "e51e775db497e7d7b1b11f045f7585ea130d6d6c",
                 "shasum": ""
             },
             "require": {
@@ -66,10 +66,10 @@
             },
             "description": "Database base class utilities",
             "support": {
-                "source": "https://github.com/avisitor/dbbase/tree/v1.0.4",
+                "source": "https://github.com/avisitor/dbbase/tree/v1.0.5",
                 "issues": "https://github.com/avisitor/dbbase/issues"
             },
-            "time": "2026-08-16T08:12:45+00:00"
+            "time": "2026-08-16T08:29:53+00:00"
         },
         {
             "name": "avisitor/dbuser",
