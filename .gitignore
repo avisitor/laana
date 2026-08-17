@@ -17,6 +17,8 @@ save/
 node_modules/*.json
 ops/*.json
 scripts/__pycache__
+**/__pycache__/
+.pytest_cache/
 **/*bak
 data/
 .serena/
