@@ -11,12 +11,15 @@ use HawaiianSearch\WordCleanupStore;
 
 use Authorization\AuthorizationClient;
 
+\Avisitor\Env\Loader::load(__DIR__ . '/../.env');
+
 if (isset($_GET['token'])) {
-    $_SESSION['jwt_token'] = $_GET['token'];
-    $parts = explode('.', $_GET['token']);
-    if (count($parts) === 3) {
-        $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/'), true), true);
+    $token = $_GET['token'];
+    $idpUrl = (string)(\Avisitor\Env\Loader::get('IDP_URL') ?? '');
+    if ($idpUrl !== '') {
+        $payload = (new \WorldSpot\IDPClient\Auth\TokenManager())->decodeToken($token, rtrim($idpUrl, '/'));
         if (isset($payload['sub'])) {
+            $_SESSION['jwt_token'] = $token;
             $_SESSION['auth_email'] = $payload['sub'];
         }
     }
