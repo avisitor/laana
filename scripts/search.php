@@ -407,6 +407,7 @@ class SearchCLI {
         echo "Options:\n";
         echo "  " . $this->color("--query=TERM", COLOR_GREEN) . "          Search query term (required)\n";
         echo "  " . $this->color("--mode=MODE", COLOR_GREEN) . "           Search mode (default: auto-detect)\n";
+        echo "  " . $this->color("--provider=NAME", COLOR_GREEN) . "        Search provider: MySQL|Elasticsearch|OpenSearch|Postgres\n";
         echo "  " . $this->color("--sentences", COLOR_GREEN) . "           Search sentences (default)\n";
         echo "  " . $this->color("--documents", COLOR_GREEN) . "           Search documents\n";
         echo "  " . $this->color("--order=ORDER", COLOR_GREEN) . "         Sort order: random|relevance|date (default: auto)\n";
