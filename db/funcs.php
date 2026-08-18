@@ -119,6 +119,28 @@ class DB extends Common\DB\DBBase {
         return $sql . " where $clause";
     }
 
+    /**
+     * Restrict a query to sentences whose source belongs to a non-blocked
+     * group. Unlike appendBlockedGroupWhereWithSourceAlias (an anti-join that
+     * forces the planner to visit every full-text match in the heap), this
+     * drives the lookup through the sentences(sourceid) index, so counts and
+     * top-N result pages only touch rows of allowed sources. When no blocked
+     * groups are configured the SQL is returned unchanged.
+     */
+    protected function appendNonBlockedGroupWhereWithSourceAlias(string $sql, array &$values, string $sourceAlias): string
+    {
+        $blocked = $this->getBlockedGroups();
+        if (empty($blocked)) {
+            return $sql;
+        }
+        $in = $this->buildBlockedGroupPlaceholders($blocked, $values);
+        $clause = "$sourceAlias.sourceid = ANY (ARRAY(SELECT sourceid FROM sources WHERE groupname NOT IN ($in)))";
+        if (stripos($sql, ' where ') !== false) {
+            return $sql . " and $clause";
+        }
+        return $sql . " where $clause";
+    }
+
     public function debuglog( $msg, $prefix="", $logLevel = 5 ) {
         if( $logLevel >= $this->noisyLogLevel ||
             $this->logLevel >= $this->noisyLogLevel) {
