@@ -85,7 +85,7 @@ class OpenSearchClient extends ElasticsearchClient
         $this->grammarScanner = new \Noiiolelo\GrammarScanner();
     }
 
-    public function search(string $query, string $mode, array $options = []): ?array
+    public function search($query, string $mode = '', array $options = []): ?array
     {
         // We need to override search to ensure we don't use .keyword suffixes in OpenSearch
         // and to handle any other OS-specific search logic
@@ -125,7 +125,7 @@ class OpenSearchClient extends ElasticsearchClient
                     $prop['method'] = [
                         'name' => 'hnsw',
                         'space_type' => 'cosinesimil',
-                        'engine' => 'nmslib'
+                        'engine' => 'lucene'
                     ];
                     
                     // Enable KNN in settings
