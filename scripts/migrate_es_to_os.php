@@ -137,7 +137,13 @@ foreach ($indices as $key => $info) {
     }
 
     // 1.5 Get existing IDs to skip
-    $existingIds = getExistingIds($osClient, $destIndex);
+    // Wrap raw OS client so ElasticsearchScrollIterator gets un-wrapped responses
+    $osRawAdapter = new class($osClient->getRawOsClient()) {
+        private $client;
+        public function __construct($client) { $this->client = $client; }
+        public function getRawClient() { return $this->client; }
+    };
+    $existingIds = getExistingIds($osRawAdapter, $destIndex);
 
     // 2. Scroll through source and index into target
     echo "Copying documents...\n";
