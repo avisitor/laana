@@ -71,24 +71,25 @@ class PostgresLaana extends Laana {
         // 3. BRANCH: COUNT vs. DATA
         if ($countOnly) {
             // High-speed count. We don't join sources or metrics here.
+            // Use the non-blocked-source index path so the count stays fast
+            // even when a common term matches a large share of the corpus.
             $sql = "SELECT count(*) as count FROM sentences s WHERE $where";
-            $sql = $this->appendBlockedGroupWhereWithSourceAlias($sql, $values, 's');
+            $sql = $this->appendNonBlockedGroupWhereWithSourceAlias($sql, $values, 's');
         } else {
-            // Fast data retrieval with LIMIT inside the subquery
+            // Fast data retrieval with LIMIT inside the subquery. The blocked
+            // source filter must be applied INSIDE the subquery (before the
+            // ORDER BY / LIMIT) so a page of results is never emptied out by
+            // the filter being appended after the ORDER BY clause.
+            $innerSql = "SELECT sentenceid, sourceid, hawaiiantext FROM sentences WHERE $where";
+            $innerSql = $this->appendNonBlockedGroupWhereWithSourceAlias($innerSql, $values, 'sentences');
+            $innerSql .= " ORDER BY sentenceid DESC LIMIT $pageSize OFFSET $offset";
             $sql = "SELECT s.authors, s.date, s.sourcename, s.sourceid, s.link, 
                         matched.hawaiiantext as hawaiianText, matched.sentenceid, 
                         m.hawaiian_word_ratio, m.word_count, m.length, m.entity_count, m.frequency
-                    FROM (
-                        SELECT sentenceid, sourceid, hawaiiantext 
-                        FROM sentences 
-                        WHERE $where
-                        ORDER BY sentenceid DESC
-                        LIMIT $pageSize OFFSET $offset
-                    ) matched
+                    FROM ($innerSql) matched
                     INNER JOIN sources s ON s.sourceid = matched.sourceid
                     LEFT JOIN sentence_metrics m ON m.sentenceid = matched.sentenceid
                     ORDER BY matched.sentenceid DESC";
-            $sql = $this->appendBlockedGroupWhereWithGroupAlias($sql, $values, 's');
         }
 
         try {
