@@ -479,6 +479,17 @@ class ElasticsearchClient {
         return $this->client;
     }
 
+    /**
+     * Return the transport-level client suitable for low-level operations (get, bulk, indices).
+     * For Elasticsearch: returns the ES v8 client directly.
+     * For OpenSearch: must be overridden to return rawOsClient (the wrapped client
+     * silently swallows indices/write calls).
+     */
+    public function getTransportClient()
+    {
+        return $this->client;
+    }
+
     public function getEmbeddingClient(): EmbeddingClient {
         return $this->embeddingClient;
     }
@@ -1524,8 +1535,13 @@ class ElasticsearchClient {
             'body' => $bulkBody
         ]);
 
+        // Normalize response: wrapped client may return anonymous class object
+        if (is_object($response) && method_exists($response, 'asArray')) {
+            $response = $response->asArray();
+        }
+
         // Optional: check for errors
-        if (isset($response['errors']) && $response['errors'] === true) {
+        if (is_array($response) && isset($response['errors']) && $response['errors'] === true) {
             foreach ($response['items'] as $item) {
                 if (isset($item['index']['error'])) {
                     \Avisitor\Monolog\Logger::logError("Error indexing document " . $item['index']['_id'] . ": " . json_encode($item['index']['error']));
@@ -1568,8 +1584,7 @@ class ElasticsearchClient {
 
     public function getDocumentOutline(string $id, string $indexName = ''): ?array
     {
-        //$index = empty($indexName) ? $this->getIndexName() : $indexName;
-        $index = $this->getDocumentsIndexName( $indexName );
+        $index = empty($indexName) ? $this->getDocumentsIndexName() : $indexName;
         try {
             $response = $this->client->get([
                 'index' => $index,
@@ -1588,7 +1603,7 @@ class ElasticsearchClient {
             $source = $response['_source'];
             $source['sourceid'] = $id;
             return $source;
-        } catch (ClientResponseException $e) {
+        } catch (\Throwable $e) {
             return null;
         }
     }

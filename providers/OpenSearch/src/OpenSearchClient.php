@@ -242,6 +242,15 @@ class OpenSearchClient extends ElasticsearchClient
     }
 
     /**
+     * Override to return the raw OpenSearch client for low-level operations.
+     * The wrapped client silently swallows indices/write calls.
+     */
+    public function getTransportClient()
+    {
+        return $this->rawOsClient;
+    }
+
+    /**
      * Override the wrapClient to also handle query rewriting
      */
     private function wrapClient($client)

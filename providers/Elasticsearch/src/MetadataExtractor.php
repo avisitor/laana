@@ -67,20 +67,24 @@ class MetadataExtractor
         $sentenceHash = self::hashSentence($text);
         
         try {
-            // Get the underlying Elasticsearch client
-            $reflection = new \ReflectionClass($this->client);
-            $clientProperty = $reflection->getProperty('client');
-            $clientProperty->setAccessible(true);
-            $esClient = $clientProperty->getValue($this->client);
+            $esClient = $this->client->getTransportClient();
             
             $response = $esClient->get([
                 'index' => $this->client->getIndexName() . '-metadata',
                 'id' => $sentenceHash
             ]);
             
-            return $response['_source'];
+            // Handle both array responses (ES v8 ClientResponse) and wrapped responses
+            if (is_array($response)) {
+                return $response['_source'] ?? null;
+            }
+            if (is_object($response) && method_exists($response, 'asArray')) {
+                $response = $response->asArray();
+                return $response['_source'] ?? null;
+            }
+            return null;
             
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Document doesn't exist or other error
             return null;
         }
@@ -96,11 +100,7 @@ class MetadataExtractor
         }
         
         try {
-            // Get the underlying Elasticsearch client
-            $reflection = new \ReflectionClass($this->client);
-            $clientProperty = $reflection->getProperty('client');
-            $clientProperty->setAccessible(true);
-            $esClient = $clientProperty->getValue($this->client);
+            $esClient = $this->client->getTransportClient();
             
             $actions = [];
             foreach ($sentencesData as $sentenceData) {
@@ -125,10 +125,14 @@ class MetadataExtractor
             }
             
             if (!empty($actions)) {
-                $esClient->bulk(['body' => $actions]);
+                $result = $esClient->bulk(['body' => $actions]);
+                // Handle both array and wrapped responses
+                if (is_object($result) && method_exists($result, 'asArray')) {
+                    $result->asArray();
+                }
             }
             
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Avisitor\Monolog\Logger::logError("Failed to bulk save sentence metadata: " . $e->getMessage());
         }
     }
@@ -139,20 +143,22 @@ class MetadataExtractor
     public function createMetadataIndex(bool $recreate = false): void
     {
         try {
-            // Get the underlying Elasticsearch client
-            $reflection = new \ReflectionClass($this->client);
-            $clientProperty = $reflection->getProperty('client');
-            $clientProperty->setAccessible(true);
-            $esClient = $clientProperty->getValue($this->client);
+            $esClient = $this->client->getTransportClient();
             
             $indexName = $this->client->getIndexName() . '-metadata';
             
-            if ($recreate && $esClient->indices()->exists(['index' => $indexName])) {
-                $esClient->indices()->delete(['index' => $indexName]);
-                echo "🗑️  Deleted existing metadata index: {$indexName}\n";
+            $exists = $esClient->indices()->exists(['index' => $indexName]);
+            if (is_object($exists) && method_exists($exists, 'asBool')) {
+                $exists = $exists->asBool();
             }
             
-            if (!$esClient->indices()->exists(['index' => $indexName])) {
+            if ($recreate && $exists) {
+                $esClient->indices()->delete(['index' => $indexName]);
+                echo "🗑️  Deleted existing metadata index: {$indexName}\n";
+                $exists = false;
+            }
+            
+            if (!$exists) {
                 $mapping = [
                     'mappings' => [
                         'properties' => [
@@ -174,15 +180,18 @@ class MetadataExtractor
                     ]
                 ];
                 
-                $esClient->indices()->create([
+                $result = $esClient->indices()->create([
                     'index' => $indexName,
                     'body' => $mapping
                 ]);
+                if (is_object($result) && method_exists($result, 'wait')) {
+                    $result->wait();
+                }
                 
                 echo "✅ Created metadata index: {$indexName}\n";
             }
             
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Avisitor\Monolog\Logger::logError("Failed to create metadata index: " . $e->getMessage());
             throw $e;
         }
