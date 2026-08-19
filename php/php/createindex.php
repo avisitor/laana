@@ -1,0 +1,329 @@
+#!/usr/bin/env php
+<?php
+/**
+ * CLI entry point for the Hawaiian Search CorpusIndexer.
+ *
+ * Runs the CorpusIndexer from the command line with configurable options.
+ *
+ * Usage examples:
+ *   php php/php/createindex.php --dryrun
+ *   php php/php/createindex.php --recreate --verbose --max-documents 10
+ *   php php/php/createindex.php --recreate --verbose
+ *   php php/php/createindex.php --group-name=kauakukalahale --dryrun
+ *   php php/php/createindex.php --aliases-only
+ */
+
+declare(strict_types=1);
+
+// ---------------------------------------------------------------------------
+// Path resolution (__DIR__ based) and bootstrap
+// ---------------------------------------------------------------------------
+$projectRoot = dirname(__DIR__, 2);
+$autoloadPath = $projectRoot . '/vendor/autoload.php';
+
+if (!file_exists($autoloadPath)) {
+    fwrite(STDERR, "Error: Composer autoloader not found at {$autoloadPath}.\n");
+    fwrite(STDERR, "Run 'composer install' in {$projectRoot} first.\n");
+    exit(1);
+}
+
+require_once $autoloadPath;
+
+// Load .env using the same pattern as ElasticsearchClient
+if (class_exists('Avisitor\\Env\\Loader')) {
+    \Avisitor\Env\Loader::load($projectRoot . '/.env');
+}
+
+use HawaiianSearch\CorpusIndexer;
+use HawaiianSearch\ElasticsearchClient;
+use HawaiianSearch\IndexSchemaValidator;
+
+// ElasticsearchClient exposes alias creation via a protected method. This
+// small local subclass makes it available to the CLI without changing the
+// library client's public API.
+class CliAliasClient extends ElasticsearchClient
+{
+    public function createProductionAliases(): void
+    {
+        $this->createAliases();
+    }
+}
+
+// ---------------------------------------------------------------------------
+// CLI argument parsing
+// ---------------------------------------------------------------------------
+$longOptions = [
+    'recreate',                 // Delete and recreate the index before indexing
+    'dryrun',                   // Dry run: show what would happen without indexing
+    'dry-run',                  // Alias for --dryrun
+    'verbose',                  // Verbose output
+    'quiet',                    // Suppress non-error output
+    'help',                     // Show usage
+    'max-documents:',           // Stop after indexing N documents
+    'limit:',                   // Alias for --max-documents
+    'source-id:',               // Only index the source with this ID
+    'group-name:',              // Only index sources in this group
+    'groupname:',               // Alias for --group-name
+    'batch-size:',              // Documents per batch
+    'sentence-batch-size:',     // Sentences per embedding request
+    'checkpoint-interval:',     // Sources between checkpoints
+    'split-indices',            // Use separate document/sentence indices (default)
+    'no-split-indices',         // Use a single combined index
+    'collection-name:',         // Base collection/index name
+    'aliases-only',             // Only recreate aliases without touching indices
+    'no-aliases',               // Skip alias creation after index creation
+];
+
+$options = getopt('', $longOptions);
+
+if ($options === false) {
+    fwrite(STDERR, "Error: Failed to parse command-line arguments.\n");
+    printUsage();
+    exit(1);
+}
+
+if (isset($options['help'])) {
+    printUsage();
+    exit(0);
+}
+
+// Read an integer option, supporting aliases. Exits with code 1 on bad input.
+$intOption = function (array $names, ?int $default = null) use ($options): ?int {
+    foreach ($names as $name) {
+        if (isset($options[$name])) {
+            $value = $options[$name];
+            if (!is_numeric($value)) {
+                fwrite(STDERR, "Error: --{$name} expects a numeric value, got '{$value}'.\n");
+                exit(1);
+            }
+            return (int)$value;
+        }
+    }
+    return $default;
+};
+
+$dryrun = isset($options['dryrun']) || isset($options['dry-run']);
+$recreate = isset($options['recreate']);
+$verbose = isset($options['verbose']);
+$quiet = isset($options['quiet']);
+$aliasesOnly = isset($options['aliases-only']);
+$noAliases = isset($options['no-aliases']);
+
+$config = [
+    'COLLECTION_NAME' => $options['collection-name'] ?? 'hawaiian',
+    'SPLIT_INDICES' => isset($options['no-split-indices']) ? false : true,
+    'BATCH_SIZE' => $intOption(['batch-size'], 1),
+    'SENTENCE_BATCH_SIZE' => $intOption(['sentence-batch-size'], 100),
+    'CHECKPOINT_INTERVAL' => $intOption(['checkpoint-interval'], 50),
+    'MAX_DOCUMENTS' => $intOption(['max-documents', 'limit']),
+    'SOURCE_ID' => $intOption(['source-id']),
+    'groupName' => $options['group-name'] ?? $options['groupname'] ?? null,
+    'verbose' => $verbose,
+    'quiet' => $quiet,
+    'updateProperties' => false,
+    'updateMetadata' => false,
+    'updateSourceMetadata' => false,
+    'importRaw' => false,
+    'dryrun' => $dryrun,
+];
+
+// ---------------------------------------------------------------------------
+// Preamble: show the configuration being used (suppressed by --quiet)
+// ---------------------------------------------------------------------------
+if (!$quiet) {
+    echo "========================================\n";
+    echo " Hawaiian Search Corpus Indexer\n";
+    echo "========================================\n";
+    echo "Collection name:      {$config['COLLECTION_NAME']}\n";
+    echo "Split indices:        " . ($config['SPLIT_INDICES'] ? 'yes' : 'no') . "\n";
+    echo "Batch size:           {$config['BATCH_SIZE']}\n";
+    echo "Sentence batch size:  {$config['SENTENCE_BATCH_SIZE']}\n";
+    echo "Checkpoint interval:  {$config['CHECKPOINT_INTERVAL']}\n";
+    echo "Max documents:        " . ($config['MAX_DOCUMENTS'] ?? 'unlimited') . "\n";
+    echo "Source ID:            " . ($config['SOURCE_ID'] ?? 'all') . "\n";
+    echo "Group name:           " . ($config['groupName'] ?? 'all') . "\n";
+    echo "Verbose:              " . ($config['verbose'] ? 'yes' : 'no') . "\n";
+    echo "Quiet:                " . ($config['quiet'] ? 'yes' : 'no') . "\n";
+    echo "Recreate index:       " . ($recreate ? 'yes' : 'no') . "\n";
+    echo "Dry run:              " . ($dryrun ? 'yes' : 'no') . "\n";
+    echo "Aliases only:         " . ($aliasesOnly ? 'yes' : 'no') . "\n";
+    echo "Skip aliases:         " . ($noAliases ? 'yes' : 'no') . "\n";
+    echo "----------------------------------------\n";
+}
+
+// ---------------------------------------------------------------------------
+// Aliases-only mode: recreate production aliases without touching indices
+// ---------------------------------------------------------------------------
+if ($aliasesOnly) {
+    if (!$quiet) {
+        echo "Creating aliases only...\n";
+    }
+    try {
+        $aliasClient = new CliAliasClient([
+            'indexName'     => $config['COLLECTION_NAME'],
+            'verbose'       => $verbose,
+            'quiet'         => $quiet,
+            'SPLIT_INDICES' => $config['SPLIT_INDICES'],
+        ]);
+        $aliasClient->createProductionAliases();
+    } catch (Throwable $e) {
+        fwrite(STDERR, "Error: Could not create aliases: " . $e->getMessage() . "\n");
+        if ($verbose) {
+            fwrite(STDERR, $e->getTraceAsString() . "\n");
+        }
+        exit(1);
+    }
+    if (!$quiet) {
+        echo "Done.\n";
+    }
+    exit(0);
+}
+
+// ---------------------------------------------------------------------------
+// Pre-flight: validate index schemas before any changes are made
+// ---------------------------------------------------------------------------
+if (!$quiet) {
+    echo "\n";
+}
+
+try {
+    $esClient = new ElasticsearchClient([
+        'indexName'     => $config['COLLECTION_NAME'],
+        'verbose'       => $verbose,
+        'quiet'         => $quiet,
+        'SPLIT_INDICES' => $config['SPLIT_INDICES'],
+    ]);
+} catch (Throwable $e) {
+    fwrite(STDERR, "Error: Could not connect to Elasticsearch: " . $e->getMessage() . "\n");
+    if ($verbose) {
+        fwrite(STDERR, $e->getTraceAsString() . "\n");
+    }
+    exit(1);
+}
+
+// Only run schema validation for indexing modes (not metadata-only updates)
+$isIndexingMode = !$config['updateProperties']
+    && !$config['updateMetadata']
+    && !$config['updateSourceMetadata']
+    && !$config['importRaw'];
+
+if ($isIndexingMode) {
+    $validator = new IndexSchemaValidator($esClient, $verbose);
+    $schemaValid = $validator->validate($recreate);
+
+    if (!$schemaValid) {
+        fwrite(STDERR, "Pre-flight validation failed. Aborting.\n");
+        fwrite(STDERR, "Use --recreate to recreate indices, or fix the schema issues above.\n");
+        exit(1);
+    }
+} elseif (!$quiet) {
+    echo "ℹ️  Skipping schema validation (metadata-only mode).\n\n";
+}
+
+unset($esClient); // Close connection before CorpusIndexer creates its own
+
+// ---------------------------------------------------------------------------
+// Signal handlers for graceful shutdown (SIGINT, SIGTERM)
+// ---------------------------------------------------------------------------
+$shutdownRequested = false;
+$shutdownSignal = null;
+
+if (function_exists('pcntl_signal')) {
+    pcntl_async_signals(true);
+    $signalHandler = function (int $signo) use (&$shutdownRequested, &$shutdownSignal): void {
+        $shutdownRequested = true;
+        $shutdownSignal = $signo;
+        $name = $signo === SIGINT ? 'SIGINT (Ctrl+C)' : 'SIGTERM';
+        fwrite(STDERR, "\nReceived {$name} — finishing current batch gracefully...\n");
+        fwrite(STDERR, "Press Ctrl+C again to force quit.\n");
+    };
+    pcntl_signal(SIGINT, $signalHandler);
+    pcntl_signal(SIGTERM, $signalHandler);
+} else {
+    fwrite(STDERR, "Warning: pcntl extension not available; graceful shutdown disabled.\n");
+}
+
+// ---------------------------------------------------------------------------
+// Run the indexer
+// ---------------------------------------------------------------------------
+try {
+    $indexer = new CorpusIndexer($config, $recreate, $dryrun);
+    $indexer->runIndexing();
+
+    // Ensure production aliases exist after index creation (unless --no-aliases)
+    if (!$noAliases) {
+        if (!$quiet) {
+            echo "Ensuring production aliases...\n";
+        }
+        $aliasClient = new CliAliasClient([
+            'indexName'     => $config['COLLECTION_NAME'],
+            'verbose'       => $verbose,
+            'quiet'         => $quiet,
+            'SPLIT_INDICES' => $config['SPLIT_INDICES'],
+        ]);
+        $aliasClient->createProductionAliases();
+    }
+
+    if ($shutdownRequested) {
+        $code = $shutdownSignal === SIGTERM ? 143 : 130;
+        fwrite(STDERR, "Shutdown requested — exiting with code {$code}.\n");
+        exit($code);
+    }
+
+    exit(0);
+} catch (Throwable $e) {
+    fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
+    if ($verbose) {
+        fwrite(STDERR, $e->getTraceAsString() . "\n");
+    }
+    exit(1);
+}
+
+/**
+ * Print the usage/help message.
+ */
+function printUsage(): void
+{
+    $usage = <<<USAGE
+Hawaiian Search Corpus Indexer — CLI entry point for CorpusIndexer.
+
+Usage:
+  php php/php/createindex.php [options]
+
+Options:
+  --recreate                 Delete and recreate the index before indexing
+  --dryrun                   Dry run: show what would happen without indexing
+  --dry-run                  Alias for --dryrun
+  --verbose                  Verbose output
+  --quiet                    Suppress non-error output
+  --max-documents=N          Stop after indexing N documents
+  --limit=N                  Alias for --max-documents
+  --source-id=N              Only index the source with this ID
+  --group-name=NAME          Only index sources in this group
+  --groupname=NAME           Alias for --group-name
+  --batch-size=N             Documents per batch (default: 1)
+  --sentence-batch-size=N    Sentences per embedding request (default: 100)
+  --checkpoint-interval=N    Sources between checkpoints (default: 50)
+  --split-indices            Use separate document/sentence indices (default)
+  --no-split-indices         Use a single combined index
+  --collection-name=NAME     Base collection/index name (default: hawaiian)
+  --aliases-only             Only recreate aliases without touching indices
+  --no-aliases               Skip alias creation after index creation
+  --help                     Show this help message
+
+Examples:
+  php php/php/createindex.php --dryrun
+  php php/php/createindex.php --recreate --verbose --max-documents 10
+  php php/php/createindex.php --recreate --verbose
+  php php/php/createindex.php --group-name=kauakukalahale --dryrun
+  php php/php/createindex.php --aliases-only
+
+Exit codes:
+  0    Success
+  1    Error
+  130  Interrupted by SIGINT
+  143  Interrupted by SIGTERM
+
+USAGE;
+    echo $usage;
+}

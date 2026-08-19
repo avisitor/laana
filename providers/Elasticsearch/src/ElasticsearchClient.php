@@ -190,9 +190,10 @@ class ElasticsearchClient {
 
         $host = $_ENV['ES_HOST'] ?? 'localhost';
         $port = $_ENV['ES_PORT'] ?? 9200;
+        $scheme = $_ENV['ES_SCHEME'] ?? 'https';
 
         $builder = ClientBuilder::create()
-            ->setHosts(["https://{$host}:{$port}"])
+            ->setHosts(["{$scheme}://{$host}:{$port}"])
             ->setSSLVerification(false)
             ->setHttpClientOptions([
                 'timeout' => 300,
@@ -345,6 +346,48 @@ class ElasticsearchClient {
         $index = $indexName ?? $this->getIndexName();
         return $index . '-source-metadata';
     }
+
+    public function getDocumentsAlias(): string
+    {
+        return $_ENV['ES_DOCUMENTS_ALIAS'] ?? 'hawaiian_documents';
+    }
+
+    public function getSentencesAlias(): string
+    {
+        return $_ENV['ES_SENTENCES_ALIAS'] ?? 'hawaiian_sentences';
+    }
+
+    public function aliasExists(string $aliasName): bool
+    {
+        try {
+            return $this->client->indices()->existsAlias(['name' => $aliasName])->asBool();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    public function createAlias(string $aliasName, string $indexName): void
+    {
+        if ($this->aliasExists($aliasName)) {
+            $this->removeAlias($aliasName);
+        }
+        $this->client->indices()->putAlias([
+            'index' => $indexName,
+            'name' => $aliasName
+        ]);
+        $this->print("Created alias '{$aliasName}' for index '{$indexName}'");
+    }
+
+    public function removeAlias(string $aliasName): void
+    {
+        if ($this->aliasExists($aliasName)) {
+            $this->client->indices()->deleteAlias([
+                'index' => '*',
+                'name' => $aliasName
+            ]);
+            $this->print("Removed alias '{$aliasName}'");
+        }
+    }
     
     public function getSearchStatsName( $indexName = null ) {
         $index = $indexName ?? $this->getIndexName();
@@ -483,6 +526,26 @@ class ElasticsearchClient {
                 // Backward compatibility: create the original combined index
                 $this->createLegacyIndex($recreate, $customIndexName, $customMappingFile);
                 break;
+        }
+
+        $this->createAliases();
+    }
+
+    public function createAliases(): void
+    {
+        $this->print("Creating production aliases...");
+
+        $aliases = [
+            $this->getDocumentsAlias() => $this->getDocumentsIndexName(),
+            $this->getSentencesAlias() => $this->getSentencesIndexName(),
+        ];
+
+        foreach ($aliases as $alias => $index) {
+            if ($this->indexExists($index)) {
+                $this->createAlias($alias, $index);
+            } else {
+                $this->print("Warning: index '{$index}' does not exist, skipping alias '{$alias}'");
+            }
         }
     }
 
@@ -913,6 +976,45 @@ class ElasticsearchClient {
     }
 
     /**
+     * Delete all sentences for a specific document by doc_id from the sentences index
+     * @param string $docId The document ID to filter by
+     * @return array Statistics about the deletion (deleted count, errors)
+     */
+    public function deleteByDocId(string $docId): array {
+        $stats = [
+            'deleted' => 0,
+            'errors' => []
+        ];
+
+        $sentencesIndex = $this->getSentencesIndexName();
+        if (!$this->indexExists($sentencesIndex)) {
+            $this->print("Sentences index {$sentencesIndex} does not exist; nothing to delete for doc_id '{$docId}'");
+            return $stats;
+        }
+
+        try {
+            $response = $this->client->deleteByQuery([
+                'index' => $sentencesIndex,
+                'body' => [
+                    'query' => [
+                        'term' => [
+                            'doc_id.keyword' => $docId
+                        ]
+                    ]
+                ],
+                'refresh' => true  // Force immediate refresh
+            ]);
+            $stats['deleted'] = $response['deleted'] ?? 0;
+            $this->print("Deleted {$stats['deleted']} sentences with doc_id '{$docId}' from {$sentencesIndex}");
+        } catch (\Exception $e) {
+            $stats['errors'][] = $e->getMessage();
+            $this->print("Error deleting sentences with doc_id '{$docId}': " . $e->getMessage());
+        }
+
+        return $stats;
+    }
+
+    /**
      * Update metadata in bulk
      */
     public function updateMetadata(array $metadataBuffer): void {
@@ -1337,10 +1439,10 @@ class ElasticsearchClient {
     }
 
     // This is for adding documents and sentences to a single index
-    public function bulkIndex(array $actions): void {
+    public function bulkIndex(array $actions): array {
         $this->print( "ElasticsearchIndex::bulkIndex: " . sizeof($actions) . " actions" );
         if (empty($actions)) {
-            return;
+            return [];
         }
 
         $validDimensions = $this->validateVectorDimensions( $actions );
@@ -1359,6 +1461,7 @@ class ElasticsearchClient {
             $this->print( "🔍 Debug: Attempting bulk index with " . count($actions) . " documents, estimated size: " . number_format(strlen(json_encode($params))) . " bytes" );
             $response = $this->client->bulk($params);
             
+            $succeededIds = [];
             // Check the bulk response for errors
             $responseData = $response->asArray();
             if (isset($responseData['errors']) && $responseData['errors']) {
@@ -1369,20 +1472,24 @@ class ElasticsearchClient {
                     if (isset($item['index']['error'])) {
                         $error = $item['index']['error'];
                         $this->print( "   - Document ID " . $item['index']['_id'] . ": " . $error['type'] . " - " . $error['reason'] );
+                    } elseif (isset($item['index']['_id'])) {
+                        $succeededIds[] = $item['index']['_id'];
                     }
                 }
             } else {
                 $this->print( "✅ Bulk index completed successfully with no errors" );
-                if( $this->verbose ) {
-                    if (isset($responseData['items'])) {
-                        foreach ($responseData['items'] as $item) {
-                            if (isset($item['index']['_id'])) {
+                if (isset($responseData['items'])) {
+                    foreach ($responseData['items'] as $item) {
+                        if (isset($item['index']['_id'])) {
+                            $succeededIds[] = $item['index']['_id'];
+                            if( $this->verbose ) {
                                 $this->print( "   - Indexed document ID: " . $item['index']['_id'] . " (status: " . $item['index']['status'] . ")" );
                             }
                         }
                     }
                 }
             }
+            return $succeededIds;
         } catch (Exception $e) {
             $this->print( "❌ Bulk index failed: " . $e->getMessage() );
             $this->print( "📊 Request size: " . number_format(strlen(json_encode($params))) . " bytes" );
