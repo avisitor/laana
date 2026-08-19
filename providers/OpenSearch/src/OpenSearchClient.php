@@ -135,16 +135,23 @@ class OpenSearchClient extends ElasticsearchClient
         }
 
         if ($recreate && $this->indexExists($indexName)) {
-            $this->client->indices()->delete(['index' => $indexName]);
+            $this->deleteIndex($indexName);
+            $this->print("Index '{$indexName}' deleted.");
         } elseif (!$recreate && $this->indexExists($indexName)) {
             $this->print("✓ Index $indexName already exists, skipping creation.");
             return;
         }
 
-        $this->client->indices()->create([
+        // Use rawOsClient directly — the wrapped client silently swallows
+        // indices()->create() calls on OpenSearch
+        $result = $this->rawOsClient->indices()->create([
             'index' => $indexName,
             'body' => $mapping
         ]);
+        if (is_object($result) && method_exists($result, 'wait')) {
+            $result->wait();
+        }
+        $this->print("Created index: {$indexName}");
     }
 
     /**
@@ -195,10 +202,12 @@ class OpenSearchClient extends ElasticsearchClient
             'body' => $mappingConfig
         ];
         
-        // OpenSearch doesn't support 'pipeline' in indices()->create()
-        // If we need a default pipeline, it should be in index settings
-        
-        $this->client->indices()->create($params);
+        // Use rawOsClient directly — the wrapped client silently swallows
+        // indices()->create() calls on OpenSearch
+        $result = $this->rawOsClient->indices()->create($params);
+        if (is_object($result) && method_exists($result, 'wait')) {
+            $result->wait();
+        }
         $this->print("Index '{$indexname}' created in OpenSearch.");
         return true;
     }
