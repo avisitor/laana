@@ -299,15 +299,20 @@ class OpenSearchClient extends ElasticsearchClient
     /**
      * Override deleteIndex to use raw HTTP transport for OpenSearch compatibility.
      * The OpenSearch PHP client's indices()->delete() silently fails.
+     * Must call ->wait() on the FutureArray to ensure the delete completes.
      */
     public function deleteIndex(string $indexName): void
     {
-        $this->rawOsClient->transport->performRequest(
+        $result = $this->rawOsClient->transport->performRequest(
             'DELETE',
             "/{$indexName}",
             [],
             null
         );
+        // The OpenSearch client returns a FutureArray — wait for it to complete
+        if (is_object($result) && method_exists($result, 'wait')) {
+            $result->wait();
+        }
         $this->print("Index '{$indexName}' deleted.");
     }
 
