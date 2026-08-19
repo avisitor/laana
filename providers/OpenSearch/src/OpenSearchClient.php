@@ -297,11 +297,17 @@ class OpenSearchClient extends ElasticsearchClient
     }
 
     /**
-     * Override deleteIndex to use rawOsClient directly
+     * Override deleteIndex to use raw HTTP transport for OpenSearch compatibility.
+     * The OpenSearch PHP client's indices()->delete() silently fails.
      */
     public function deleteIndex(string $indexName): void
     {
-        $this->rawOsClient->indices()->delete(['index' => $indexName]);
+        $this->rawOsClient->transport->performRequest(
+            'DELETE',
+            "/{$indexName}",
+            [],
+            null
+        );
         $this->print("Index '{$indexName}' deleted.");
     }
 
