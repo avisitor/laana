@@ -1714,6 +1714,13 @@ class ElasticsearchClient {
     {
         $index = $indexName ?? $this->getIndexName();
         $index = $this->getSourceMetadataName( $index );
+        
+        // If index doesn't exist (e.g., after --recreate), return empty without error
+        if (!$this->indexExists($index)) {
+            $this->print( "Source metadata index '{$index}' does not exist, returning empty" );
+            return [];
+        }
+        
         $this->print( "getSourceMetadata($index)" );
         $records = $this->getAllRecords( $index );
         $this->print( "Read " . count($records) . " source metadata records" );
