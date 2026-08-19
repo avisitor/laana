@@ -297,6 +297,15 @@ class OpenSearchClient extends ElasticsearchClient
     }
 
     /**
+     * Override deleteIndex to use rawOsClient directly
+     */
+    public function deleteIndex(string $indexName): void
+    {
+        $this->rawOsClient->indices()->delete(['index' => $indexName]);
+        $this->print("Index '{$indexName}' deleted.");
+    }
+
+    /**
      * Override indexExists to use rawOsClient directly
      */
     public function indexExists(string $indexName): bool {
