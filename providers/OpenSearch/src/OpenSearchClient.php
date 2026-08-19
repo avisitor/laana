@@ -208,6 +208,25 @@ class OpenSearchClient extends ElasticsearchClient
         return $this->rawOsClient;
     }
 
+    /**
+     * Override getDocument to catch OpenSearch-specific exceptions (Missing404Exception)
+     * that aren't covered by the parent's Elastic\Elasticsearch\ClientResponseException catch.
+     */
+    public function getDocument(string $id, string $indexName = null): ?array
+    {
+        $index = empty($indexName) ? $this->getIndexName() : $indexName;
+        try {
+            $response = $this->client->get([
+                'index' => $index,
+                'id'    => $id
+            ])->asArray();
+
+            return $response['_source'];
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     public function getRawClient()
     {
         return $this->client;
@@ -275,6 +294,83 @@ class OpenSearchClient extends ElasticsearchClient
                 };
             }
         };
+    }
+
+    /**
+     * Override indexExists to use rawOsClient directly
+     */
+    public function indexExists(string $indexName): bool {
+        return $this->rawOsClient->indices()->exists(['index' => $indexName]);
+    }
+
+    /**
+     * Override aliasExists to use rawOsClient directly
+     */
+    public function aliasExists(string $aliasName): bool
+    {
+        try {
+            return $this->rawOsClient->indices()->existsAlias(['name' => $aliasName]);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Override createAlias to use OpenSearch-compatible POST /_aliases API
+     */
+    public function createAlias(string $aliasName, string $indexName): void
+    {
+        if ($this->aliasExists($aliasName)) {
+            $this->removeAlias($aliasName);
+        }
+        
+        $this->rawOsClient->indices()->putAlias([
+            'index' => $indexName,
+            'name' => $aliasName
+        ]);
+        $this->print("Created alias '{$aliasName}' for index '{$indexName}'");
+    }
+
+    /**
+     * Override removeAlias to use raw HTTP transport for OpenSearch compatibility
+     */
+    public function removeAlias(string $aliasName): void
+    {
+        if ($this->aliasExists($aliasName)) {
+            try {
+                // Use raw HTTP DELETE to remove alias from all indices
+                $this->rawOsClient->transport->performRequest(
+                    'DELETE',
+                    "/_aliases/{$aliasName}",
+                    [],
+                    null
+                );
+                $this->print("Removed alias '{$aliasName}'");
+            } catch (\Exception $e) {
+                $this->print("Warning: Could not remove alias '{$aliasName}': " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Override createAliases to use rawOsClient directly for all operations
+     */
+    public function createAliases(): void
+    {
+        $this->print("Creating production aliases (OpenSearch)...");
+
+        $aliases = [
+            $this->getDocumentsAlias() => $this->getDocumentsIndexName(),
+            $this->getSentencesAlias() => $this->getSentencesIndexName(),
+        ];
+
+        foreach ($aliases as $alias => $index) {
+            if ($this->indexExists($index)) {
+                $this->createAlias($alias, $index);
+            } else {
+                $this->print("Warning: index '{$index}' does not exist, skipping alias '{$alias}'");
+            }
+        }
     }
 
     /**
