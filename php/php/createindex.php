@@ -37,6 +37,7 @@ if (class_exists('Avisitor\\Env\\Loader')) {
 use HawaiianSearch\CorpusIndexer;
 use HawaiianSearch\ElasticsearchClient;
 use HawaiianSearch\IndexSchemaValidator;
+use HawaiianSearch\OpenSearchClient;
 
 // ElasticsearchClient exposes alias creation via a protected method. This
 // small local subclass makes it available to the CLI without changing the
@@ -47,6 +48,27 @@ class CliAliasClient extends ElasticsearchClient
     {
         $this->createAliases();
     }
+}
+
+// OpenSearchClient extends ElasticsearchClient, so the same alias-exposing
+// subclass pattern applies for the OpenSearch provider.
+class CliOpenSearchAliasClient extends OpenSearchClient
+{
+    public function createProductionAliases(): void
+    {
+        $this->createAliases();
+    }
+}
+
+/**
+ * Create the provider-appropriate alias client.
+ */
+function createAliasClient(array $options, string $provider): ElasticsearchClient
+{
+    if (in_array(strtolower($provider), ['opensearch', 'os'], true)) {
+        return new CliOpenSearchAliasClient($options);
+    }
+    return new CliAliasClient($options);
 }
 
 // ---------------------------------------------------------------------------
@@ -72,6 +94,7 @@ $longOptions = [
     'collection-name:',         // Base collection/index name
     'aliases-only',             // Only recreate aliases without touching indices
     'no-aliases',               // Skip alias creation after index creation
+    'provider:',                // Search provider: Elasticsearch or OpenSearch
 ];
 
 $options = getopt('', $longOptions);
@@ -109,6 +132,11 @@ $quiet = isset($options['quiet']);
 $aliasesOnly = isset($options['aliases-only']);
 $noAliases = isset($options['no-aliases']);
 
+// Search provider: --provider flag, falling back to the PROVIDER env var,
+// then to the default Elasticsearch.
+$provider = $options['provider'] ?? $_ENV['PROVIDER'] ?? 'Elasticsearch';
+$isOpenSearch = in_array(strtolower($provider), ['opensearch', 'os'], true);
+
 $config = [
     'COLLECTION_NAME' => $options['collection-name'] ?? 'hawaiian',
     'SPLIT_INDICES' => isset($options['no-split-indices']) ? false : true,
@@ -135,6 +163,7 @@ if (!$quiet) {
     echo " Hawaiian Search Corpus Indexer\n";
     echo "========================================\n";
     echo "Collection name:      {$config['COLLECTION_NAME']}\n";
+    echo "Provider:             {$provider}\n";
     echo "Split indices:        " . ($config['SPLIT_INDICES'] ? 'yes' : 'no') . "\n";
     echo "Batch size:           {$config['BATCH_SIZE']}\n";
     echo "Sentence batch size:  {$config['SENTENCE_BATCH_SIZE']}\n";
@@ -159,12 +188,12 @@ if ($aliasesOnly) {
         echo "Creating aliases only...\n";
     }
     try {
-        $aliasClient = new CliAliasClient([
+        $aliasClient = createAliasClient([
             'indexName'     => $config['COLLECTION_NAME'],
             'verbose'       => $verbose,
             'quiet'         => $quiet,
             'SPLIT_INDICES' => $config['SPLIT_INDICES'],
-        ]);
+        ], $provider);
         $aliasClient->createProductionAliases();
     } catch (Throwable $e) {
         fwrite(STDERR, "Error: Could not create aliases: " . $e->getMessage() . "\n");
@@ -187,14 +216,17 @@ if (!$quiet) {
 }
 
 try {
-    $esClient = new ElasticsearchClient([
+    $clientOptions = [
         'indexName'     => $config['COLLECTION_NAME'],
         'verbose'       => $verbose,
         'quiet'         => $quiet,
         'SPLIT_INDICES' => $config['SPLIT_INDICES'],
-    ]);
+    ];
+    $esClient = $isOpenSearch
+        ? new OpenSearchClient($clientOptions)
+        : new ElasticsearchClient($clientOptions);
 } catch (Throwable $e) {
-    fwrite(STDERR, "Error: Could not connect to Elasticsearch: " . $e->getMessage() . "\n");
+    fwrite(STDERR, "Error: Could not connect to " . ($isOpenSearch ? 'OpenSearch' : 'Elasticsearch') . ": " . $e->getMessage() . "\n");
     if ($verbose) {
         fwrite(STDERR, $e->getTraceAsString() . "\n");
     }
@@ -247,7 +279,7 @@ if (function_exists('pcntl_signal')) {
 // Run the indexer
 // ---------------------------------------------------------------------------
 try {
-    $indexer = new CorpusIndexer($config, $recreate, $dryrun);
+    $indexer = new CorpusIndexer($config, $recreate, $dryrun, null, $esClient);
     $indexer->runIndexing();
 
     // Ensure production aliases exist after index creation (unless --no-aliases)
@@ -255,12 +287,12 @@ try {
         if (!$quiet) {
             echo "Ensuring production aliases...\n";
         }
-        $aliasClient = new CliAliasClient([
+        $aliasClient = createAliasClient([
             'indexName'     => $config['COLLECTION_NAME'],
             'verbose'       => $verbose,
             'quiet'         => $quiet,
             'SPLIT_INDICES' => $config['SPLIT_INDICES'],
-        ]);
+        ], $provider);
         $aliasClient->createProductionAliases();
     }
 
@@ -309,6 +341,7 @@ Options:
   --collection-name=NAME     Base collection/index name (default: hawaiian)
   --aliases-only             Only recreate aliases without touching indices
   --no-aliases               Skip alias creation after index creation
+  --provider=NAME            Search provider: Elasticsearch or OpenSearch (default: Elasticsearch)
   --help                     Show this help message
 
 Examples:
@@ -317,6 +350,7 @@ Examples:
   php php/php/createindex.php --recreate --verbose
   php php/php/createindex.php --group-name=kauakukalahale --dryrun
   php php/php/createindex.php --aliases-only
+  php php/php/createindex.php --recreate --provider=opensearch
 
 Exit codes:
   0    Success

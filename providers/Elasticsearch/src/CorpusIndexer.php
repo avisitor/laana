@@ -18,7 +18,7 @@ class CorpusIndexer
     private const WORD_SPLIT_PATTERN = '/\s+/';
     private const DIACRITIC_PATTERN = '/[āĀēĒīĪōŌūŪ\‘]/u';
 
-    private const HAWAIIAN_WORDS_FILE = __DIR__ . '/../../hawaiian_words.txt';
+    private const HAWAIIAN_WORDS_FILE = __DIR__ . '/../../../hawaiian_words.txt';
     
     private ElasticsearchClient $client;
     private CorpusScanner $scanner;
@@ -56,7 +56,7 @@ class CorpusIndexer
     private bool $done = false;
     private bool $useSplitIndices;
 
-    public function __construct(array $config, bool $recreate = false, bool $dryrun = false, ?string $sourceIndexForReindex = null)
+    public function __construct(array $config, bool $recreate = false, bool $dryrun = false, ?string $sourceIndexForReindex = null, ?ElasticsearchClient $client = null)
     {
         self::$instance = $this; // For signal handler
         $config['dryrun'] = $dryrun;
@@ -120,7 +120,7 @@ class CorpusIndexer
             'verbose' => $config['verbose'] ?? false
         ];
         $client_config['indexName'] = $config['COLLECTION_NAME'] ?? '';
-        $this->client = new ElasticsearchClient($client_config);
+        $this->client = $client ?? new ElasticsearchClient($client_config);
         
         // Use centralized Hawaiian word loading
         $this->hawaiianWordSet =
@@ -1051,15 +1051,15 @@ class CorpusIndexer
                         } else {
                             // Split timing for documents vs sentences
                             $timerDocIndexing = TimerFactory::timer('document_indexing');
-                            $this->bulkIndexDocuments($documentActions);
+                            $succeededDocIds = $this->bulkIndexDocuments($documentActions);
                             $timerDocIndexing->stop(); // Explicit stop for precise timing
                             
                             $timerSentenceIndexing = TimerFactory::timer('sentence_indexing');
-                            $this->bulkIndexSentences($sentenceActions);
+                            $this->bulkIndexSentences($sentenceActions, $succeededDocIds);
                             $timerSentenceIndexing->stop(); // Explicit stop for precise timing
                             
                             // Update counters
-                            $indexedTotal += count($documentActions);
+                            $indexedTotal += count($succeededDocIds);
                         }
                     }
                 } else {
@@ -1228,8 +1228,11 @@ class CorpusIndexer
         $documentsIndexName = $this->client->getDocumentsIndexName();
         $doc = $this->client->getDocumentOutline($sourceid, $documentsIndexName);
         if ($doc && sizeof($doc)) {
-            $this->print("Skipping already indexed {$sourceid} {$source['sourcename']} in documents index");
-            return null;
+            $this->print("Document {$sourceid} already exists - deleting old sentences before re-index");
+            $deleteStats = $this->client->deleteByDocId($sourceid);
+            if (($deleteStats['deleted'] ?? 0) > 0) {
+                $this->print("Cleaned up {$deleteStats['deleted']} old sentences for {$sourceid}");
+            }
         }
 
         // Process the source to get text and sentences (reuse existing logic)
@@ -1245,25 +1248,48 @@ class CorpusIndexer
 
         // Extract sentence objects and document data
         $sentenceObjects = $docData['_source']['sentences'] ?? [];
-        
+
+        // Aggregate doc-level metadata from sentence metadata
+        $totalWordCount = 0;
+        $totalEntityCount = 0;
+        $maxBoilerplateScore = 0.0;
+        foreach ($sentenceObjects as $s) {
+            $totalWordCount += $s['word_count'] ?? 0;
+            $totalEntityCount += $s['entity_count'] ?? 0;
+            $bps = $s['boilerplate_score'] ?? 0.0;
+            if ($bps > $maxBoilerplateScore) {
+                $maxBoilerplateScore = $bps;
+            }
+        }
+
         // Create document object (without nested sentences) - ask client for documents index name
         $documentObj = [
             "_index" => $documentsIndexName,
             "_id" => $sourceid,
             "_source" => [
                 "doc_id" => $sourceid,
+                "sourceid" => $sourceid,
                 "groupname" => $docData['_source']['groupname'],
                 "sourcename" => $docData['_source']['sourcename'],
+                "title" => $docData['_source']['sourcename'],
                 "text" => $docData['_source']['text'],
                 "text_chunks" => $docData['_source']['text_chunks'],
-                "text_vector" => $docData['_source']['text_vector'],
+                "text_vector_1024" => $docData['_source']['text_vector_1024'] ?? null,
                 "date" => $docData['_source']['date'],
                 "authors" => $docData['_source']['authors'],
                 "link" => $docData['_source']['link'],
                 "hawaiian_word_ratio" => $docData['_source']['hawaiian_word_ratio'],
-                "sentence_count" => count($sentenceObjects)
+                "sentence_count" => count($sentenceObjects),
+                "word_count" => $totalWordCount,
+                "entity_count" => $totalEntityCount,
+                "boilerplate_score" => $maxBoilerplateScore,
             ]
         ];
+
+        // Include old text_vector if it exists (for evaluation / backward compat)
+        if (!empty($docData['_source']['text_vector'])) {
+            $documentObj["_source"]["text_vector"] = $docData['_source']['text_vector'];
+        }
 
         // Create individual sentence objects for sentences index - ask client for sentences index name
         $sentencesIndexName = $this->client->getSentencesIndexName();
@@ -1309,24 +1335,39 @@ class CorpusIndexer
     /**
      * Bulk index documents to documents index
      */
-    private function bulkIndexDocuments(array $documentActions): void
+    private function bulkIndexDocuments(array $documentActions): array
     {
         $this->print( "bulkIndexDocuments(" . count($documentActions) . ")" );
         if (empty($documentActions)) {
-            return;
+            return [];
         }
         
         $this->print("Bulk indexing " . count($documentActions) . " documents to documents index");
-        $this->client->bulkIndex($documentActions);
+        return $this->client->bulkIndex($documentActions);
     }
 
     /**
      * Bulk index sentences to sentences index  
      */
-    private function bulkIndexSentences(array $sentenceActions): void
+    private function bulkIndexSentences(array $sentenceActions, array $succeededDocIds = []): void
     {
-        if (empty($sentenceActions)) {
-            return;
+        if (empty($succeededDocIds)) {
+            if (empty($sentenceActions)) {
+                return;
+            }
+        } else {
+            $succeededSet = array_flip($succeededDocIds);
+            $sentenceActions = array_filter(
+                $sentenceActions,
+                function (array $action) use ($succeededSet): bool {
+                    return isset($succeededSet[$action['_source']['doc_id']]);
+                }
+            );
+            $sentenceActions = array_values($sentenceActions);
+            $this->print("Filtered to " . count($sentenceActions) . " sentences for " . count($succeededDocIds) . " succeeded docs");
+            if (empty($sentenceActions)) {
+                return;
+            }
         }
         
         $this->print("Bulk indexing " . count($sentenceActions) . " sentences to sentences index");
