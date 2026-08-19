@@ -252,7 +252,7 @@ if ($isIndexingMode) {
     echo "ℹ️  Skipping schema validation (metadata-only mode).\n\n";
 }
 
-unset($esClient); // Close connection before CorpusIndexer creates its own
+// $esClient is passed to CorpusIndexer below — do NOT unset it here.
 
 // ---------------------------------------------------------------------------
 // Signal handlers for graceful shutdown (SIGINT, SIGTERM)
