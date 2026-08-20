@@ -32,9 +32,9 @@ class IndexSchemaValidator {
                 'date'              => 'date',
                 'authors'           => 'keyword',
                 'link'              => 'keyword',
-                'text'              => 'text',
+                'text'               => 'text',
                 'text_chunks'       => 'nested',
-                'text_vector_1024'  => 'dense_vector',
+                'text_vector_1024'  => 'vector',
                 'hawaiian_word_ratio' => 'float',
                 'sentence_count'    => 'integer',
                 'word_count'        => 'integer',
@@ -47,7 +47,7 @@ class IndexSchemaValidator {
             'required_fields' => [
                 'doc_id'             => 'keyword',
                 'text'               => 'text',
-                'vector'             => 'dense_vector',
+                'vector'             => 'vector',
                 'position'           => 'integer',
                 'sentence_hash'      => 'keyword',
                 'hawaiian_word_ratio' => 'float',
@@ -77,6 +77,15 @@ class IndexSchemaValidator {
                 'quality'    => 'float',
             ],
         ],
+    ];
+
+    /**
+     * Expected embedding dimensions per vector field, keyed by field name.
+     * These are model-driven (not provider-specific) and identical across backends.
+     */
+    private const VECTOR_DIMS = [
+        'text_vector_1024' => 1024,
+        'vector'           => 384,
     ];
 
     public function __construct(ElasticsearchClient $client, bool $verbose = false) {
@@ -202,6 +211,7 @@ class IndexSchemaValidator {
         }
 
         $properties = $mapping['mappings']['properties'] ?? [];
+        $sourceExcludes = $mapping['mappings']['_source']['excludes'] ?? [];
 
         // Load expected fields from our mapping JSON
         $expectedInfo = self::EXPECTED_MAPPINGS[$indexType] ?? null;
@@ -220,21 +230,36 @@ class IndexSchemaValidator {
                 continue;
             }
 
+            // Vector fields: the concrete mapping type is provider-specific
+            // (Elasticsearch => dense_vector, OpenSearch => knn_vector). Ask the
+            // client for the type it uses rather than assuming one backend.
+            $resolvedExpected = ($expectedType === 'vector')
+                ? $this->client->getVectorFieldType()
+                : $expectedType;
+
             $actualType = $properties[$fieldName]['type'] ?? null;
-            // dense_vector doesn't have a 'type' key in all versions; check for 'dims'
-            if ($expectedType === 'dense_vector') {
-                if (!isset($properties[$fieldName]['dims']) && $actualType !== 'dense_vector') {
-                    $wrongTypeFields[$fieldName] = [
-                        'expected' => $expectedType,
-                        'actual'   => $actualType ?? 'unknown',
-                    ];
-                }
-            } elseif ($actualType !== $expectedType) {
-                // Allow keyword sub-fields (text type has .keyword)
+            if ($actualType !== $resolvedExpected) {
                 $wrongTypeFields[$fieldName] = [
-                    'expected' => $expectedType,
+                    'expected' => $resolvedExpected,
                     'actual'   => $actualType ?? 'unknown',
                 ];
+                continue;
+            }
+
+            // For vector fields, verify the declared dimension matches the
+            // expected model dimension. Both backends expose the dimension under
+            // a provider-specific key (dense_vector => 'dims', knn_vector => 'dimension').
+            if ($expectedType === 'vector' && isset(self::VECTOR_DIMS[$fieldName])) {
+                $expectedDim = self::VECTOR_DIMS[$fieldName];
+                $actualDim = $properties[$fieldName]['dims']
+                    ?? $properties[$fieldName]['dimension']
+                    ?? null;
+                if ($actualDim !== null && $actualDim != $expectedDim) {
+                    $wrongTypeFields[$fieldName] = [
+                        'expected' => "{$resolvedExpected} dims={$expectedDim}",
+                        'actual'   => "{$actualType} dims={$actualDim}",
+                    ];
+                }
             }
         }
 
@@ -259,7 +284,7 @@ class IndexSchemaValidator {
         }
 
         // Check document count and sample a record
-        $this->checkSampleData($indexName, $label, $indexType);
+        $this->checkSampleData($indexName, $label, $indexType, $properties, $sourceExcludes);
 
         echo "\n";
     }
@@ -285,8 +310,12 @@ class IndexSchemaValidator {
 
     /**
      * Check a sample document to verify data structure matches expectations.
+     *
+     * @param array $properties    The index mapping properties (for vector dims checks)
+     * @param array $sourceExcludes Fields excluded from _source (vectors are typically
+     *                              excluded, so they cannot be read back from _source)
      */
-    private function checkSampleData(string $indexName, string $label, string $indexType): void {
+    private function checkSampleData(string $indexName, string $label, string $indexType, array $properties, array $sourceExcludes): void {
         try {
             $response = $this->client->getRawClient()->search([
                 'index' => $indexName,
@@ -306,9 +335,9 @@ class IndexSchemaValidator {
             $source = $arr['hits']['hits'][0]['_source'] ?? [];
 
             if ($indexType === 'documents') {
-                $this->checkDocumentSample($source, $label);
+                $this->checkDocumentSample($source, $label, $properties, $sourceExcludes);
             } elseif ($indexType === 'sentences') {
-                $this->checkSentenceSample($source, $label);
+                $this->checkSentenceSample($source, $label, $properties, $sourceExcludes);
             }
 
         } catch (Exception $e) {
@@ -318,20 +347,53 @@ class IndexSchemaValidator {
         }
     }
 
-    private function checkDocumentSample(array $source, string $label): void {
-        // Check that text_vector_1024 is present and has correct dimensions
-        if (isset($source['text_vector_1024']) && is_array($source['text_vector_1024'])) {
-            $dims = count($source['text_vector_1024']);
-            if ($dims !== 1024) {
-                echo "   ⚠️  text_vector_1024 has {$dims} dimensions (expected 1024)\n";
-                $this->warnings[] = "{$label} sample doc has text_vector_1024 with {$dims} dims (expected 1024)";
-            } else {
-                echo "   ✅ text_vector_1024: 1024 dimensions ✓\n";
-            }
-        } else {
-            echo "   ⚠️  text_vector_1024 missing or empty in sample document\n";
-            $this->warnings[] = "{$label} sample doc missing text_vector_1024";
+    /**
+     * Validate a vector field. Embedding fields are generally not returned from
+     * _source on either backend (OpenSearch excludes them explicitly; Elasticsearch
+     * dense_vector/bbq_hnsw does not store them in _source). So we read from _source
+     * when available, but fall back to verifying the declared dimension in the
+     * mapping rather than warning — a missing _source vector is expected, not an error.
+     */
+    private function checkVector(string $field, array $source, string $label, array $properties, array $sourceExcludes, int $expectedDim): void {
+        $actualDim = $properties[$field]['dims'] ?? $properties[$field]['dimension'] ?? null;
+
+        if (in_array($field, $sourceExcludes, true)) {
+            // Explicitly excluded from _source — validate via the mapping.
+            $this->validateVectorDim($field, $label, $actualDim, $expectedDim, 'excluded from _source');
+            return;
         }
+
+        // Not excluded: prefer reading from _source.
+        if (isset($source[$field]) && is_array($source[$field])) {
+            $dims = count($source[$field]);
+            if ($dims !== $expectedDim) {
+                echo "   ⚠️  {$field} has {$dims} dimensions (expected {$expectedDim})\n";
+                $this->warnings[] = "{$label} sample doc has {$field} with {$dims} dims (expected {$expectedDim})";
+            } else {
+                echo "   ✅ {$field}: {$expectedDim} dimensions ✓\n";
+            }
+            return;
+        }
+
+        // Absent from _source without an explicit exclude — the backend simply
+        // doesn't return the vector in _source. Fall back to the mapping.
+        $this->validateVectorDim($field, $label, $actualDim, $expectedDim, 'not returned in _source');
+    }
+
+    private function validateVectorDim(string $field, string $label, $actualDim, int $expectedDim, string $reason): void {
+        if ($actualDim === null) {
+            echo "   ⚠️  {$field} {$reason} and no dimension declared in mapping\n";
+            $this->warnings[] = "{$label} {$field} {$reason} with no declared dimension";
+        } elseif ($actualDim != $expectedDim) {
+            echo "   ⚠️  {$field} declared dimension {$actualDim} (expected {$expectedDim})\n";
+            $this->warnings[] = "{$label} {$field} has {$actualDim} dims (expected {$expectedDim})";
+        } else {
+            echo "   ✅ {$field}: {$expectedDim} dimensions (verified via mapping; {$reason})\n";
+        }
+    }
+
+    private function checkDocumentSample(array $source, string $label, array $properties, array $sourceExcludes): void {
+        $this->checkVector('text_vector_1024', $source, $label, $properties, $sourceExcludes, 1024);
 
         // Check sourceid field
         if (empty($source['sourceid'])) {
@@ -346,20 +408,8 @@ class IndexSchemaValidator {
         }
     }
 
-    private function checkSentenceSample(array $source, string $label): void {
-        // Check vector dimensions (should be 384 for e5-small)
-        if (isset($source['vector']) && is_array($source['vector'])) {
-            $dims = count($source['vector']);
-            if ($dims !== 384) {
-                echo "   ⚠️  vector has {$dims} dimensions (expected 384)\n";
-                $this->warnings[] = "{$label} sample doc has vector with {$dims} dims (expected 384)";
-            } else {
-                echo "   ✅ vector: 384 dimensions ✓\n";
-            }
-        } else {
-            echo "   ⚠️  vector missing or empty in sample sentence\n";
-            $this->warnings[] = "{$label} sample doc missing vector";
-        }
+    private function checkSentenceSample(array $source, string $label, array $properties, array $sourceExcludes): void {
+        $this->checkVector('vector', $source, $label, $properties, $sourceExcludes, 384);
 
         // Check sourceid is present (critical for linking back to documents)
         if (empty($source['sourceid'])) {
