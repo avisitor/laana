@@ -10,6 +10,16 @@ class OpenSearchClient extends ElasticsearchClient
 {
     protected $rawOsClient;
 
+    /**
+     * OpenSearch ships its own schema directory. The mapping files there declare
+     * knn_vector (and the matching _source.excludes / index.knn settings) directly,
+     * so no runtime translation of the shared Elasticsearch schema is needed.
+     */
+    protected function configDir(): string
+    {
+        return __DIR__ . '/../config/';
+    }
+
     public function __construct(array $options = [])
     {
         // Load environment variables if not already loaded
@@ -106,33 +116,6 @@ class OpenSearchClient extends ElasticsearchClient
         }
 
         $mapping = json_decode(file_get_contents($mappingFile), true);
-        
-        // Convert Elasticsearch dense_vector to OpenSearch knn_vector
-        if (isset($mapping['mappings']['properties'])) {
-            foreach ($mapping['mappings']['properties'] as $name => &$prop) {
-                if (isset($prop['type']) && $prop['type'] === 'dense_vector') {
-                    $prop['type'] = 'knn_vector';
-                    $prop['dimension'] = $prop['dims'] ?? 384;
-                    
-                    // Handle 1024-dim vectors specifically if they appear in mapping
-                    if (strpos($name, '1024') !== false) {
-                        $prop['dimension'] = 1024;
-                    }
-                    
-                    unset($prop['dims']);
-                    
-                    // OpenSearch uses method for KNN
-                    $prop['method'] = [
-                        'name' => 'hnsw',
-                        'space_type' => 'cosinesimil',
-                        'engine' => 'lucene'
-                    ];
-                    
-                    // Enable KNN in settings
-                    $mapping['settings']['index.knn'] = true;
-                }
-            }
-        }
 
         if ($recreate && $this->indexExists($indexName)) {
             $this->deleteIndex($indexName);
@@ -288,30 +271,62 @@ class OpenSearchClient extends ElasticsearchClient
                         return $this->wrapResponse($res);
                     }
                     private function wrapResponse($res) {
-                        return new class($res) {
-                            private $res;
-                            public function __construct($res) { $this->res = $res; }
-                            public function asArray() { return $this->res; }
-                            public function asBool() { return (bool)$this->res; }
-                            public function __toString() { return json_encode($this->res); }
-                        };
+                        // Convert the raw OS response (array or FutureArray) into an
+                        // ES-compatible ArrayAccess object, so callers work identically
+                        // regardless of provider.
+                        return $this->outer->toCompatResponse($res);
                     }
                 };
             }
 
             private function wrapResponse($res) {
+                // ES client already returns an ES-compatible response (ArrayAccess).
+                // OS client returns a plain array / FutureArray — wrap it into the
+                // same ES-compatible shape.
                 if (is_object($res) && method_exists($res, 'asArray')) {
                     return $res;
                 }
-                return new class($res) {
-                    private $res;
-                    public function __construct($res) { $this->res = $res; }
-                    public function asArray() { return $this->res; }
-                    public function asBool() { return (bool)$this->res; }
-                    public function __toString() { return json_encode($this->res); }
-                };
+                return $this->outer->toCompatResponse($res);
             }
         };
+    }
+
+    /**
+     * Build an ES-compatible response object from a raw OS response.
+     *
+     * The raw OpenSearch PHP client returns plain arrays (or FutureArray objects)
+     * from most calls, whereas the Elasticsearch PHP client returns
+     * Elastic\Elasticsearch\Response\Elasticsearch objects that implement
+     * ArrayAccess/Countable/IteratorAggregate. To keep every caller provider-agnostic
+     * (so `$response['hits']`, `$response->asArray()`, count(), foreach all behave the
+     * same on both providers), we wrap raw OS responses in a compatible object.
+     *
+     * @param mixed $res raw response (array, FutureArray, or scalar)
+     * @return mixed an ArrayAccess/Countable/IteratorAggregate/JsonSerializable object
+     */
+    public function toCompatResponse($res)
+    {
+        // Already a fully-compatible object (e.g. an ES response or a future resolved).
+        if (is_object($res) && ($res instanceof ArrayAccess || method_exists($res, 'asArray'))) {
+            // If it's a FutureArray, resolve it first (->wait()).
+            if (method_exists($res, 'wait')) {
+                $res = $res->wait();
+            }
+            // After resolution it may be a plain array.
+            if (is_array($res)) {
+                return new CompatResponse($res);
+            }
+            if (is_object($res) && $res instanceof ArrayAccess) {
+                return $res;
+            }
+        }
+
+        if (is_array($res)) {
+            return new CompatResponse($res);
+        }
+
+        // Scalars / other: wrap with asArray/asBool semantics.
+        return new CompatResponse($res);
     }
 
     /**
@@ -445,3 +460,95 @@ class OpenSearchClient extends ElasticsearchClient
         return $item;
     }
 }
+
+/**
+ * A provider-agnostic response wrapper that mimics the interface of the
+ * Elasticsearch PHP client's response objects (Elastic\Elasticsearch\Response\Elasticsearch).
+ *
+ * This lets callers treat OpenSearch responses exactly like Elasticsearch responses:
+ *   - $response['hits']            (ArrayAccess)
+ *   - $response->asArray()          (returns the plain array)
+ *   - count($response)              (Countable)
+ *   - foreach ($response as ...)    (IteratorAggregate)
+ *   - (string)$response             (Stringable / JsonSerializable)
+ */
+class CompatResponse implements \ArrayAccess, \Countable, \IteratorAggregate, \JsonSerializable
+{
+    private $data;
+
+    public function __construct($data)
+    {
+        $this->data = is_array($data) ? $data : $data;
+    }
+
+    public function asArray(): array
+    {
+        return is_array($this->data) ? $this->data : [];
+    }
+
+    public function asBool(): bool
+    {
+        return (bool)$this->data;
+    }
+
+    public function asString(): string
+    {
+        return is_string($this->data) ? $this->data : json_encode($this->data);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetExists($offset): bool
+    {
+        return is_array($this->data) && array_key_exists($offset, $this->data);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetGet($offset)
+    {
+        return is_array($this->data) ? ($this->data[$offset] ?? null) : null;
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetSet($offset, $value): void
+    {
+        if (is_array($this->data)) {
+            if ($offset === null) {
+                $this->data[] = $value;
+            } else {
+                $this->data[$offset] = $value;
+            }
+        }
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetUnset($offset): void
+    {
+        if (is_array($this->data)) {
+            unset($this->data[$offset]);
+        }
+    }
+
+    #[\ReturnTypeWillChange]
+    public function count(): int
+    {
+        return is_array($this->data) ? count($this->data) : 0;
+    }
+
+    #[\ReturnTypeWillChange]
+    public function getIterator(): \Traversable
+    {
+        return new \ArrayIterator(is_array($this->data) ? $this->data : []);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function jsonSerialize()
+    {
+        return $this->data;
+    }
+
+    public function __toString(): string
+    {
+        return json_encode($this->data);
+    }
+}
+

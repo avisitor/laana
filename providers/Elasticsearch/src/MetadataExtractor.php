@@ -147,13 +147,10 @@ class MetadataExtractor
             
             $indexName = $this->client->getIndexName() . '-metadata';
             
-            $exists = $esClient->indices()->exists(['index' => $indexName]);
-            if (is_object($exists) && method_exists($exists, 'asBool')) {
-                $exists = $exists->asBool();
-            }
+            $exists = $this->client->indexExists($indexName);
             
             if ($recreate && $exists) {
-                $esClient->indices()->delete(['index' => $indexName]);
+                $this->client->deleteIndex($indexName);
                 echo "🗑️  Deleted existing metadata index: {$indexName}\n";
                 $exists = false;
             }
