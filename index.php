@@ -714,7 +714,7 @@ $(document).ready(function() {
         $sourceCount = number_format($stats['source_count']);
         $totalGroupSourceCounts = $provider->getTotalSourceGroupCounts();
         $provider->debuglog( $totalGroupSourceCounts, "totalGroupSourceCounts" );
-        $nupepaTotalCount = number_format($totalGroupSourceCounts['nupepa']);
+        $nupepaTotalCount = number_format($totalGroupSourceCounts['nupepa'] ?? 0);
         include 'overview.html';
     }
 } else { 
