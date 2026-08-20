@@ -11,14 +11,20 @@ use GuzzleHttp\Exception\RequestException;
         private $config = [];
         private $httpClient;
         private $client;
-        //private $baseurl = "https://noiiolelo.org/api.php/source/";
-        private $baseurl = "https://noiiolelo.worldspot.org/api.php/source/";
-        private $sourcesURL = "https://noiiolelo.worldspot.org/api.php/sources?details&provider=MySQL";
+        private $baseurl;
+        private $sourcesURL;
  
         public function __construct($options) {
              $this->httpClient = $options['httpClient'] ?? null;
              $this->client = $options['client'] ?? null;
              $this->config = $options;
+
+             $apiBaseUrl = $_ENV['NOIIOLELO_API_BASE_URL'] ?? getenv('NOIIOLELO_API_BASE_URL') ?? '';
+             if (!$apiBaseUrl) {
+                 throw new \RuntimeException('NOIIOLELO_API_BASE_URL must be set in .env');
+             }
+             $this->baseurl = $apiBaseUrl . '?path=source/';
+             $this->sourcesURL = $apiBaseUrl . '?path=sources&details&provider=MySQL';
          }
 
         protected function print( $msg ) {
@@ -31,7 +37,7 @@ use GuzzleHttp\Exception\RequestException;
         {
             $key = ($type == 'plain') ? 'text' : $type;
             
-            $url = "{$this->baseurl}{$sourceid}/$type?provider=MySQL";
+            $url = "{$this->baseurl}{$sourceid}/$type&provider=MySQL";
             $this->print("Fetching source $sourceid of type $type from $url...");
             try {
                 $resp = $this->httpClient->get($url);
