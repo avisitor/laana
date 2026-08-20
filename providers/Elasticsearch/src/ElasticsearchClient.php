@@ -495,10 +495,23 @@ class ElasticsearchClient {
     }
 
     /**
+     * Directory containing this client's index/mapping schema files.
+     *
+     * Each provider ships its own schema directory so the mapping files are the
+     * single source of truth for provider-specific details (e.g. Elasticsearch
+     * uses dense_vector, OpenSearch uses knn_vector). Subclasses override this to
+     * point at their own config dir; callers must go through this method rather
+     * than hardcoding a path.
+     */
+    protected function configDir(): string {
+        return __DIR__ . '/../config/';
+    }
+
+    /**
      * Load shared configuration from JSON file
      */
     protected function loadConfig(string $configFile): array {
-        $configPath = __DIR__ . '/../config/' . $configFile;
+        $configPath = $this->configDir() . $configFile;
         if (!file_exists($configPath)) {
             throw new \RuntimeException("Configuration file not found: $configPath");
         }
@@ -563,7 +576,7 @@ class ElasticsearchClient {
     protected function createDocumentsIndex(bool $recreate = false, string $customIndexName = '', string $customMappingFile = ''): void
     {
         $indexName = $customIndexName ?: $this->getDocumentsIndexName();
-        $mappingFile = $customMappingFile ?: __DIR__ . '/../config/documents_mapping.json';
+        $mappingFile = $customMappingFile ?: $this->configDir() . 'documents_mapping.json';
         
         $this->print("Creating documents index: {$indexName}");
         $this->createIndexFromMapping($indexName, $mappingFile, $recreate);
@@ -572,7 +585,7 @@ class ElasticsearchClient {
     protected function createSentencesIndex(bool $recreate = false, string $customIndexName = '', string $customMappingFile = ''): void
     {
         $indexName = $customIndexName ?: $this->getSentencesIndexName();
-        $mappingFile = $customMappingFile ?: __DIR__ . '/../config/sentences_mapping.json';
+        $mappingFile = $customMappingFile ?: $this->configDir() . 'sentences_mapping.json';
         
         $this->print("Creating sentences index: {$indexName}");
         $this->createIndexFromMapping($indexName, $mappingFile, $recreate);
@@ -582,7 +595,7 @@ class ElasticsearchClient {
     {
         // Original createIndex logic for backward compatibility
         $indexName = $customIndexName ?: $this->indexName;
-        $mappingFile = $customMappingFile ?: __DIR__ . '/../config/index_mapping.json';
+        $mappingFile = $customMappingFile ?: $this->configDir() . 'index_mapping.json';
         
         $this->print("Creating legacy combined index: {$indexName}");
         $this->createIndexFromMapping($indexName, $mappingFile, $recreate);
@@ -1565,6 +1578,48 @@ class ElasticsearchClient {
     {
         $index = empty($indexName) ? $this->getIndexName() : $indexName;
         return $index . "_sentences_new";
+    }
+
+     /**
+     * The mapping type the search backend uses for vector (embedding) fields.
+     *
+     * Rather than assuming a provider-specific type, this reports what the client
+     * actually read from its own schema files (Elasticsearch config declares
+     * dense_vector, OpenSearch config declares knn_vector). This keeps the schema
+     * files as the single source of truth.
+     *
+     * @return string
+     */
+    private ?string $vectorFieldTypeCache = null;
+
+    public function getVectorFieldType(): string
+    {
+        if ($this->vectorFieldTypeCache !== null) {
+            return $this->vectorFieldTypeCache;
+        }
+
+        $type = $this->readVectorTypeFromMapping('sentences_mapping.json', 'vector')
+            ?? $this->readVectorTypeFromMapping('documents_mapping.json', 'text_vector_1024')
+            ?? $this->readVectorTypeFromMapping('documents_mapping.json', 'text_vector');
+
+        if ($type === null) {
+            throw new \RuntimeException(
+                'Could not determine vector field type from schema files in ' . $this->configDir()
+            );
+        }
+
+        $this->vectorFieldTypeCache = $type;
+        return $type;
+    }
+
+    private function readVectorTypeFromMapping(string $file, string $field): ?string
+    {
+        try {
+            $mapping = $this->loadConfig($file);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        return $mapping['mappings']['properties'][$field]['type'] ?? null;
     }
 
     public function getDocument(string $id, string $indexName = null): ?array
