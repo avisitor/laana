@@ -38,7 +38,7 @@ phpunit_event_filter() {
     awk '
         /^PHPUnit Started/ { print; fflush(); next }
         /^Test Runner Started/ { print; fflush(); next }
-        /^Test Suite Started \((Provider|Search|API|Integration),/ {
+        /^Test Suite Started \((Provider|Search|API|Integration|Indexing),/ {
             line = $0
             sub(/^Test Suite Started \(/, "▶ Suite: ", line)
             sub(/, [0-9]+ tests\)$/, "", line)
