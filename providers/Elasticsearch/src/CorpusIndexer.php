@@ -55,6 +55,7 @@ class CorpusIndexer
     private bool $importRaw;
     private bool $done = false;
     private bool $useSplitIndices;
+    private $shutdownChecker = null; // callable returning bool; set by CLI for graceful Ctrl+C stop
 
     public function __construct(array $config, bool $recreate = false, bool $dryrun = false, ?string $sourceIndexForReindex = null, ?ElasticsearchClient $client = null)
     {
@@ -138,7 +139,7 @@ class CorpusIndexer
                 $this->print( "Skipping index deletion because dryrun" );
             } else {
                 $this->client->createIndex($recreate);
-                //$this->metadataExtractor->createMetadataIndex($recreate);
+                $this->metadataExtractor->createMetadataIndex($recreate);
             }
         }
 
@@ -266,6 +267,12 @@ class CorpusIndexer
                 $this->print( "Skipping deletion because dryrun" );
             } else {
                 $this->client->deleteIndex( $sourceMetadataIndexName );
+                // Recreate the source-metadata index with its proper mapping.
+                // If we only delete and leave it to be auto-created on the next
+                // saveSourceMetadata() write, OpenSearch creates it with DYNAMIC
+                // mapping (sourceid:long, keyword fields as text, and no
+                // discarded/empty/quality fields), which breaks schema validation.
+                $this->client->createSourceMetadataIndex( false, $this->client->getIndexName() );
             }
         }
         
@@ -933,6 +940,17 @@ class CorpusIndexer
         return ($this->maxDocuments && $this->actuallyIndexedDocuments >= $this->maxDocuments);
     }
     
+    /**
+     * Register a callable that returns true once a graceful shutdown has been
+     * requested (e.g. by a SIGINT handler in the CLI entry point). The indexer
+     * checks it at each batch boundary, so the first Ctrl+C stops processing
+     * after the current batch finishes instead of running to completion.
+     */
+    public function setShutdownChecker(callable $checker): void
+    {
+        $this->shutdownChecker = $checker;
+    }
+
     public function runIndexing(): void
     {
         $this->print("Starting indexing run...");
@@ -1128,7 +1146,14 @@ class CorpusIndexer
             if( $this->done ) {
                 break;
             }
-            
+
+            // Graceful shutdown: the first Ctrl+C sets a flag (via the CLI signal
+            // handler); stop before fetching the next batch once it's observed.
+            if ($this->shutdownChecker !== null && ($this->shutdownChecker)()) {
+                $this->print("Shutdown requested — stopping after current batch.");
+                break;
+            }
+
             // Force garbage collection after each batch
             unset($actions);
             gc_collect_cycles();
