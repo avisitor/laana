@@ -263,6 +263,15 @@ $shutdownSignal = null;
 if (function_exists('pcntl_signal')) {
     pcntl_async_signals(true);
     $signalHandler = function (int $signo) use (&$shutdownRequested, &$shutdownSignal): void {
+        // A second signal forces an immediate exit (the documented "Ctrl+C twice" abort).
+        // Without this, installing a SIGINT handler disables the default terminate-on-Ctrl+C
+        // behavior, so the process would otherwise run to completion no matter how many
+        // times Ctrl+C is pressed.
+        if ($shutdownRequested) {
+            $name = $signo === SIGINT ? 'SIGINT (Ctrl+C)' : 'SIGTERM';
+            fwrite(STDERR, "\nReceived {$name} again — forcing immediate exit.\n");
+            exit($signo === SIGTERM ? 143 : 130);
+        }
         $shutdownRequested = true;
         $shutdownSignal = $signo;
         $name = $signo === SIGINT ? 'SIGINT (Ctrl+C)' : 'SIGTERM';
@@ -280,6 +289,12 @@ if (function_exists('pcntl_signal')) {
 // ---------------------------------------------------------------------------
 try {
     $indexer = new CorpusIndexer($config, $recreate, $dryrun, null, $esClient);
+    // Let the indexer observe the shutdown flag so the first Ctrl+C stops it
+    // gracefully at the next batch boundary (the second Ctrl+C force-exits from
+    // the signal handler above).
+    $indexer->setShutdownChecker(function (): bool {
+        return $GLOBALS['shutdownRequested'] ?? false;
+    });
     $indexer->runIndexing();
 
     // Ensure production aliases exist after index creation (unless --no-aliases)
