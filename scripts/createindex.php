@@ -6,11 +6,11 @@
  * Runs the CorpusIndexer from the command line with configurable options.
  *
  * Usage examples:
- *   php php/php/createindex.php --dryrun
- *   php php/php/createindex.php --recreate --verbose --max-documents 10
- *   php php/php/createindex.php --recreate --verbose
- *   php php/php/createindex.php --group-name=kauakukalahale --dryrun
- *   php php/php/createindex.php --aliases-only
+ *   php scripts/createindex.php --dryrun
+ *   php scripts/createindex.php --recreate --verbose --max-documents 10
+ *   php scripts/createindex.php --recreate --verbose
+ *   php scripts/createindex.php --group-name=kauakukalahale --dryrun
+ *   php scripts/createindex.php --aliases-only
  */
 
 declare(strict_types=1);
@@ -18,7 +18,7 @@ declare(strict_types=1);
 // ---------------------------------------------------------------------------
 // Path resolution (__DIR__ based) and bootstrap
 // ---------------------------------------------------------------------------
-$projectRoot = dirname(__DIR__, 2);
+$projectRoot = dirname(__DIR__);
 $autoloadPath = $projectRoot . '/vendor/autoload.php';
 
 if (!file_exists($autoloadPath)) {
@@ -95,6 +95,7 @@ $longOptions = [
     'aliases-only',             // Only recreate aliases without touching indices
     'no-aliases',               // Skip alias creation after index creation
     'provider:',                // Search provider: Elasticsearch or OpenSearch
+    'import-raw',               // Ingest only the raw-content index (hawaiian-content) without touching other indices
 ];
 
 $options = getopt('', $longOptions);
@@ -131,6 +132,7 @@ $verbose = isset($options['verbose']);
 $quiet = isset($options['quiet']);
 $aliasesOnly = isset($options['aliases-only']);
 $noAliases = isset($options['no-aliases']);
+$importRaw = isset($options['import-raw']);
 
 // Search provider: --provider flag, falling back to the PROVIDER env var,
 // then to the default Elasticsearch.
@@ -151,7 +153,7 @@ $config = [
     'updateProperties' => false,
     'updateMetadata' => false,
     'updateSourceMetadata' => false,
-    'importRaw' => false,
+    'importRaw' => $importRaw,
     'dryrun' => $dryrun,
 ];
 
@@ -177,6 +179,7 @@ if (!$quiet) {
     echo "Dry run:              " . ($dryrun ? 'yes' : 'no') . "\n";
     echo "Aliases only:         " . ($aliasesOnly ? 'yes' : 'no') . "\n";
     echo "Skip aliases:         " . ($noAliases ? 'yes' : 'no') . "\n";
+    echo "Import raw content:   " . ($importRaw ? 'yes (content index only)' : 'yes (with full run)') . "\n";
     echo "----------------------------------------\n";
 }
 
@@ -297,8 +300,19 @@ try {
     });
     $indexer->runIndexing();
 
-    // Ensure production aliases exist after index creation (unless --no-aliases)
-    if (!$noAliases) {
+    // In a normal (full) run, also ingest the raw-content index so the whole
+    // corpus stays consistent. In --import-raw mode runIndexing() already
+    // performed the content-only ingestion and returned, so we skip this.
+    if (!$config['importRaw']) {
+        if (!$quiet) {
+            echo "Ingesting raw content index (hawaiian-content)...\n";
+        }
+        $indexer->importRaw();
+    }
+
+    // Ensure production aliases exist after index creation (unless --no-aliases).
+    // In content-only mode we must not touch the other indices' aliases.
+    if (!$noAliases && !$config['importRaw']) {
         if (!$quiet) {
             echo "Ensuring production aliases...\n";
         }
@@ -335,7 +349,7 @@ function printUsage(): void
 Hawaiian Search Corpus Indexer — CLI entry point for CorpusIndexer.
 
 Usage:
-  php php/php/createindex.php [options]
+  php scripts/createindex.php [options]
 
 Options:
   --recreate                 Delete and recreate the index before indexing
@@ -357,15 +371,16 @@ Options:
   --aliases-only             Only recreate aliases without touching indices
   --no-aliases               Skip alias creation after index creation
   --provider=NAME            Search provider: Elasticsearch or OpenSearch (default: Elasticsearch)
+  --import-raw               Ingest ONLY the raw-content index (hawaiian-content) without touching the other indices
   --help                     Show this help message
 
 Examples:
-  php php/php/createindex.php --dryrun
-  php php/php/createindex.php --recreate --verbose --max-documents 10
-  php php/php/createindex.php --recreate --verbose
-  php php/php/createindex.php --group-name=kauakukalahale --dryrun
-  php php/php/createindex.php --aliases-only
-  php php/php/createindex.php --recreate --provider=opensearch
+  php scripts/createindex.php --dryrun
+  php scripts/createindex.php --recreate --verbose --max-documents 10
+  php scripts/createindex.php --recreate --verbose
+  php scripts/createindex.php --group-name=kauakukalahale --dryrun
+  php scripts/createindex.php --aliases-only
+  php scripts/createindex.php --recreate --provider=opensearch
 
 Exit codes:
   0    Success
