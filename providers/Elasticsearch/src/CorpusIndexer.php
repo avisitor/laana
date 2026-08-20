@@ -261,7 +261,13 @@ class CorpusIndexer
         $sourceMetadataIndexName = $this->client->getSourceMetadataName();
         $this->print( "initializeSourceMetadata from  $sourceMetadataIndexName" );
 
-        if ($this->recreate) {
+        // Only wipe source-metadata for a genuine full reindex. Modes that only
+        // touch a different index (importRaw, updateProperties, updateMetadata)
+        // must NOT delete source-metadata just because --recreate was also
+        // passed — doing so previously wiped hawaiian-source-metadata on both
+        // providers when running `--import-raw --recreate`.
+        $touchesOtherIndexOnly = $this->importRaw || $this->updateProperties || $this->updateMetadata;
+        if ($this->recreate && !$touchesOtherIndexOnly) {
             $this->print( "Recreate flag is set. Initializing with empty metadata." );
             if ($this->dryrun ) {
                 $this->print( "Skipping deletion because dryrun" );
@@ -900,39 +906,43 @@ class CorpusIndexer
     }
     
     public function importRaw() {
+        if ($this->dryrun) {
+            $this->print("Dry run: would ingest raw content into " . $this->client->getContentName());
+            return;
+        }
+        $this->client->createContentIndex($this->recreate);
         $index = $this->client->getContentName();
         $iterator = new SourceIterator( $this->sourceId, $this->groupName );
         $processed = 0;
         $already = 0;
+        $skipped = 0;
         while( $sources = $iterator->getNext() ) {
             foreach( $sources as $source ) {
                 //$this->print( "Source: " . var_export( $source, true ) );
                 $sourceid = (string)($source['sourceid'] ?? '');
                 if (empty($sourceid)) continue;
-                if( !$this->sourceId && !$this->groupName ) {
-                    if( isset( $this->sourceMeta[$sourceid] ) ) {
-                        $meta = $this->sourceMeta[$sourceid];
-                        //$this->print( "source metadata record: " . json_encode( $meta ) );
-                        if( isset( $meta['_source']['discarded'] ) ) {
-                            $this->print( "Skipping discarded {$sourceid}" );
-                            continue;
-                        } else {
-                            $this->print( "Skipping already indexed {$sourceid}" );
-                            continue;
-                        }
-                    } 
-                    if( $this->client->documentExists( $sourceid, $index ) ) {
-                        $this->print( "HTML for $sourceid already present" );
-                        $already++;
+                // Skip discarded sources when we have metadata for them
+                // (only available in the full-run path; best-effort otherwise).
+                if (isset($this->sourceMeta[$sourceid])) {
+                    $meta = $this->sourceMeta[$sourceid];
+                    if (!empty($meta['_source']['discarded'])) {
+                        $this->print("Skipping discarded {$sourceid}");
+                        $skipped++;
+                        continue;
                     }
-                } else {
-                    $this->importOneRaw( $sourceid );
-                    $processed++;
                 }
+                if ($this->client->documentExists($sourceid, $index)) {
+                    $this->print("HTML for $sourceid already present");
+                    $already++;
+                    continue;
+                }
+                $this->importOneRaw($sourceid);
+                $processed++;
             }
         }
-        $this->print( "Already present: $already\n" .
-                      "Added: $processed" );
+        $this->print("Already present: $already\n" .
+                     "Added: $processed\n" .
+                     "Skipped (discarded): $skipped");
     }
 
     public function checkMax(): bool

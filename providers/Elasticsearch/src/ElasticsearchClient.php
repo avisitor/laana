@@ -700,13 +700,20 @@ class ElasticsearchClient {
         return $status;
     }
 
-    public function createContentIndex( $indexName = "" ): bool {
+    public function createContentIndex( $recreate = false, $indexName = "" ): bool {
         if (empty($indexName)) {
             $indexName = $this->getIndexName();
         }
         $contentIndexName = $this->getContentName( $indexName );
-        $status = $this->createMetaIndex( 'content_mapping.json', $contentIndexName );
-        return $status;
+        if ($recreate && $this->indexExists($contentIndexName)) {
+            $this->print("Deleting existing index: {$contentIndexName}");
+            $this->deleteIndex($contentIndexName);
+        }
+        if( !$this->indexExists($contentIndexName) ) {
+            $status = $this->createMetaIndex( 'content_mapping.json', $contentIndexName );
+            return $status;
+        }
+        return false;
     }
 
     public function indexRaw( $sourceid, $text ) {
