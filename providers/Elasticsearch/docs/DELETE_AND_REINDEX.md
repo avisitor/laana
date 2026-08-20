@@ -1,103 +1,186 @@
-# Delete and Re-index Documents by Groupname
+# Delete and Re-index with createindex.php
 
 ## Overview
 
-The `createindex.php` script now supports a `--delete-existing` option that allows you to delete all existing documents with a specific groupname before re-indexing them. This ensures you don't have duplicate or stale documents when re-importing data from the same source.
+`scripts/createindex.php` is the CLI entry point for `CorpusIndexer`. It can run a
+full corpus reindex, a scoped reindex (by source or group), an alias-only
+refresh, or a content-only ingest — against either Elasticsearch or
+OpenSearch.
+
+This document describes the options that currently exist. The
+`--delete-existing` / `--domain` flags and the groupname-scoped delete
+described in earlier versions of this document **no longer exist in
+`createindex.php`** — that functionality lived in `scripts/savedocument.php`
+(via `ElasticsearchClient::deleteByGroupname()`), not here. See
+[Groupname-scoped reindexing](#groupname-scoped-reindexing-source-id---group-name)
+below for the current equivalent and its important caveats.
+
+## ⚠️ `--recreate` is global, not scoped
+
+`--recreate` deletes and recreates the **entire** documents, sentences, and
+source-metadata indices — it is not limited by `--source-id` or
+`--group-name`. If you combine `--recreate` with `--group-name=X`, the
+script will:
+
+1. Delete **all** documents, sentences, and source-metadata (every group,
+   not just `X`).
+2. Re-index only the sources belonging to group `X`.
+
+Every other group's documents/sentences/source-metadata will be gone until
+a separate full (or per-group) reindex repopulates them. **Do not combine
+`--recreate` with `--source-id` or `--group-name` unless you intend a full
+wipe.** For a truly scoped delete-and-reindex of one group without
+affecting the rest of the corpus, use `--group-name=X` **without**
+`--recreate` — the indexer will index/overwrite documents for that group by
+ID, without touching anything else. `--recreate` is only for the
+"rebuild everything from scratch" case.
 
 ## Usage
 
-### Basic Command
-
-To delete existing documents and re-index:
-
 ```bash
-php php/createindex.php --groupname=kauakukalahale --domain=noiiolelo.worldspot.org --delete-existing
+php scripts/createindex.php [options]
 ```
 
-### What It Does
+### Options
 
-1. **Deletes** all documents, sentences, and metadata records with the specified groupname
-2. **Fetches** fresh source list from the API filtered by groupname
-3. **Indexes** all documents with their sentences
+| Option | Description |
+|---|---|
+| `--recreate` | Delete and recreate the documents/sentences/source-metadata indices before indexing (global — see warning above) |
+| `--dryrun`, `--dry-run` | Show what would happen without writing anything |
+| `--verbose` | Verbose output |
+| `--quiet` | Suppress non-error output |
+| `--max-documents=N`, `--limit=N` | Stop after indexing N documents |
+| `--source-id=N` | Only index the source with this ID |
+| `--group-name=NAME`, `--groupname=NAME` | Only index sources in this group |
+| `--batch-size=N` | Documents per batch (default: 1) |
+| `--sentence-batch-size=N` | Sentences per embedding request (default: 100) |
+| `--checkpoint-interval=N` | Sources between checkpoints (default: 50) |
+| `--split-indices` | Use separate document/sentence indices (default) |
+| `--no-split-indices` | Use a single combined index |
+| `--collection-name=NAME` | Base collection/index name (default: `hawaiian`) |
+| `--aliases-only` | Only (re)create production aliases without touching indices |
+| `--no-aliases` | Skip alias creation/update after indexing |
+| `--provider=NAME` | Search provider: `Elasticsearch` (default) or `OpenSearch` |
+| `--import-raw` | Ingest ONLY the raw-content index (`hawaiian-content`) without touching any other index (see below) |
+| `--help` | Show usage |
 
-### Important Notes
+Exit codes: `0` success, `1` error, `130` interrupted by SIGINT (Ctrl+C),
+`143` interrupted by SIGTERM. Pressing Ctrl+C once requests a graceful stop
+at the next batch boundary; pressing it again forces an immediate exit.
 
-- The `--delete-existing` flag **requires** `--groupname` to be specified (for safety)
-- Deletion happens in all three indices:
-  - Documents index (`hawaiian_documents_new`)
-  - Sentences index (`hawaiian_sentences_new`)  
-  - Metadata index (`hawaiian-metadata`)
+## What a normal (full) run does
 
-### Testing First (Recommended)
+With no special flags, `createindex.php`:
 
-Use `--dryrun` to see what would happen without actually making changes:
+1. Validates index schemas (aborts with guidance if invalid — use
+   `--recreate` to fix, or correct the schema files).
+2. Creates/recreates the documents, sentences, and source-metadata indices
+   per `--recreate`.
+3. Fetches the source list (optionally filtered by `--source-id` /
+   `--group-name`) and indexes documents + sentences.
+4. Also ingests the raw-content index (`hawaiian-content`) for every
+   matching source — creating it if missing, recreating it only if
+   `--recreate` was passed, and skipping sources whose content record
+   already exists. This keeps `hawaiian-content` in sync as part of a
+   normal run.
+5. Ensures production aliases exist (unless `--no-aliases`).
+
+## Content-only mode: `--import-raw`
+
+`--import-raw` ingests **only** `hawaiian-content` and touches nothing
+else — no documents, sentences, metadata, source-metadata, or aliases are
+created, deleted, or written to.
 
 ```bash
-php php/createindex.php --groupname=kauakukalahale --domain=noiiolelo.worldspot.org --delete-existing --dryrun
+# Create/populate hawaiian-content for the whole corpus, without touching
+# any other index:
+php scripts/createindex.php --import-raw --provider=opensearch
+
+# Recreate hawaiian-content from scratch (delete + rebuild), still without
+# touching any other index:
+php scripts/createindex.php --import-raw --recreate --provider=opensearch
+
+# Ingest content for a single source only:
+php scripts/createindex.php --import-raw --source-id=52839 --provider=opensearch
 ```
 
-This will show you:
-- How many sources match the groupname
-- That it would delete existing documents
-- Sample of the sources that would be processed
+- `--import-raw` alone: creates `hawaiian-content` if missing, leaves an
+  existing one alone, and only adds records for sources that don't already
+  have one (idempotent).
+- `--import-raw --recreate`: deletes and recreates `hawaiian-content`, then
+  re-ingests everything matching `--source-id` / `--group-name` (or all
+  sources if neither is given).
+- `--dryrun` with `--import-raw` prints what would be ingested and performs
+  no writes.
+
+## Groupname-scoped reindexing (`--source-id` / `--group-name`)
+
+To re-index a specific source or group without a full `--recreate` wipe:
+
+```bash
+php scripts/createindex.php --group-name=kauakukalahale
+php scripts/createindex.php --source-id=52839 --verbose
+```
+
+This fetches the filtered source list and indexes/overwrites those
+documents by ID — existing documents for other groups/sources are left
+untouched. This does **not** first delete stale documents that may have
+been removed from the source group upstream; it only adds/overwrites. If
+you need to purge documents whose sources have since disappeared from a
+group, that is a separate operation (see `ElasticsearchClient::deleteByGroupname()`,
+used by `scripts/savedocument.php`) and is not currently wired into
+`createindex.php`.
+
+### Testing first (recommended)
+
+```bash
+php scripts/createindex.php --group-name=kauakukalahale --dryrun
+```
+
+## Aliases-only mode
+
+```bash
+php scripts/createindex.php --aliases-only
+```
+
+(Re)creates production aliases without touching any index. Useful after
+manually recreating indices, or to repair alias drift.
+
+## Provider selection
+
+```bash
+php scripts/createindex.php --recreate --provider=opensearch
+```
+
+Defaults to the `PROVIDER` environment variable, or `Elasticsearch` if
+unset. `opensearch` / `os` (case-insensitive) select OpenSearch.
 
 ## Examples
 
-### Example 1: Re-index a specific group
+```bash
+php scripts/createindex.php --dryrun
+php scripts/createindex.php --recreate --verbose --max-documents 10
+php scripts/createindex.php --recreate --verbose
+php scripts/createindex.php --group-name=kauakukalahale --dryrun
+php scripts/createindex.php --aliases-only
+php scripts/createindex.php --recreate --provider=opensearch
+php scripts/createindex.php --import-raw --provider=opensearch
+php scripts/createindex.php --import-raw --source-id=52839 --provider=opensearch
+```
+
+## Recovering source-metadata
+
+`hawaiian-source-metadata` is derived, checkpoint-style data
+(sourceid/sourcename/groupname/authors/date/link/title/discarded) that can
+be fully reconstructed from the documents index if it's ever lost or
+emptied. Use:
 
 ```bash
-php php/createindex.php --groupname=kauakukalahale --domain=noiiolelo.worldspot.org --delete-existing
+php php/php/rebuild_source_metadata.php --provider=Elasticsearch --dryrun
+php php/php/rebuild_source_metadata.php --provider=Elasticsearch
+php php/php/rebuild_source_metadata.php --provider=OpenSearch
 ```
 
-### Example 2: Test with a limit
-
-```bash
-php php/createindex.php --groupname=kauakukalahale --domain=noiiolelo.worldspot.org --delete-existing --limit=10
-```
-
-This will delete all existing documents with that groupname but only re-index the first 10 sources (useful for testing).
-
-### Example 3: Dry run to preview
-
-```bash
-php php/createindex.php --groupname=kauakukalahale --domain=noiiolelo.worldspot.org --delete-existing --dryrun
-```
-
-## Current Statistics for kauakukalahale
-
-Based on the last check:
-- **Documents**: 820
-- **Sentences**: 23,711
-- **Sources to re-index**: 758
-
-## Technical Details
-
-The deletion uses Elasticsearch's `deleteByQuery` API with a term query on `groupname.keyword` field:
-
-```json
-{
-  "query": {
-    "term": {
-      "groupname.keyword": "kauakukalahale"
-    }
-  }
-}
-```
-
-This ensures only exact matches are deleted.
-
-## Safety Features
-
-1. **Groupname required**: The `--delete-existing` flag requires `--groupname` to prevent accidental deletion of all documents
-2. **Dry run mode**: Test the operation without making changes
-3. **Statistics reporting**: Shows exactly how many documents/sentences/metadata records were deleted
-4. **Index-specific**: Only deletes from the actual indices, not the entire database
-
-## New ElasticsearchClient Method
-
-A new method `deleteByGroupname(string $groupname)` was added to the ElasticsearchClient class:
-
-```php
-$stats = $client->deleteByGroupname('kauakukalahale');
-// Returns: ['documents' => 820, 'sentences' => 23711, 'metadata' => N]
-```
+This scrolls the documents index and rebuilds one source-metadata record
+per document; it never deletes an existing source-metadata index, only
+fills in missing/refreshed records.
