@@ -11,14 +11,20 @@ class SourceIterator
     private $groupName;
     private $sources = [];
     private $position = 0;
-    //private $url = "https://noiiolelo.org/api.php/sources?details";
-    private $url = "https://noiiolelo.worldspot.org/api.php/sources?details&provider=MySQL";
+    private $url;
 
     public function __construct($sourceId = null, $groupName = null)
     {
         $this->sourceId = $sourceId;
         $this->groupName = $groupName;
         echo "SourceIterator: sourceId = $sourceId, groupName = $groupName\n";
+
+        $apiBaseUrl = $_ENV['NOIIOLELO_API_BASE_URL'] ?? getenv('NOIIOLELO_API_BASE_URL') ?? '';
+        if (!$apiBaseUrl) {
+            throw new \RuntimeException('NOIIOLELO_API_BASE_URL must be set in .env');
+        }
+        $this->url = $apiBaseUrl . '?path=sources&details&provider=MySQL';
+
         $this->httpClient = new HttpClient();
         $this->fetchSources();
     }
