@@ -25,3 +25,5 @@ data/
 
 .omo
 logs
+.sisyphus
+docs/plans/2026-08-18-data-integrity-fixes.md
