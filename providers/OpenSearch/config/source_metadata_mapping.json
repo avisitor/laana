@@ -1,0 +1,51 @@
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 1,
+      "number_of_replicas": 1
+    }
+  },
+  "mappings": {
+    "properties": {
+      "sourceid": {
+        "type": "keyword"
+      },
+      "sourcename": {
+        "type": "keyword"
+      },
+      "groupname": {
+        "type": "keyword"
+      },
+      "authors": {
+        "type": "keyword"
+      },
+      "date": {
+        "type": "date"
+      },
+      "link": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "created_at": {
+        "type": "date"
+      },
+      "discarded": {
+        "type": "boolean"
+      },
+      "empty": {
+        "type": "boolean"
+      },
+      "quality": {
+        "type": "float"
+      }
+    }
+  }
+}

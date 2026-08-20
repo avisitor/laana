@@ -1,0 +1,38 @@
+{
+  "mappings": {
+    "_meta": {
+      "version": "1.0.0",
+      "description": "Search statistics index for tracking query usage"
+    },
+    "properties": {
+      "searchterm": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      },
+      "pattern": {
+        "type": "keyword"
+      },
+      "results": {
+        "type": "integer"
+      },
+      "sort": {
+        "type": "keyword"
+      },
+      "elapsed": {
+        "type": "float"
+      },
+      "created": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      }
+    }
+  },
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  }
+}
