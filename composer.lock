@@ -46,16 +46,19 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/avisitor/dbbase.git",
-                "reference": "e51e775db497e7d7b1b11f045f7585ea130d6d6c"
+                "reference": "a3c19a558ce8b822564a9de740a9caa7b83b55f0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/avisitor/dbbase/zipball/e51e775db497e7d7b1b11f045f7585ea130d6d6c",
-                "reference": "e51e775db497e7d7b1b11f045f7585ea130d6d6c",
+                "url": "https://api.github.com/repos/avisitor/dbbase/zipball/a3c19a558ce8b822564a9de740a9caa7b83b55f0",
+                "reference": "a3c19a558ce8b822564a9de740a9caa7b83b55f0",
                 "shasum": ""
             },
             "require": {
-                "php": ">=7.4"
+                "php": ">=8.1"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^10"
             },
             "default-branch": true,
             "type": "library",
@@ -64,12 +67,17 @@
                     "Common\\DB\\": "src/"
                 }
             },
+            "scripts": {
+                "test": [
+                    "phpunit"
+                ]
+            },
             "description": "Database base class utilities",
             "support": {
-                "source": "https://github.com/avisitor/dbbase/tree/v1.0.5",
+                "source": "https://github.com/avisitor/dbbase/tree/master",
                 "issues": "https://github.com/avisitor/dbbase/issues"
             },
-            "time": "2026-08-16T08:29:53+00:00"
+            "time": "2026-08-23T21:46:45+00:00"
         },
         {
             "name": "avisitor/dbuser",
