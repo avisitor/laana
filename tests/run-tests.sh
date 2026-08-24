@@ -10,6 +10,7 @@ TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
 REPORT_DIR="$SERVER_DIR/tests/reports"
+REPORTS_DIR="$REPORT_DIR"
 TEXT_REPORT="$REPORT_DIR/test-report-$TIMESTAMP.txt"
 XML_REPORT="$REPORT_DIR/junit-$TIMESTAMP.xml"
 JSON_REPORT="$REPORT_DIR/test-report-$TIMESTAMP.json"
@@ -18,6 +19,7 @@ PHPUNIT=$SERVER_DIR/vendor/bin/phpunit
 HEARTBEAT_SECONDS=20
 ACTIVE_CMD_PID=""
 ACTIVE_HEARTBEAT_PID=""
+CLEANUP_DAYS=""
 
 cd $SERVER_DIR
 
@@ -95,6 +97,31 @@ cleanup_active_processes() {
     fi
 }
 
+# ─── Prune old report files (--cleanup) ────────────────────────────────────
+# If --cleanup was supplied, delete report files (xml/json/txt/html) in the
+# reports directory older than CLEANUP_DAYS (default 7) once the run finishes.
+# Gated on CLEANUP_DAYS being set; never fails the script.
+cleanup_old_reports() {
+  [[ -z "${CLEANUP_DAYS:-}" ]] && return 0
+  [[ "$CLEANUP_DAYS" =~ ^[0-9]+$ ]] || return 0
+  [[ -d "$REPORTS_DIR" ]] || return 0
+  echo "🧹 Removing report files older than $CLEANUP_DAYS day(s) from $REPORTS_DIR"
+  find "$REPORTS_DIR" -maxdepth 1 -type f \
+    \( -name '*.xml' -o -name '*.json' -o -name '*.txt' -o -name '*.html' \) \
+    ! -name 'latest.json' \
+    -mtime +"$CLEANUP_DAYS" -delete 2>/dev/null || true
+}
+
+usage() {
+    echo "Usage: ./run-tests.sh [options]"
+    echo ""
+    echo "Options:"
+    echo "  -v, --verbose       Live progress output (suite names, test starts/results, heartbeats)"
+    echo "  --diagnose          Run diagnostics if there are failures or skips"
+    echo "  --cleanup[=N]       Remove report files older than N days (default 7) on completion"
+    echo "  -h, --help          Show this help and exit"
+}
+
 on_interrupt() {
     echo ""
     echo "⚠️  Interrupted. Stopping test run..."
@@ -103,7 +130,7 @@ on_interrupt() {
 }
 
 trap on_interrupt INT TERM
-trap cleanup_active_processes EXIT
+trap 'cleanup_active_processes; cleanup_old_reports' EXIT
 
 run_with_heartbeat_to_report() {
     local description="$1"
@@ -312,11 +339,14 @@ run_tests() {
     echo "=========================================="
     echo "📄 Text report: $TEXT_REPORT"
     if [ -f "$JSON_REPORT" ]; then
-        if [ -f "$TEST_DIR/diagnose.sh" ]; then
-            echo "🔎 Running diagnostics..."
-            bash "$TEST_DIR/diagnose.sh" "$JSON_REPORT"
-        else
-            echo "⚠️  Diagnostics script not found: $TEST_DIR/diagnose.sh"
+        if [ "${DIAGNOSE:-0}" = "1" ]; then
+            DIAGNOSE_SH="$(cd "$TEST_DIR" && while [ "$PWD" != "/" ]; do [ -f "diagnose.sh" ] && { echo "$PWD/diagnose.sh"; break; }; cd ..; done)"
+            if [ -n "$DIAGNOSE_SH" ] && [ -f "$DIAGNOSE_SH" ]; then
+                echo "🔎 Running diagnostics..."
+                bash "$DIAGNOSE_SH" "$JSON_REPORT"
+            else
+                echo "⚠️  Shared diagnose.sh not found (searched up from $TEST_DIR)"
+            fi
         fi
         echo "📊 JSON report: $JSON_REPORT"
         echo "🌐 View in browser: $VIEW_DIR"
@@ -333,8 +363,35 @@ while [[ $# -gt 0 ]]; do
             export VERBOSE=1
             shift
             ;;
+        --diagnose)
+            export DIAGNOSE=1
+            shift
+            ;;
+        --cleanup)
+            CLEANUP_DAYS=7
+            if [[ $# -gt 1 && "$2" =~ ^[0-9]+$ ]]; then
+                CLEANUP_DAYS="$2"
+                shift 2
+            else
+                shift
+            fi
+            ;;
+        --cleanup=*)
+            CLEANUP_DAYS="${1#*=}"
+            if [[ ! "$CLEANUP_DAYS" =~ ^[0-9]+$ ]]; then
+                echo "Error: --cleanup requires a non-negative integer (got '$CLEANUP_DAYS')" >&2
+                exit 2
+            fi
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
         *)
-            break
+            echo "Unknown option: $1" >&2
+            echo "Run with --help to see usage." >&2
+            exit 1
             ;;
     esac
 done
