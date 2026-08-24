@@ -1470,6 +1470,13 @@ class ElasticsearchClient {
     }
 
     // This is for adding documents and sentences to a single index
+    // Elasticsearch/OpenSearch reject bulk requests above http.max_content_length
+    // (default ~100MB on both). Keep sub-batches well under that so large
+    // documents (e.g. thousands of sentences with embedding vectors) don't
+    // blow past the limit in a single request.
+    private const BULK_MAX_BYTES = 20 * 1024 * 1024; // 20MB per bulk request
+    private const BULK_MAX_ACTIONS = 2000; // also cap by action count
+
     public function bulkIndex(array $actions): array {
         $this->print( "ElasticsearchIndex::bulkIndex: " . sizeof($actions) . " actions" );
         if (empty($actions)) {
@@ -1477,7 +1484,66 @@ class ElasticsearchClient {
         }
 
         $validDimensions = $this->validateVectorDimensions( $actions );
-        
+
+        $chunks = $this->chunkBulkActions($actions);
+        if (count($chunks) > 1) {
+            $this->print( "🔍 Debug: Splitting bulk index into " . count($chunks) . " sub-batches to stay under the payload size limit" );
+        }
+
+        $succeededIds = [];
+        foreach ($chunks as $i => $chunk) {
+            if (count($chunks) > 1) {
+                $this->print( "🔍 Debug: Bulk sub-batch " . ($i + 1) . "/" . count($chunks) . ": " . count($chunk) . " actions" );
+            }
+            $succeededIds = array_merge($succeededIds, $this->sendBulkChunk($chunk));
+        }
+        return $succeededIds;
+    }
+
+    /**
+     * Split a list of bulk actions into sub-batches that stay under
+     * BULK_MAX_BYTES (estimated via json_encode) and BULK_MAX_ACTIONS.
+     *
+     * @param array $actions
+     * @return array<int, array> List of action chunks
+     */
+    private function chunkBulkActions(array $actions): array {
+        $chunks = [];
+        $current = [];
+        $currentBytes = 0;
+
+        foreach ($actions as $action) {
+            // Rough per-action size: the index meta line + the source document.
+            $actionBytes = strlen(json_encode($action['_source'])) + 64;
+
+            if (!empty($current) &&
+                ($currentBytes + $actionBytes > self::BULK_MAX_BYTES ||
+                 count($current) >= self::BULK_MAX_ACTIONS)
+            ) {
+                $chunks[] = $current;
+                $current = [];
+                $currentBytes = 0;
+            }
+
+            $current[] = $action;
+            $currentBytes += $actionBytes;
+        }
+
+        if (!empty($current)) {
+            $chunks[] = $current;
+        }
+
+        return $chunks;
+    }
+
+    /**
+     * Send a single bulk() request for one chunk of actions and return the
+     * list of succeeded document IDs.
+     *
+     * @param array $actions
+     * @return array<int, string>
+     */
+    private function sendBulkChunk(array $actions): array {
         $params = ['body' => []];
         foreach ($actions as $action) {
             $params['body'][] = [

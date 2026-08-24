@@ -140,6 +140,10 @@ class CorpusIndexer
             } else {
                 $this->client->createIndex($recreate);
                 $this->metadataExtractor->createMetadataIndex($recreate);
+                // Raw content is now ingested together with each source's
+                // document/sentences (see createSplitIndexObjects()/
+                // processSource()), so it needs to exist up front too.
+                $this->client->createContentIndex($recreate);
             }
         }
 
@@ -537,15 +541,24 @@ class CorpusIndexer
         $sourceid = (string)($source['sourceid'] ?? $source['doc_id']) ?? ''; // Handle doc_id from ES source
         if ( !$this->dryrun ) {
             if ( isset( $this->sourceMeta[$sourceid] ) ) {
-                if( !$this->groupName && !$this->sourceId ) {
+                // Skip already-indexed/discarded sources for the default full-corpus
+                // run and for --group-name runs (resume instead of redoing already-
+                // completed work). --source-id always forces a reprocess.
+                if( !$this->sourceId ) {
                     $meta = $this->sourceMeta[$sourceid];
 
                     //$this->print( "source metadata record: " . json_encode( $meta ) );
-                    if( isset( $meta['_source']['discarded'] ) ) {
+                    $discarded = isset( $meta['_source']['discarded'] ) && $meta['_source']['discarded'];
+                    if( $discarded ) {
                         $this->print( "Skipping discarded {$sourceid}" );
                     } else {
                         $this->print( "Preset sourceid: {$this->sourceId}, Preset group: {$this->groupName}" );
                         $this->print( "Skipping already indexed {$sourceid}" );
+                        // Text/sentences are already up to date, but backfill raw
+                        // content if it's missing, so every index stays
+                        // idempotently in sync, not just the ones touched in
+                        // this run.
+                        $this->backfillRawContentIfMissing($sourceid);
                     }
                     return null;
                 }
@@ -558,7 +571,7 @@ class CorpusIndexer
                       "Reviewing sourceid=$sourceid (" . ($source['sourcename'] ?? 'N/A') );
 
         $doc = $this->client->getDocumentOutline( $sourceid, $this->targetIndex );
-        if( $doc && sizeof($doc) && !$this->groupName && !$this->sourceId ) {
+        if( $doc && sizeof($doc) && !$this->sourceId ) {
             $this->print( "Document found, skipping already indexed {$sourceid} {$source['sourcename']} in {$this->targetIndex}" );
             return null;
         }
@@ -904,6 +917,51 @@ class CorpusIndexer
             $this->print("No raw html for document {$sourceid}");
         }
     }
+
+    /**
+     * Ingest raw content (hawaiian-content) for the given list of source IDs,
+     * right after their document/sentences were (re)indexed successfully.
+     * This keeps hawaiian-content in sync with what actually got processed in
+     * this run, rather than running as a separate pass over every source
+     * after indexing finishes (which could race ahead of an interrupted run
+     * or redo content unnecessarily for sources that were skipped).
+     *
+     * @param array $sourceIds
+     */
+    private function ingestRawContentForSources(array $sourceIds): void {
+        if (empty($sourceIds) || $this->dryrun) {
+            return;
+        }
+        foreach ($sourceIds as $sourceid) {
+            $sourceid = (string)$sourceid;
+            if (empty($sourceid)) {
+                continue;
+            }
+            $this->importOneRaw($sourceid);
+        }
+    }
+
+    /**
+     * Idempotently backfill raw content for a single source that is being
+     * skipped for document/sentence reprocessing (already indexed). Only
+     * ever called with a sourceid that the current run's own scoped
+     * iteration already yielded (the default full-corpus run, or a
+     * --group-name run) — never a broader scan across sourceids the current
+     * invocation would not otherwise touch.
+     *
+     * @param string $sourceid
+     */
+    private function backfillRawContentIfMissing(string $sourceid): void {
+        if (empty($sourceid) || $this->dryrun) {
+            return;
+        }
+        $index = $this->client->getContentName();
+        if ($this->client->documentExists($sourceid, $index)) {
+            return;
+        }
+        $this->print("Backfilling missing raw content for {$sourceid}");
+        $this->importOneRaw($sourceid);
+    }
     
     public function importRaw() {
         if ($this->dryrun) {
@@ -938,6 +996,14 @@ class CorpusIndexer
                 }
                 $this->importOneRaw($sourceid);
                 $processed++;
+            }
+
+            // Graceful shutdown: stop after the current source batch, same as
+            // the main indexing loop, so a Ctrl+C during content ingestion
+            // doesn't leave hawaiian-content further out of sync than needed.
+            if ($this->shutdownChecker !== null && ($this->shutdownChecker)()) {
+                $this->print("Shutdown requested — stopping raw content ingestion after current batch.");
+                break;
             }
         }
         $this->print("Already present: $already\n" .
@@ -1085,7 +1151,16 @@ class CorpusIndexer
                             $timerSentenceIndexing = TimerFactory::timer('sentence_indexing');
                             $this->bulkIndexSentences($sentenceActions, $succeededDocIds);
                             $timerSentenceIndexing->stop(); // Explicit stop for precise timing
-                            
+
+                            // Ingest raw content together with the document/sentences it
+                            // belongs to, instead of as a separate pass over the whole
+                            // corpus after indexing finishes. This keeps hawaiian-content
+                            // in sync with what actually got (re)indexed in this run,
+                            // including when a run is interrupted partway through.
+                            $timerContentIndexing = TimerFactory::timer('content_indexing');
+                            $this->ingestRawContentForSources($succeededDocIds);
+                            $timerContentIndexing->stop();
+
                             // Update counters
                             $indexedTotal += count($succeededDocIds);
                         }
@@ -1119,11 +1194,13 @@ class CorpusIndexer
                             // Verify each document was actually indexed
                             $timerVerification = TimerFactory::timer('document_verification');
                             $actuallyIndexed = 0;
+                            $verifiedDocIds = [];
                             foreach ($actions as $action) {
                                 $docId = $action['_source']['doc_id'];
                                 if ($this->verifyDocumentIndexed($docId)) {
                                     $actuallyIndexed++;
                                     $this->actuallyIndexedDocuments++;
+                                    $verifiedDocIds[] = $docId;
                                     $this->print( "✅ Verified: {$docId}" );
                                 } else {
                                     $this->print( "❌ Failed to verify: {$docId}" );
@@ -1131,6 +1208,12 @@ class CorpusIndexer
                                 $considered++;
                             }
                             $timerVerification->stop();
+
+                            // Ingest raw content together with the document/sentences it
+                            // belongs to (see split-indices path above for rationale).
+                            $timerContentIndexing = TimerFactory::timer('content_indexing');
+                            $this->ingestRawContentForSources($verifiedDocIds);
+                            $timerContentIndexing->stop();
                             
                             $this->print( "📦 Bulk indexed " . count($actions) .
                                           " documents, verified " . $actuallyIndexed .
@@ -1246,7 +1329,11 @@ class CorpusIndexer
         // Note: Timer system will measure individual components, not overlapping total
         
         $sourceid = (string)($source['sourceid'] ?? $source['doc_id']) ?? '';
-        if( isset( $this->sourceMeta[$sourceid] ) && !$this->sourceId && !$this->groupName ) {
+        // Skip already-indexed/discarded sources for the default full-corpus run
+        // and for --group-name runs (so a re-run resumes instead of redoing
+        // already-completed, expensive embedding work). --source-id explicitly
+        // targets one source and is expected to always force a reprocess.
+        if( isset( $this->sourceMeta[$sourceid] ) && !$this->sourceId ) {
             $discarded = $this->sourceMeta[$sourceid]['discarded'] ?? false;
             if( $discarded ) {
                 $this->print( "Skipping discarded {$sourceid}" );
@@ -1255,6 +1342,14 @@ class CorpusIndexer
             }
             if (!$this->dryrun) {
                 $this->print("Skipping already indexed or discarded {$sourceid}");
+                // Text/sentences are already up to date, but backfill raw
+                // content if it's missing for some reason (e.g. it was
+                // introduced after this source was originally indexed) so
+                // every index stays idempotently in sync, not just the ones
+                // touched in this run.
+                if (!$discarded) {
+                    $this->backfillRawContentIfMissing($sourceid);
+                }
                 return null;
             }
         }
