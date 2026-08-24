@@ -179,7 +179,7 @@ if (!$quiet) {
     echo "Dry run:              " . ($dryrun ? 'yes' : 'no') . "\n";
     echo "Aliases only:         " . ($aliasesOnly ? 'yes' : 'no') . "\n";
     echo "Skip aliases:         " . ($noAliases ? 'yes' : 'no') . "\n";
-    echo "Import raw content:   " . ($importRaw ? 'yes (content index only)' : 'yes (with full run)') . "\n";
+    echo "Import raw content:   " . ($importRaw ? 'yes (content index only)' : 'yes (inline with each document)') . "\n";
     echo "----------------------------------------\n";
 }
 
@@ -300,15 +300,11 @@ try {
     });
     $indexer->runIndexing();
 
-    // In a normal (full) run, also ingest the raw-content index so the whole
-    // corpus stays consistent. In --import-raw mode runIndexing() already
-    // performed the content-only ingestion and returned, so we skip this.
-    if (!$config['importRaw']) {
-        if (!$quiet) {
-            echo "Ingesting raw content index (hawaiian-content)...\n";
-        }
-        $indexer->importRaw();
-    }
+    // Note: in a normal (full) run, hawaiian-content is now ingested inline
+    // together with each source's document/sentences (see
+    // CorpusIndexer::ingestRawContentForSources()), so there is no separate
+    // content pass to run here. In --import-raw mode, runIndexing() already
+    // performed the content-only ingestion and returned.
 
     // Ensure production aliases exist after index creation (unless --no-aliases).
     // In content-only mode we must not touch the other indices' aliases.

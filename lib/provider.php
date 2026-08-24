@@ -65,8 +65,8 @@ function getProvider($searchProvider = null) {
     }
 
     if ($providerKey === null) {
-        $valid = implode(", ", array_keys($providers));
-        throw new \Exception("Invalid search provider: $searchProvider. Must be one of $valid");
+        error_log("Unknown search provider requested: $searchProvider; falling back to MySQL");
+        $providerKey = 'MySQL';   // default instead of throwing
     }
     
     return ProviderFactory::create($providerKey, $options);

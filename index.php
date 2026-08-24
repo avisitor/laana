@@ -197,7 +197,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
      //$groupcounts = $provider->getSourceGroupCounts();
      $groupdates = [];
      foreach( $groups as $group ) {
-         $groupdates[$group['groupname']] = $group['date'];
+         $groupdates[$group['groupname']] = $group['date'] ?? date('Y');
      }
 
      if( $doSources ) {
