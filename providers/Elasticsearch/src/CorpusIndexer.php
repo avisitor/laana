@@ -1041,7 +1041,14 @@ class CorpusIndexer
     }
 
     public function importOneRaw( $sourceid ) {
-        $text = $this->fetchRaw( $sourceid );
+        // Ask the assigned source provider: if it supplies raw HTML directly
+        // (capability rawHtml + a reader handle), read it there; otherwise
+        // fall back to the SourceRetriever API path.
+        if ( $this->sourceCapabilities->rawHtml && $this->postgresReader !== null ) {
+            $text = $this->postgresReader->fetchRaw( (int)$sourceid );
+        } else {
+            $text = $this->fetchRaw( $sourceid );
+        }
         if( $text && strlen( $text ) > 0 ) {
             $this->print("Adding raw html for document {$sourceid}...");
             $this->client->indexRaw( $sourceid, $text );
@@ -1102,7 +1109,9 @@ class CorpusIndexer
         }
         $this->client->createContentIndex($this->recreate);
         $index = $this->client->getContentName();
-        $iterator = new SourceIterator( $this->sourceId, $this->groupName );
+        // Route through fetchSourceIterator so the assigned source provider is
+        // queried for capabilities (rawHtml) instead of assuming the API.
+        $iterator = $this->fetchSourceIterator( $this->sourceId );
         $processed = 0;
         $already = 0;
         $skipped = 0;

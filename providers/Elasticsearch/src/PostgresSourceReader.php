@@ -126,4 +126,26 @@ SQL;
             'sentences' => $sentences,
         ];
     }
+
+    /**
+     * Fetch raw HTML for a source from laana.contents (for --import-raw).
+     *
+     * @param int $sourceId Source ID to look up
+     * @return string|null Raw HTML, or null when the row/HTML is missing or empty
+     */
+    public function fetchRaw(int $sourceId): ?string
+    {
+        $conn = $this->pg->conn;
+
+        $sql = 'SELECT html FROM contents WHERE sourceid = :sid';
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([':sid' => $sourceId]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($row === false || !isset($row['html']) || $row['html'] === null || $row['html'] === '') {
+            return null;
+        }
+
+        return (string) $row['html'];
+    }
 }
