@@ -4,7 +4,7 @@ namespace HawaiianSearch;
 
 require_once __DIR__ . '/../../../db/PostgresFuncs.php';
 
-class PostgresSourceIterator
+class PostgresSourceIterator implements SourceProviderInterface
 {
     private $client;
     private $sources = [];
@@ -17,6 +17,16 @@ class PostgresSourceIterator
         }
         $this->client = $client;
         $this->fetchSources($sourceId, $groupName);
+    }
+
+    public function getCapabilities(): SourceCapabilities
+    {
+        $caps = new SourceCapabilities();
+        $caps->sentenceVectors = true;
+        $caps->documentVector384 = true;
+        $caps->documentVector1024 = true;
+        $caps->rawHtml = true;
+        return $caps;
     }
 
     public function getSize(): int

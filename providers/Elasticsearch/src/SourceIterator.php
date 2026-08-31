@@ -4,7 +4,7 @@ namespace HawaiianSearch;
 
 use GuzzleHttp\Client as HttpClient;
 
-class SourceIterator
+class SourceIterator implements SourceProviderInterface
 {
     private $httpClient;
     private $sourceId;
@@ -27,6 +27,14 @@ class SourceIterator
 
         $this->httpClient = new HttpClient();
         $this->fetchSources();
+    }
+
+    public function getCapabilities(): SourceCapabilities
+    {
+        $caps = new SourceCapabilities();
+        $caps->rawHtml = true;
+        // API provides text + html via SourceRetriever, no vectors
+        return $caps;
     }
 
     public function getSize() {

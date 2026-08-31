@@ -43,6 +43,11 @@ class CorpusIndexer
     private ?string $targetIndex = null;
     private int $totalDocuments;
     
+    private SourceCapabilities $sourceCapabilities;
+    /** @var object{conn:\PDO}|null */
+    private ?object $postgresClient = null;
+    private ?PostgresSourceReader $postgresReader = null;
+    
     // Cache for expensive operations
     private array $hawaiianWordSet = []; // Hash set for O(1) lookups
     private array $ratioCache = [];      // Cache Hawaiian word ratios
@@ -78,6 +83,13 @@ class CorpusIndexer
         $this->updateSourceMetadata = $config['updateSourceMetadata'] ?? false;
         $this->importRaw = $config['importRaw'] ?? false;
         $this->useSplitIndices = $config['SPLIT_INDICES'] ?? true; // Always use split indices by default
+
+        $this->sourceCapabilities = new SourceCapabilities();
+        if (($config['source'] ?? 'api') === 'postgres') {
+            require_once __DIR__ . '/../../../db/PostgresFuncs.php';
+            $this->postgresClient = new \PostgresLaana();
+            $this->postgresReader = new PostgresSourceReader($this->postgresClient);
+        }
 
         // Initialize timing arrays - always track performance
         $this->timings = [
@@ -299,10 +311,110 @@ class CorpusIndexer
     private function fetchSourceIterator( $sourceid = 0 )
     {
         if ($this->sourceIndexForReindex) {
-            return new ElasticsearchScrollIterator( $this->client, $this->sourceIndexForReindex );
+            $iterator = new ElasticsearchScrollIterator( $this->client, $this->sourceIndexForReindex );
         } else {
-            return new SourceIterator( $sourceid, $this->groupName );
+            $iterator = new SourceIterator( $sourceid, $this->groupName );
         }
+
+        $this->sourceCapabilities = $iterator instanceof SourceProviderInterface
+            ? $iterator->getCapabilities() : new SourceCapabilities();
+
+        return $iterator;
+    }
+
+    private function processSourceDispatch(array $source, int $indexCounter): ?array
+    {
+        if (!$this->sourceIndexForReindex && $this->sourceCapabilities->hasAnyVector()) {
+            return $this->processSourceWithStoredVectors($source, $indexCounter);
+        }
+        return $this->processSource($source, $indexCounter);
+    }
+
+    private function processSourceWithStoredVectors(array $source, int $indexCounter): ?array
+    {
+        $sourceid = (string)($source['sourceid'] ?? $source['doc_id']) ?? '';
+
+        if ($this->checkMax()) {
+            $this->print("🎯 Reached maximum indexed document limit ({$this->maxDocuments}), stopping.");
+            $this->done = true;
+            return null;
+        }
+
+        if (isset($this->sourceMeta[$sourceid]) && !$this->sourceId) {
+            $discarded = $this->sourceMeta[$sourceid]['discarded'] ?? false;
+            if ($discarded) {
+                $this->print("Skipping discarded {$sourceid}");
+            } else {
+                $this->print("Skipping already indexed {$sourceid}");
+            }
+            if (!$this->dryrun) {
+                return null;
+            }
+        }
+
+        try {
+            $data = $this->postgresReader->readSource((int)$sourceid);
+        } catch (\Throwable $e) {
+            $this->print("❌ Error reading source {$sourceid} from Postgres: " . $e->getMessage());
+            $this->sourceMeta[$sourceid]['discarded'] = true;
+            return null;
+        }
+
+        if ($data === null || empty($data['text'])) {
+            $this->print("⚠️ Skipping: No text for {$sourceid}");
+            $this->sourceMeta[$sourceid]['discarded'] = true;
+            return null;
+        }
+
+        $docHawaiianWordRatio = $data['hawaiian_word_ratio'] ?? $this->calculateHawaiianWordRatio($data['text']);
+        if ($docHawaiianWordRatio < self::MIN_DOC_HAWAIIAN_WORD_RATIO) {
+            $this->print("⚠️ Skipping: Document {$sourceid} has a low Hawaiian word ratio ({$docHawaiianWordRatio}).");
+            $this->sourceMeta[$sourceid]['english_only'] = true;
+            return null;
+        }
+
+        $sentenceObjects = [];
+        foreach ($data['sentences'] as $s) {
+            if (!is_array($s['vector']) || count($s['vector']) !== 384) {
+                $this->print("⚠️ Skipping sentence with invalid vector for {$sourceid}");
+                continue;
+            }
+            $obj = [
+                'text' => $s['text'],
+                'vector' => $s['vector'],
+                'position' => $s['position'],
+                'doc_id' => $sourceid,
+            ];
+            foreach (['hawaiian_word_ratio', 'word_count', 'entity_count', 'boilerplate_score', 'length', 'frequency'] as $m) {
+                if (isset($s[$m]) && $s[$m] !== null) {
+                    $obj[$m] = $s[$m];
+                }
+            }
+            $sentenceObjects[] = $obj;
+        }
+
+        if (empty($sentenceObjects)) {
+            $this->print("⚠️ Skipping: No Hawaiian sentences found for {$sourceid}");
+            $this->sourceMeta[$sourceid]['english_only'] = true;
+            return null;
+        }
+
+        $textVector1024 = $data['text_vector_1024'];
+        if (!is_array($textVector1024) || count($textVector1024) !== 1024) {
+            $textVector1024 = $this->retryEmbeddingOperation(
+                fn() => $this->client->getEmbeddingClient()->embedText($data['text'], 'passage: ', EmbeddingClient::MODEL_LARGE),
+                'embedText', 'text (large) (' . strlen($data['text']) . ' chars)'
+            );
+        }
+
+        return $this->assembleDocSource(
+            $source,
+            $data['text'],
+            $this->buildTextChunks($data['text']),
+            $textVector1024,
+            $sentenceObjects,
+            (float)$docHawaiianWordRatio
+        );
     }
     
     private function fetchSource(string $sourceid, string $type): ?string
@@ -357,6 +469,112 @@ class CorpusIndexer
         $this->ratioCache[$hash] = $ratio;
         
         return $ratio;
+    }
+
+    public function buildTextChunks(string $text): array
+    {
+        $chunks = [];
+        $chunkSize = 30000;
+
+        if (strlen($text) > $chunkSize) {
+            $overlapSize = 500;
+            $position = 0;
+            $chunkIndex = 0;
+            $maxChunks = 20;
+
+            while ($position < strlen($text) && $chunkIndex < $maxChunks) {
+                $remainingText = strlen($text) - $position;
+                $currentChunkSize = min($chunkSize, $remainingText);
+
+                $chunk = substr($text, $position, $currentChunkSize);
+
+                $chunks[] = [
+                    "chunk_index" => $chunkIndex,
+                    "chunk_text" => $chunk,
+                    "chunk_start" => $position,
+                    "chunk_length" => strlen($chunk)
+                ];
+
+                $position += $currentChunkSize - ($position + $currentChunkSize < strlen($text) ? $overlapSize : 0);
+                $chunkIndex++;
+            }
+        } else {
+            $chunks[] = [
+                "chunk_index" => 0,
+                "chunk_text" => $text,
+                "chunk_start" => 0,
+                "chunk_length" => strlen($text)
+            ];
+        }
+
+        return $chunks;
+    }
+
+    public function assembleDocSource(
+        array $source,
+        string $originalText,
+        array $chunks,
+        ?array $textVector1024,
+        array $sentenceObjects,
+        float $docHawaiianWordRatio,
+        ?array $oldTextVector = null
+    ): ?array {
+        $sourceid = (string)($source['sourceid'] ?? $source['doc_id'] ?? '');
+
+        $docSource = [
+            "doc_id" => $sourceid,
+            "groupname" => isset($source['groupname']) ? $source['groupname'] : 'N/A',
+            "sourcename" => isset($source['sourcename']) ? $source['sourcename'] : 'N/A',
+            "text" => strlen($originalText) > 32000 ? substr($originalText, 0, 32000) . "..." : $originalText,
+            "text_chunks" => $chunks,
+            "text_vector_1024" => $textVector1024,
+            "sentences" => $sentenceObjects,
+            "date" => isset($source['date']) ? $source['date'] : '',
+            "authors" => isset($source['authors']) ? $source['authors'] : '',
+            "link" => isset($source['link']) ? $source['link'] : '',
+            "hawaiian_word_ratio" => $docHawaiianWordRatio
+        ];
+
+        if ($oldTextVector) {
+            $docSource["text_vector"] = $oldTextVector;
+        }
+
+        $doc = [
+            "_index" => $this->client->getDocumentsIndexName(),
+            "_id" => $sourceid,
+            "_source" => $docSource,
+        ];
+
+        if (!is_array($doc['_source']['text_vector_1024']) || empty($doc['_source']['text_vector_1024'])) {
+            $this->print("❌ CRITICAL: Document text_vector_1024 is invalid for {$sourceid}!");
+            $this->print("   Type: " . gettype($doc['_source']['text_vector_1024']));
+            return null;
+        }
+
+        if (count($doc['_source']['text_vector_1024']) !== 1024) {
+            $this->print("❌ CRITICAL: Document text_vector_1024 has wrong dimensions for {$sourceid}: " . count($doc['_source']['text_vector_1024']));
+            return null;
+        }
+
+        foreach ($doc['_source']['sentences'] as $idx => $sentence) {
+            if (!is_array($sentence['vector']) || empty($sentence['vector'])) {
+                $this->print("❌ CRITICAL: Sentence {$idx} vector is invalid for {$sourceid}!");
+                $this->print("   Type: " . gettype($sentence['vector']));
+                $this->print("   Value: " . json_encode($sentence['vector']));
+                return null;
+            }
+
+            if (count($sentence['vector']) !== 384) {
+                $this->print("❌ CRITICAL: Sentence {$idx} vector has wrong dimensions for {$sourceid}: " . count($sentence['vector']));
+                return null;
+            }
+        }
+
+        $this->print("✅ All vectors validated for document {$sourceid}: text_vector_1024=" . count($doc['_source']['text_vector_1024']) . "D, " . count($doc['_source']['sentences']) . " sentences with 384D vectors");
+
+        $this->processedDocuments++;
+
+        return $doc;
     }
 
     // Process sentences in batches for embedding efficiency AND extract metadata
@@ -692,114 +910,20 @@ class CorpusIndexer
             
             $oldTextVector = null; // New document, no old vector
 
-            // Handle very long text by chunking for full regex support
             $originalText = $text;
-            $chunks = [];
-            $chunkSize = 30000; // Safe size under 32K limit
-            
-            if (strlen($text) > $chunkSize) {
-                $this->print(  "⚠️  Document {$sourceid} has long text (" . number_format(strlen($originalText)) . " chars), creating chunks for full regex support" );
-                
-                // Split text into overlapping chunks for full regex support
-                $overlapSize = 500; // Smaller overlap
-                $position = 0;
-                $chunkIndex = 0;
-                $maxChunks = 20; // Reasonable limit
-                
-                while ($position < strlen($text) && $chunkIndex < $maxChunks) {
-                    $remainingText = strlen($text) - $position;
-                    $currentChunkSize = min($chunkSize, $remainingText);
-                    
-                    $chunk = substr($text, $position, $currentChunkSize);
-                    
-                    $chunks[] = [
-                        "chunk_index" => $chunkIndex,
-                        "chunk_text" => $chunk,
-                        "chunk_start" => $position,
-                        "chunk_length" => strlen($chunk)
-                    ];
-                    
-                    // Move position forward, accounting for overlap
-                    $position += $currentChunkSize - ($position + $currentChunkSize < strlen($text) ? $overlapSize : 0);
-                    $chunkIndex++;
-                }
-                
-                if ($position < strlen($text)) {
-                    $this->print( "⚠️  Document {$sourceid}: Large document truncated to {$maxChunks} chunks" );
-                }
-            } else {
-                // Document is short enough, use as single chunk
-                $chunks[] = [
-                    "chunk_index" => 0,
-                    "chunk_text" => $text,
-                    "chunk_start" => 0,
-                    "chunk_length" => strlen($text)
-                ];
-            }
+            $chunks = $this->buildTextChunks($text);
 
         }
-            
-        // Document assembly
-        $docSource = [
-            "doc_id" => $sourceid,
-            "groupname" => isset($source['groupname']) ? $source['groupname'] : 'N/A',
-            "sourcename" => isset($source['sourcename']) ? $source['sourcename'] : 'N/A',
-            "text" => strlen($originalText) > 32000 ? substr($originalText, 0, 32000) . "..." : $originalText,  // Truncate main text field for keyword compatibility
-            "text_chunks" => $chunks,  // Store chunks for regex searching (ONLY way to do regex on long docs)
-            "text_vector_1024" => $textVector1024,
-            "sentences" => $sentenceObjects,
-            "date" => isset($source['date']) ? $source['date'] : '',
-            "authors" => isset($source['authors']) ? $source['authors'] : '',
-            "link" => isset($source['link']) ? $source['link'] : '',
-            "hawaiian_word_ratio" => $docHawaiianWordRatio
-        ];
 
-        // Include old text_vector if it exists (for evaluation)
-        if ($oldTextVector) {
-            $docSource["text_vector"] = $oldTextVector;
-        }
-
-        $doc = [
-            "_index" => $this->client->getDocumentsIndexName(),
-            "_id" => $sourceid,
-            "_source" => $docSource,
-        ];
-
-        // Final validation: Check all vectors in the document before indexing
-        if (!is_array($doc['_source']['text_vector_1024']) || empty($doc['_source']['text_vector_1024'])) {
-            $this->print("❌ CRITICAL: Document text_vector_1024 is invalid for {$sourceid}!");
-            $this->print("   Type: " . gettype($doc['_source']['text_vector_1024']));
-            return null;
-        }
-        
-        if (count($doc['_source']['text_vector_1024']) !== 1024) {
-            $this->print("❌ CRITICAL: Document text_vector_1024 has wrong dimensions for {$sourceid}: " . count($doc['_source']['text_vector_1024']));
-            return null;
-        }
-        
-        foreach ($doc['_source']['sentences'] as $idx => $sentence) {
-            if (!is_array($sentence['vector']) || empty($sentence['vector'])) {
-                $this->print("❌ CRITICAL: Sentence {$idx} vector is invalid for {$sourceid}!");
-                $this->print("   Type: " . gettype($sentence['vector']));
-                $this->print("   Value: " . json_encode($sentence['vector']));
-                return null; // Fail the entire document to prevent the error
-            }
-            
-            if (count($sentence['vector']) !== 384) {
-                $this->print("❌ CRITICAL: Sentence {$idx} vector has wrong dimensions for {$sourceid}: " . count($sentence['vector']));
-                return null; // Fail the entire document to prevent the error
-            }
-        }
-        
-        $this->print("✅ All vectors validated for document {$sourceid}: text_vector_1024=" . count($doc['_source']['text_vector_1024']) . "D, " . count($doc['_source']['sentences']) . " sentences with 384D vectors");
-
-        $this->processedDocuments++;
-        
-        // Clear text from memory immediately
-        unset($text);
-        
-        // Record total document processing time (includes all operations)
-        return $doc;
+        return $this->assembleDocSource(
+            $source,
+            $originalText,
+            $chunks,
+            $textVector1024,
+            $sentenceObjects,
+            $docHawaiianWordRatio,
+            $oldTextVector ?? null
+        );
     }
 
     private function verifyDocumentIndexed(string $docId): bool
@@ -1176,7 +1300,7 @@ class CorpusIndexer
                             break 2; // Break out of both loops
                         }
                         
-                        $doc = $this->processSource($source, $global_i);
+                        $doc = $this->processSourceDispatch($source, $global_i);
                         if ($doc) {
                             $actions[] = $doc;
                         }
@@ -1367,7 +1491,7 @@ class CorpusIndexer
 
         // Process the source to get text and sentences (reuse existing logic)
         // Note: processSource() has its own internal timers, no need for broad timer here
-        $docData = $this->processSource($source, $indexCounter);
+        $docData = $this->processSourceDispatch($source, $indexCounter);
         if (!$docData) {
             return null;
         }
