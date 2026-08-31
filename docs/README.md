@@ -42,3 +42,25 @@ Provider selection and connection settings live in `.env` (`PROVIDER`,
 `DB_*` for MySQL, `PG_*` for Postgres, `EMBEDDING_SERVICE_URL`,
 `NOIIOLELO_API_BASE_URL`). See `lib/provider.php` for how a provider is
 chosen and constructed.
+
+### OpenSearch API keys
+
+OpenSearch has no Elasticsearch-style `_security/api_key` endpoint; it uses
+its own API tokens. `bin/os-api-key.sh` mints one and caches it in
+`~/.cache/opensearch-api-key-<name>`, so repeated invocations (e.g. from
+`~/opensearch/env`) return the same key instead of minting a new one each
+run — revoked tokens still count toward the cluster's `max_tokens` cap, so
+minting per call would eventually wedge the cluster. Use `--force` to rotate
+deliberately. Send the key as `Authorization: apikey <token>` — **not**
+`Bearer` — and note tokens expire (90-day maximum) and are shown only once,
+so the cached copy is the only recoverable one.
+
+Two restrictions on what a token can access:
+
+- The token authenticates as `token:<name>` with no inherited roles. Its only
+  grants are read/monitor plus alias/mapping reads (see the payload in the
+  script); widen them there if a consumer needs more.
+- Requests that span all indices must exclude the protected system indices
+  (`.*`) — use `_cat/indices/*,-.*` and `/*,-.*/_alias` rather than the bare
+  forms. Otherwise they fail with 403 `indices:monitor/settings/get`, even
+  with full `*` grants.
