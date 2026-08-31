@@ -226,9 +226,17 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                             require_once __DIR__ . '/lib/provider.php';
                             $known = getKnownProviders();
                             // In grammar view, default to MySQL
+                            // Resolve ?provider= case-insensitively to the canonical provider name
                             $grammarProvider = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'MySQL';
+                            $grammarProviderKey = 'MySQL';
                             foreach (array_keys($known) as $provName) {
-                                $selected = ($grammarProvider === $provName) ? 'selected' : '';
+                                if( strcasecmp( $grammarProvider, $provName ) === 0 ) {
+                                    $grammarProviderKey = $provName;
+                                    break;
+                                }
+                            }
+                            foreach (array_keys($known) as $provName) {
+                                $selected = ($grammarProviderKey === $provName) ? 'selected' : '';
                                 echo "<option value=\"$provName\" $selected>$provName</option>";
                             }
                         ?>
@@ -258,17 +266,18 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                 </div>
                 <div>
                     <label for="grammar-sort-by" style="display:block; font-size:0.85em; color:#333; font-weight:600;">Sort by:</label>
+                    <?php
+                        // Allow ?grammar&sortorder=<value> to preselect the sort order (falls back to ?order=)
+                        $grammarSorts = array( 'rand' => 'Random', 'alpha' => 'Alpha', 'alpha desc' => 'Alpha desc', 'date' => 'Date', 'date desc' => 'Date desc', 'source' => 'Source', 'source desc' => 'Source desc', 'length' => 'Length', 'length desc' => 'Length desc', 'none' => 'None' );
+                        $sortorder = isset($_GET['sortorder']) ? $_GET['sortorder'] : $order;
+                        if( !array_key_exists( $sortorder, $grammarSorts ) ) {
+                            $sortorder = 'rand';
+                        }
+                    ?>
                     <select id="grammar-sort-by" class="dd-menu" style="font-size:0.85em; width:10em;">
-                        <option value="rand" <?=($order == 'rand') ? 'selected' : ''?>>Random</option>
-                        <option value="alpha" <?=($order == 'alpha') ? 'selected' : ''?>>Alpha</option>
-                        <option value="alpha desc" <?=($order == 'alpha desc') ? 'selected' : ''?>>Alpha desc</option>
-                        <option value="date" <?=($order == 'date') ? 'selected' : ''?>>Date</option>
-                        <option value="date desc" <?=($order == 'date desc') ? 'selected' : ''?>>Date desc</option>
-                        <option value="source" <?=($order == 'source') ? 'selected' : ''?>>Source</option>
-                        <option value="source desc" <?=($order == 'source desc') ? 'selected' : ''?>>Source desc</option>
-                        <option value="length" <?=($order == 'length') ? 'selected' : ''?>>Length</option>
-                        <option value="length desc" <?=($order == 'length desc') ? 'selected' : ''?>>Length desc</option>
-                        <option value="none" <?=($order == 'none') ? 'selected' : ''?>>None</option>
+                        <?php foreach( $grammarSorts as $sortValue => $sortLabel ) { ?>
+                        <option value="<?=$sortValue?>" <?=($sortorder == $sortValue) ? 'selected' : ''?>><?=$sortLabel?></option>
+                        <?php } ?>
                     </select>
                 </div>
             </div>
@@ -279,6 +288,8 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 <script>
 // Grammar view JavaScript
 var grammarInfiniteScroll = null;
+// Pattern requested via URL parameter, e.g. ?grammar&provider=MySQL&pattern=pepeke_aike_he&sortorder=date
+var grammarRequestedPattern = new URLSearchParams(window.location.search).get('pattern');
 
 function grammarProviderSelected(selectElement) {
     let providerName = selectElement.value;
@@ -349,6 +360,15 @@ function updateGrammarPatterns(providerName) {
                     patternSelect.appendChild(option);
                 });
                 goButton.disabled = false;
+                // Preselect pattern from URL parameter and auto-load results once
+                if( grammarRequestedPattern ) {
+                    let requestedOption = Array.from(patternSelect.options).find(opt => opt.value === grammarRequestedPattern);
+                    if( requestedOption ) {
+                        patternSelect.value = grammarRequestedPattern;
+                        loadGrammarResults();
+                    }
+                    grammarRequestedPattern = null; // Only attempt once
+                }
             }
         })
         .catch(error => {
