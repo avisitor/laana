@@ -312,6 +312,8 @@ class CorpusIndexer
     {
         if ($this->sourceIndexForReindex) {
             $iterator = new ElasticsearchScrollIterator( $this->client, $this->sourceIndexForReindex );
+        } elseif (($this->config['source'] ?? 'api') === 'postgres') {
+            $iterator = new PostgresSourceIterator( $sourceid, $this->groupName, $this->postgresClient );
         } else {
             $iterator = new SourceIterator( $sourceid, $this->groupName );
         }
@@ -340,15 +342,21 @@ class CorpusIndexer
             return null;
         }
 
-        if (isset($this->sourceMeta[$sourceid]) && !$this->sourceId) {
-            $discarded = $this->sourceMeta[$sourceid]['discarded'] ?? false;
-            if ($discarded) {
-                $this->print("Skipping discarded {$sourceid}");
+        if ( !$this->dryrun ) {
+            if ( isset( $this->sourceMeta[$sourceid] ) ) {
+                if( !$this->sourceId ) {
+                    $meta = $this->sourceMeta[$sourceid];
+                    $discarded = ($meta['_source']['discarded'] ?? $meta['discarded'] ?? false);
+                    if( $discarded ) {
+                        $this->print( "Skipping discarded {$sourceid}" );
+                    } else {
+                        $this->print( "Skipping already indexed {$sourceid}" );
+                        $this->backfillRawContentIfMissing($sourceid);
+                    }
+                    return null;
+                }
             } else {
-                $this->print("Skipping already indexed {$sourceid}");
-            }
-            if (!$this->dryrun) {
-                return null;
+                $this->sourceMeta[$sourceid] = $source;
             }
         }
 
@@ -1458,7 +1466,8 @@ class CorpusIndexer
         // already-completed, expensive embedding work). --source-id explicitly
         // targets one source and is expected to always force a reprocess.
         if( isset( $this->sourceMeta[$sourceid] ) && !$this->sourceId ) {
-            $discarded = $this->sourceMeta[$sourceid]['discarded'] ?? false;
+            $meta = $this->sourceMeta[$sourceid];
+            $discarded = ($meta['_source']['discarded'] ?? $meta['discarded'] ?? false);
             if( $discarded ) {
                 $this->print( "Skipping discarded {$sourceid}" );
             } else {
