@@ -16,7 +16,8 @@ class PostgresSourceIterator implements SourceProviderInterface
             $client = new \PostgresLaana();
         }
         $this->client = $client;
-        $this->fetchSources($sourceId, $groupName);
+        // runIndexing passes 0 to mean "no filter" (SourceIterator convention).
+        $this->fetchSources($sourceId ?: null, $groupName);
     }
 
     public function getCapabilities(): SourceCapabilities

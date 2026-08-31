@@ -95,6 +95,7 @@ $longOptions = [
     'aliases-only',             // Only recreate aliases without touching indices
     'no-aliases',               // Skip alias creation after index creation
     'provider:',                // Search provider: Elasticsearch or OpenSearch
+    'source:',                  // Source: api (MySQL HTTP API) or postgres (stored vectors)
     'import-raw',               // Ingest only the raw-content index (hawaiian-content) without touching other indices
 ];
 
@@ -139,6 +140,15 @@ $importRaw = isset($options['import-raw']);
 $provider = $options['provider'] ?? $_ENV['PROVIDER'] ?? 'Elasticsearch';
 $isOpenSearch = in_array(strtolower($provider), ['opensearch', 'os'], true);
 
+// Source: --source selects where documents, sentences, and vectors come from.
+// 'api' (default) reads from the MySQL HTTP API and embeds live; 'postgres'
+// reads text, sentences, and stored vectors from the laana Postgres schema.
+$source = $options['source'] ?? 'api';
+if (!in_array($source, ['api', 'postgres'], true)) {
+    fwrite(STDERR, "Error: --source expects 'api' or 'postgres', got '{$source}'.\n");
+    exit(1);
+}
+
 $config = [
     'COLLECTION_NAME' => $options['collection-name'] ?? 'hawaiian',
     'SPLIT_INDICES' => isset($options['no-split-indices']) ? false : true,
@@ -155,6 +165,7 @@ $config = [
     'updateSourceMetadata' => false,
     'importRaw' => $importRaw,
     'dryrun' => $dryrun,
+    'source' => $source,
 ];
 
 // ---------------------------------------------------------------------------
@@ -166,6 +177,7 @@ if (!$quiet) {
     echo "========================================\n";
     echo "Collection name:      {$config['COLLECTION_NAME']}\n";
     echo "Provider:             {$provider}\n";
+    echo "Source:               {$source}\n";
     echo "Split indices:        " . ($config['SPLIT_INDICES'] ? 'yes' : 'no') . "\n";
     echo "Batch size:           {$config['BATCH_SIZE']}\n";
     echo "Sentence batch size:  {$config['SENTENCE_BATCH_SIZE']}\n";
@@ -367,6 +379,7 @@ Options:
   --aliases-only             Only recreate aliases without touching indices
   --no-aliases               Skip alias creation after index creation
   --provider=NAME            Search provider: Elasticsearch or OpenSearch (default: Elasticsearch)
+  --source=NAME              Source of documents/vectors: api (default) or postgres
   --import-raw               Ingest ONLY the raw-content index (hawaiian-content) without touching the other indices
   --help                     Show this help message
 
@@ -377,6 +390,7 @@ Examples:
   php scripts/createindex.php --group-name=kauakukalahale --dryrun
   php scripts/createindex.php --aliases-only
   php scripts/createindex.php --recreate --provider=opensearch
+  php scripts/createindex.php --recreate --source=postgres --dryrun
 
 Exit codes:
   0    Success

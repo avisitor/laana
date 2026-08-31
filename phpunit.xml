@@ -28,6 +28,9 @@
         <testsuite name="Source">
             <directory>tests/Source</directory>
         </testsuite>
+        <testsuite name="Cli">
+            <directory>tests/Cli</directory>
+        </testsuite>
     </testsuites>
     
     <source>
