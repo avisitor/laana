@@ -32,7 +32,7 @@ class PostgresSentenceIndexer
         $this->pg = new PostgresClient($config);
         $batch = (int)($config['BATCH_SIZE'] ?? 100);
         $this->iterator = new PostgresSentenceIterator($this->pg, $batch);
-        $hawaiianWordsPath = __DIR__ . '/../hawaiian_words.txt';
+        $hawaiianWordsPath = __DIR__ . '/../../hawaiian_words.txt';
         $this->metrics = new MetricsComputer($hawaiianWordsPath);
     }
 

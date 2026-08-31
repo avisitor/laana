@@ -4,7 +4,9 @@ namespace Noiiolelo\Providers\Postgres;
 
 require_once __DIR__ . '/PostgresClient.php';
 require_once __DIR__ . '/PostgresDocumentIterator.php';
-require_once __DIR__ . '/MetricsComputer.php';
+require_once __DIR__ . '/../../lib/MetricsComputer.php';
+
+use Noiiolelo\MetricsComputer;
 
 class PostgresDocumentIndexer
 {
@@ -30,7 +32,7 @@ class PostgresDocumentIndexer
         $this->pg = new PostgresClient($config);
         $batch = (int)($config['BATCH_SIZE'] ?? 100);
         $this->iterator = new PostgresDocumentIterator($this->pg, $batch);
-        $hawaiianWordsPath = __DIR__ . '/../hawaiian_words.txt';
+        $hawaiianWordsPath = __DIR__ . '/../../hawaiian_words.txt';
         $this->metrics = new MetricsComputer($hawaiianWordsPath);
     }
 

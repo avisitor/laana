@@ -4,13 +4,13 @@
 // Use --force to reindex all records.
 // Use --sentences or --documents to process only one type (default: both).
 
-require_once __DIR__ . '/../lib/PostgresClient.php';
-require_once __DIR__ . '/../lib/PostgresSentenceIndexer.php';
-require_once __DIR__ . '/../lib/PostgresDocumentIndexer.php';
+require_once __DIR__ . '/../providers/Postgres/PostgresClient.php';
+require_once __DIR__ . '/../providers/Postgres/PostgresSentenceIndexer.php';
+require_once __DIR__ . '/../providers/Postgres/PostgresDocumentIndexer.php';
 
-use HawaiianSearch\PostgresClient;
-use HawaiianSearch\PostgresSentenceIndexer;
-use HawaiianSearch\PostgresDocumentIndexer;
+use Noiiolelo\Providers\Postgres\PostgresClient;
+use Noiiolelo\Providers\Postgres\PostgresSentenceIndexer;
+use Noiiolelo\Providers\Postgres\PostgresDocumentIndexer;
 
 // Parse arguments
 $args = [
