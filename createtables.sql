@@ -17,7 +17,7 @@ CREATE TABLE `sentences` (
 CREATE TABLE `sentence_patterns` (
   `patternid` int(11) NOT NULL AUTO_INCREMENT,
   `sentenceid` bigint(20) DEFAULT NULL,
-  `pattern_type` text NOT NULL,
+  `pattern_type` varchar(30) NOT NULL,
   `signature` text DEFAULT NULL,
   `confidence` float DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -36,9 +36,8 @@ CREATE TABLE `sources` (
   `title` varchar(200) DEFAULT NULL,
   `date` date DEFAULT NULL,
   PRIMARY KEY (`sourceID`),
-  UNIQUE KEY `sourceID` (`sourceID`),
   UNIQUE KEY `link` (`link`) USING HASH,
-  KEY `date` (`date`)
+  KEY `idx_sources_date_sourceid` (`date`,`sourceID`)  
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 CREATE TABLE `searchstats` (

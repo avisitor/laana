@@ -32,9 +32,17 @@ A modern, responsive web application for reviewing processed Hawaiian documents 
 
 ## API Integration
 
-The app integrates with the noiiolelo.org API:
-- **Document list**: `https://noiiolelo.org/api.php/sources?details`
-- **Document content**: `https://noiiolelo.org/api.php/source/{sourceid}/plain`
+The app integrates with the noiiolelo JSON API (base
+`https://noiiolelo.worldspot.org/api.php`, see `review/script.js`):
+- **Document list**: `api.php/sources?details`
+- **Plain text**: `api.php/source/{sourceid}/plain`
+- **Sentences**: `api.php/source/{sourceid}/sentences`
+- **Original HTML**: `api.php/source/{sourceid}/html`
+
+## URL parameters
+
+- `?sourceid=<id>` — open a specific document on load
+- `?group=<name>` — preselect a group filter and open its first document
 
 ## Files
 

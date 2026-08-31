@@ -1,0 +1,20 @@
+{
+  "verbs": [
+    "manao", "hana", "noho", "hoale", "kaui", "hoonee", "lili", "lalau",
+    "hoohewa", "hoohuikau", "hiki", "hele", "iho", "ike", "loaa", "lilo",
+    "pau", "make", "ola", "huli", "puni", "hawi", "inu", "nana", "olelo",
+    "kuli", "ku", "waiho", "haalele", "hoi", "kii", "lawe", "haawi",
+    "hookomo", "paa", "hookipa", "kukulu", "ai"
+  ],
+  "articles": ["ka", "ke", "kē", "na", "nā", "he", "mau"],
+  "demonstratives": ["kela", "keia", "kēia", "kēlā", "kēnā", "kekahi", "kahi", "kau", "ia", "anei"],
+  "locatives": ["laila", "loko", "waho", "uka", "lalo", "luna", "kai", "waena"],
+  "prepositions": ["i", "ma", "me", "no"],
+  "possessive_prepositions": ["o", "a", "ō", "ā"],
+  "conjunctions": ["a", "ame", "amo", "aka", "akā", "alaila", "auanei", "nolaila", "oiai", "no"],
+  "particles": ["ua", "e", "i", "nei", "nō", "pū", "wale", "paha", "pēlā", "la"],
+  "directionals": ["mai", "aku", "iho", "aʻe", "ake"],
+  "possessives": ["kona", "kāna", "koʻu", "kāu", "kaʻu", "kō", "kā", "ko", "ka"],
+  "negatives": ["aole", "mai"],
+  "tense_particles": ["ua", "e", "ke", "i"]
+}

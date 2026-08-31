@@ -15,19 +15,21 @@ This test suite validates the core functionality of Noiiolelo through PHPUnit te
 ```
 tests/
 ├── bootstrap.php              # Test initialization and helpers
-├── phpunit.xml               # PHPUnit configuration
-├── TEST_PLAN.md             # Detailed test planning document
-├── run-tests.sh             # Test runner script
-├── test-report.html         # HTML report template
-├── Provider/                # Provider interface tests
-│   └── ProviderInterfaceTest.php
-├── Search/                  # Search functionality tests
-│   └── SearchFunctionalityTest.php
-├── API/                     # API endpoint tests
-│   └── APIEndpointTest.php
-└── Integration/             # Integration tests
-    └── OpsEndpointTest.php
+├── run-tests.sh               # Test runner with console + report output
+├── test-report.html           # HTML report viewer
+├── reports/                   # Generated run reports (timestamped, auto-cleaned)
+├── Provider/                  # Provider interface tests (incl. Elasticsearch/OpenSearch subdirs)
+├── Search/                    # Search functionality tests
+├── API/                       # API endpoint tests
+├── Integration/               # End-to-end workflow tests
+├── Database/                  # Database-layer tests
+├── Minimal/                   # Minimal smoke tests
+└── Indexing/                  # Indexing tests (ElasticsearchClient, iterators, highlighting, ...)
 ```
+
+Suites are configured in the repo-root `phpunit.xml`: `Provider`, `Search`,
+`API`, `Integration`, `Indexing`. Provider/Indexing tests run against the
+live services from `.env` and skip when those are not reachable.
 
 ## Running Tests
 
@@ -68,12 +70,13 @@ cd /var/www/html/noiiolelo
 
 ## Test Output
 
-The test runner produces multiple output formats:
+The test runner produces:
 
 1. **Console Output**: Colorized summary with pass/fail counts
-2. **JSON Results**: `tests/results/test-results.json`
-3. **JUnit XML**: `tests/results/junit.xml`
-4. **HTML Report**: Open `tests/test-report.html` in browser (loads JSON)
+2. **JUnit XML**: `tests/reports/junit-<timestamp>.xml`
+3. **Console transcript**: `tests/reports/test-report-<timestamp>.txt`
+
+Reports older than 7 days are cleaned up automatically after each run.
 
 ### Viewing HTML Report
 
@@ -90,14 +93,14 @@ Or access via your web server if configured.
 
 ## Test Categories
 
-### Provider Tests (9 tests)
+### Provider Tests
 - Provider loading and initialization
 - Provider switching
 - Required method implementation
 - Search mode availability
 - Corpus statistics
 
-### Search Tests (13 tests)
+### Search Tests
 - Exact match search
 - Any word search
 - All words search
@@ -108,19 +111,25 @@ Or access via your web server if configured.
 - Pagination
 - Result counting
 
-### API Tests (8 tests)
+### API Tests
 - Sources endpoint
 - Result count endpoint
 - Page HTML endpoint
 - Provider parameter handling
 - Error handling
 
-### Integration Tests (10 tests)
+### Integration Tests
 - End-to-end search workflows
 - Provider consistency
 - Pagination and ordering
 - Multiple consecutive requests
 - Vector search integration
+
+### Indexing Tests
+- ElasticsearchClient operations (bulk, delete, grammar patterns/matches)
+- Index schema and alias management
+- Source/document iterators
+- Highlighting behavior
 
 ## Requirements
 
@@ -140,7 +149,7 @@ composer install
 
 ## Test Configuration
 
-Test behavior can be configured in `phpunit.xml`:
+Test behavior can be configured in `phpunit.xml` (repo root):
 
 ```xml
 <testsuites>
@@ -148,6 +157,7 @@ Test behavior can be configured in `phpunit.xml`:
     <testsuite name="Search">...</testsuite>
     <testsuite name="API">...</testsuite>
     <testsuite name="Integration">...</testsuite>
+    <testsuite name="Indexing">...</testsuite>
 </testsuites>
 ```
 

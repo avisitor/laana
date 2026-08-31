@@ -971,7 +971,7 @@ class Laana extends DB {
     }
 
     public function getGrammarMatches( $pattern, $limit = 0, $offset = 0, $options = [] ): array {
-        $sql = 'select sp.*, s.hawaiiantext, s.englishtext, s.sourceid, src.sourcename, src.date, src.authors, src.link ' .
+        $sql = 'select STRAIGHT_JOIN sp.*, s.hawaiiantext, s.englishtext, s.sourceid, src.sourcename, src.date, src.authors, src.link ' .
                'from sentence_patterns sp ' .
                'join sentences s on sp.sentenceid = s.sentenceid ' .
                'join sources src on s.sourceid = src.sourceid ' .

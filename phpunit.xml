@@ -25,6 +25,9 @@
         <testsuite name="Indexing">
             <directory>tests/Indexing</directory>
         </testsuite>
+        <testsuite name="Source">
+            <directory>tests/Source</directory>
+        </testsuite>
     </testsuites>
     
     <source>

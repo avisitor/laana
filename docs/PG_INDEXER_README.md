@@ -18,7 +18,7 @@ The Postgres indexer system backfills the Postgres database with data from MySQL
 3. **PostgresDocumentIterator.php** - Iterates over documents needing embeddings/metrics
 4. **PostgresSentenceIndexer.php** - Processes sentence batches with embeddings and metrics
 5. **PostgresDocumentIndexer.php** - Processes document batches with embeddings and metrics
-6. **MetricsComputer.php** - Computes Hawaiian language metrics
+6. **MetricsComputer.php** (in `lib/`) - Computes Hawaiian language metrics
    - `computeSentenceMetrics()` - For individual sentences
    - `computeDocumentMetrics()` - For full documents
 
@@ -71,7 +71,7 @@ php scripts/pg_indexer.php --write --out-json /tmp/indexer_results.json
 By default, the indexer only processes records that are missing embeddings or metrics (incremental mode).
 
 ```bash
-# Force reindex all records (NOT YET IMPLEMENTED - future feature)
+# Force reindex all records, not just those missing embeddings/metrics
 php scripts/pg_indexer.php --write --force
 ```
 

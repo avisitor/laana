@@ -65,7 +65,25 @@ try {
         $displaySentence = $hawaiiantext;
         if ($regex) {
             $displaySentence = preg_replace_callback($regex, function($matches) {
-                return "<span class='match'>" . $matches[0] . "</span>";
+                $full = $matches[0];
+                $prefix = '';
+                $suffix = '';
+                // When the match is mid-sentence, the regex's leading group
+                // (^|[,:;])\s* consumes a preceding delimiter (and whitespace).
+                // Keep that delimiter + whitespace OUTSIDE the highlight so we
+                // emphasize the grammatical pattern, not the punctuation.
+                if (preg_match('/^[,:;]\s*/u', $full, $pre)) {
+                    $prefix = $pre[0];
+                    $full = substr($full, strlen($prefix));
+                }
+                // Likewise, when the match is followed by a delimiter, keep the
+                // trailing , ; or : (and any whitespace just before it) outside
+                // the highlight.
+                if (preg_match('/\s*[,:;]$/u', $full, $post)) {
+                    $suffix = $post[0];
+                    $full = substr($full, 0, -strlen($suffix));
+                }
+                return $prefix . "<span class='match'>" . $full . "</span>" . $suffix;
             }, $hawaiiantext);
         }
         
