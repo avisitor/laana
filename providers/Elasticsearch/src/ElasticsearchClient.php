@@ -54,7 +54,6 @@ class ElasticsearchClient {
         }
 
         $mustNot = [
-            ['terms' => ['groupname.keyword' => $blockedTerms]],
             ['terms' => ['groupname' => $blockedTerms]]
         ];
 
@@ -957,7 +956,7 @@ class ElasticsearchClient {
                 'body' => [
                     'query' => [
                         'term' => [
-                            'groupname.keyword' => $groupname
+                            'groupname' => $groupname
                         ]
                     ]
                 ],
@@ -975,7 +974,7 @@ class ElasticsearchClient {
                 'body' => [
                     'query' => [
                         'term' => [
-                            'groupname.keyword' => $groupname
+                            'groupname' => $groupname
                         ]
                     ]
                 ],
@@ -993,7 +992,7 @@ class ElasticsearchClient {
                 'body' => [
                     'query' => [
                         'term' => [
-                            'groupname.keyword' => $groupname
+                            'groupname' => $groupname
                         ]
                     ]
                 ],
@@ -1029,7 +1028,7 @@ class ElasticsearchClient {
                 'body' => [
                     'query' => [
                         'term' => [
-                            'doc_id.keyword' => $docId
+                            'doc_id' => $docId
                         ]
                     ]
                 ],
@@ -1749,7 +1748,7 @@ class ElasticsearchClient {
                 ],
                 'query' => [
                     'term' => [
-                        'doc_id.keyword' => $sourceid
+                        'doc_id' => $sourceid
                     ]
                 ],
                 'sort' => [
@@ -1890,7 +1889,7 @@ class ElasticsearchClient {
                 'aggs' => [
                     'group_by_groupname' => [
                         'terms' => [
-                            'field' => 'groupname.keyword',
+                            'field' => 'groupname',
                             'size' => 10000 // Adjust size as needed
                         ],
                         'aggs' => [
@@ -1941,7 +1940,7 @@ class ElasticsearchClient {
                 'aggs' => [
                     'group_by_groupname' => [
                         'terms' => [
-                            'field' => 'groupname.keyword',
+                            'field' => 'groupname',
                             'size' => 10000 // Adjust size as needed
                         ]
                     ]
@@ -1981,7 +1980,7 @@ class ElasticsearchClient {
                 'aggs' => [
                     'group_by_groupname' => [
                         'terms' => [
-                            'field' => 'groupname.keyword',
+                            'field' => 'groupname',
                             'size' => 10000 // Adjust size as needed
                         ]
                     ]
@@ -2137,7 +2136,7 @@ class ElasticsearchClient {
                 'aggs' => [
                     'patterns' => [
                         'terms' => [
-                            'field' => 'grammar_patterns.keyword',
+                            'field' => 'grammar_patterns',
                             'size' => 1000
                         ]
                     ]
@@ -2183,7 +2182,7 @@ class ElasticsearchClient {
                 'query' => [
                     'bool' => [
                         'must' => [
-                            ['term' => ['grammar_patterns.keyword' => $pattern]]
+                            ['term' => ['grammar_patterns' => $pattern]]
                         ]
                     ]
                 ]
@@ -2204,19 +2203,21 @@ class ElasticsearchClient {
         }
 
         // Add ordering
+        // Note: this index maps keyword fields directly (no .keyword subfields);
+        // the keyword variant of `text` is `text.raw`.
         $order = $options['order'] ?? 'rand';
         if ($order === 'alpha') {
-            $params['body']['sort'] = [['text.keyword' => 'asc']];
+            $params['body']['sort'] = [['text.raw' => 'asc']];
         } else if ($order === 'alpha desc') {
-            $params['body']['sort'] = [['text.keyword' => 'desc']];
+            $params['body']['sort'] = [['text.raw' => 'desc']];
         } else if ($order === 'date') {
-            $params['body']['sort'] = [['date' => 'asc'], ['text.keyword' => 'asc']];
+            $params['body']['sort'] = [['date' => 'asc'], ['text.raw' => 'asc']];
         } else if ($order === 'date desc') {
-            $params['body']['sort'] = [['date' => 'desc'], ['text.keyword' => 'desc']];
+            $params['body']['sort'] = [['date' => 'desc'], ['text.raw' => 'desc']];
         } else if ($order === 'source') {
-            $params['body']['sort'] = [['sourcename.keyword' => 'asc'], ['text.keyword' => 'asc']];
+            $params['body']['sort'] = [['sourcename' => 'asc'], ['text.raw' => 'asc']];
         } else if ($order === 'source desc') {
-            $params['body']['sort'] = [['sourcename.keyword' => 'desc'], ['text.keyword' => 'asc']];
+            $params['body']['sort'] = [['sourcename' => 'desc'], ['text.raw' => 'asc']];
         } else if ($order === 'length') {
             $params['body']['sort'] = [['length' => 'asc']];
         } else if ($order === 'length desc') {
@@ -3347,7 +3348,7 @@ private function formatResults(array $response, string $mode,
             $report['max_in_documents'] = $maxInDocuments;
             $this->print("  Scanned $documentsScanned documents, found " . count($report['orphaned_documents']) . " orphans, max ID: $maxInDocuments");
             
-            // Check sentences for orphans using aggregation on doc_id.keyword
+            // Check sentences for orphans using aggregation on doc_id
             $this->debuglog("Phase 3/4: Aggregating unique doc_ids from sentences index...");
             $this->print("Phase 3/4: Aggregating unique doc_ids from sentences index...");
             $maxInSentences = 0;
@@ -3364,7 +3365,7 @@ private function formatResults(array $response, string $mode,
                                 'composite' => [
                                     'size' => 10000,
                                     'sources' => [
-                                        ['doc_id' => ['terms' => ['field' => 'doc_id.keyword']]]
+                                        ['doc_id' => ['terms' => ['field' => 'doc_id']]]
                                     ]
                                 ]
                             ]
@@ -3467,7 +3468,7 @@ private function formatResults(array $response, string $mode,
                                 'composite' => [
                                     'size' => 10000,
                                     'sources' => [
-                                        ['doc_id' => ['terms' => ['field' => 'doc_id.keyword']]]
+                                        ['doc_id' => ['terms' => ['field' => 'doc_id']]]
                                     ]
                                 ]
                             ]
@@ -3579,7 +3580,7 @@ private function formatResults(array $response, string $mode,
                     'body' => [
                         'query' => [
                             'term' => [
-                                'doc_id.keyword' => $sourceId
+                                'doc_id' => $sourceId
                             ]
                         ]
                     ]

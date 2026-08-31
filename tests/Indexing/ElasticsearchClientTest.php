@@ -58,4 +58,20 @@ class ElasticsearchClientTest extends BaseTestCase
         $this->assertIsArray($result);
         $this->assertEmpty($result);
     }
+
+    public function testGetGrammarPatternsReturnsPopulatedPatterns(): void
+    {
+        $patterns = $this->esClient->getGrammarPatterns();
+
+        $this->assertNotEmpty(
+            $patterns,
+            'getGrammarPatterns() returned an empty list — the aggregation field does not match the index mapping for grammar_patterns'
+        );
+
+        foreach (array_slice($patterns, 0, 5) as $row) {
+            $this->assertArrayHasKey('pattern_type', $row);
+            $this->assertArrayHasKey('count', $row);
+            $this->assertGreaterThan(0, $row['count']);
+        }
+    }
 }

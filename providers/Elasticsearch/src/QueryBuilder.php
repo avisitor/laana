@@ -137,10 +137,9 @@ class QueryBuilder
         // Add sorting if specified
         if (!empty($options['sort']) && is_array($options['sort'])) {
             $sorts = [];
-            // Add 'text' and 'text.keyword' to valid sort fields for alphabetical sorting
-            $validSortFields = ['date', 'authors', 'sourcename', 'groupname', 'length', 'sentences.text.keyword', 'text', 'text.keyword'];
-            // Map fields that need .keyword suffix for sorting
-            $keywordFields = ['sourcename', 'groupname', 'authors', 'sentences.text', 'text'];
+            // Input names accepted for sorting; keyword fields in this index map
+            // directly (no .keyword subfields); the keyword variant of `text` is `text.raw`
+            $validSortFields = ['date', 'authors', 'sourcename', 'groupname', 'length', 'sentences.text', 'text', 'text.raw'];
             
             // Handle special sorting modes
             if (isset($options['sort']['_special'])) {
@@ -169,12 +168,12 @@ class QueryBuilder
                 // Handle regular field-based sorting
                 foreach ($options['sort'] as $field => $order) {
                     if (in_array($field, $validSortFields) && in_array(strtolower($order), ['asc', 'desc'])) {
-                        // For 'text' and 'text.keyword', always use 'text.keyword' for sorting
-                        if ($field === 'text' || $field === 'text.keyword') {
-                            $sorts[] = ['text.keyword' => ['order' => strtolower($order)]];
+                        // `text` sorts on its `text.raw` keyword subfield;
+                        // other keyword fields (sourcename, groupname, authors) map directly
+                        if ($field === 'text') {
+                            $sorts[] = ['text.raw' => ['order' => strtolower($order)]];
                         } else {
-                            $sortField = in_array($field, $keywordFields) ? $field . '.keyword' : $field;
-                            $sorts[] = [$sortField => ['order' => strtolower($order)]];
+                            $sorts[] = [$field => ['order' => strtolower($order)]];
                         }
                     }
                 }

@@ -190,8 +190,8 @@ class ElasticsearchProvider extends AbstractSearchProvider {
                     switch ($part) {
                         case 'hawaiiantext':
                         case 'alpha':
-                            // For sentence-level queries, use 'text.keyword' and respect direction
-                            $sortOptions['text.keyword'] = $direction;
+                            // For sentence-level queries, sort on the `text.raw` keyword subfield
+                            $sortOptions['text.raw'] = $direction;
                             break;
                         case 'sourcename':
                         case 'source':
