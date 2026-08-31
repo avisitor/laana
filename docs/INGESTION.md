@@ -13,6 +13,13 @@ External web sites (Ulukau, Nupepa, Kauakukalahale, Ke Ao Lama, ...)
    MySQL Laana DB  ──── scripts/createindex.php ────►  Elasticsearch indices
         │              (reads via the site API,        (documents, sentences,
         │               provider=MySQL)                 content, metadata)
+        │                    ▲
+        │                    │ --source=postgres (stored vectors, no live embedding)
+        │                    │
+   Postgres laana schema ────┘
+        │  (replicated via scripts/repopulate_pg_from_mysql.php,
+        │   vectors backfilled via scripts/pg_indexer.php and
+        │   scripts/backfill_pg_doc_vectors_1024.php)
         │
         └── scripts/save.php --provider=es ───────────►  Elasticsearch indices
             (scrapes the web directly, skips MySQL)
@@ -68,11 +75,44 @@ php scripts/createindex.php --group-name=kauakukalahale
 php scripts/createindex.php --import-raw              # hawaiian-content index only
 php scripts/createindex.php --aliases-only            # recreate production aliases only
 php scripts/createindex.php --provider=opensearch     # target OpenSearch instead of Elasticsearch
+php scripts/createindex.php --source=postgres         # read text/vectors from Postgres (see below)
 ```
 
 Other flags: `--dryrun`, `--max-documents=N` / `--limit=N`, `--batch-size=N`,
 `--sentence-batch-size=N`, `--checkpoint-interval=N`, `--no-split-indices`,
 `--collection-name=NAME`, `--no-aliases`, `--quiet`, `--help`.
+
+### Source selection: `--source=api` (default) vs `--source=postgres`
+
+`--source` chooses where documents, sentences, and vectors come from; it is
+independent of `--provider` (both Elasticsearch and OpenSearch work with
+either source):
+
+- **`api`** (default) — reads the source list, plain text, and raw HTML from
+  the site's HTTP API (`NOIIOLELO_API_BASE_URL` with `provider=MySQL`), then
+  sentence-splits, computes word ratios, and embeds live via the embedding
+  service.
+- **`postgres`** — reads text, sentences, document/sentence vectors, and
+  metrics directly from the Postgres `laana` schema (`PG_*` in `.env`), using
+  the vectors already stored there (`sentences.embedding` 384-dim,
+  `contents.embedding` 384-dim, `contents.embedding_1024` 1024-dim). No live
+  embedding is done unless a document's 1024-dim vector is missing, in which
+  case it is computed on the fly as a fallback.
+
+The indexer does not hard-code these behaviors per source type: each source
+provider declares its capabilities (`sentenceVectors`, `documentVector384`,
+`documentVector1024`, `rawHtml` — see
+`providers/Elasticsearch/src/SourceCapabilities.php`), and the indexer queries
+the assigned provider and falls back per capability. Adding a new source
+backend means implementing `SourceProviderInterface`, not touching the indexer.
+
+Prerequisites for `--source=postgres`:
+1. Corpus data replicated into Postgres
+   (`scripts/repopulate_pg_from_mysql.php`).
+2. 384-dim vectors backfilled (`scripts/pg_indexer.php --write`).
+3. 1024-dim document vectors backfilled
+   (`scripts/backfill_pg_doc_vectors_1024.php`); otherwise they are embedded
+   live one document at a time (slower).
 
 Behavior notes:
 - Split-indices mode (default) writes `hawaiian_documents_new`,
@@ -132,6 +172,19 @@ Postgres backfill for sentences/documents missing embeddings or metrics
 php scripts/pg_indexer.php --write            # default is dryrun without --write
 php scripts/pg_indexer.php --write --sentences
 php scripts/pg_indexer.php --write --documents --force
+```
+
+### `scripts/backfill_pg_doc_vectors_1024.php`
+
+Backfills the 1024-dim document vector (`contents.embedding_1024`, model
+`intfloat/multilingual-e5-large-instruct` — the same model the search side
+queries against `text_vector_1024`) for rows where it is missing. Idempotent
+and resumable (keyset pagination on `embedding_1024 IS NULL`):
+
+```bash
+php scripts/backfill_pg_doc_vectors_1024.php --limit=100 --dryrun
+php scripts/backfill_pg_doc_vectors_1024.php --limit=100   # writes
+php scripts/backfill_pg_doc_vectors_1024.php               # full run (all missing rows)
 ```
 
 ### `scripts/rebuild_source_metadata.php`
