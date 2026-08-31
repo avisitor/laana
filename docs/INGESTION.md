@@ -92,12 +92,13 @@ either source):
   the site's HTTP API (`NOIIOLELO_API_BASE_URL` with `provider=MySQL`), then
   sentence-splits, computes word ratios, and embeds live via the embedding
   service.
-- **`postgres`** — reads text, sentences, document/sentence vectors, and
-  metrics directly from the Postgres `laana` schema (`PG_*` in `.env`), using
-  the vectors already stored there (`sentences.embedding` 384-dim,
-  `contents.embedding` 384-dim, `contents.embedding_1024` 1024-dim). No live
+- **`postgres`** — reads text, sentences, document vectors, and metrics
+  directly from the Postgres `laana` schema (`PG_*` in `.env`), using the
+  vectors already stored there (`sentences.embedding` 384-dim,
+  `contents.embedding_1024` 1024-dim). No live
   embedding is done unless a document's 1024-dim vector is missing, in which
-  case it is computed on the fly as a fallback.
+  case it is computed on the fly as a fallback. The legacy 384-dim document
+  vector (`contents.embedding`) is no longer populated or consulted.
 
 The indexer does not hard-code these behaviors per source type: each source
 provider declares its capabilities (`sentenceVectors`, `documentVector384`,
@@ -109,7 +110,10 @@ backend means implementing `SourceProviderInterface`, not touching the indexer.
 Prerequisites for `--source=postgres`:
 1. Corpus data replicated into Postgres
    (`scripts/repopulate_pg_from_mysql.php`).
-2. 384-dim vectors backfilled (`scripts/pg_indexer.php --write`).
+2. 384-dim sentence vectors backfilled
+   (`scripts/pg_indexer.php --write --sentences`). Document metrics are
+   computed by `--documents`; the document 384 vector is intentionally
+   skipped.
 3. 1024-dim document vectors backfilled
    (`scripts/backfill_pg_doc_vectors_1024.php`); otherwise they are embedded
    live one document at a time (slower).

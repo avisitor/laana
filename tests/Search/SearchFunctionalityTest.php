@@ -154,14 +154,19 @@ class SearchFunctionalityTest extends BaseTestCase
         $provider = getTestProvider($providerName);
         $searchMode = $providerName === 'MySQL' ? 'exact' : 'match';
         $results = $provider->getSentences('aloha', $searchMode, 1);
-        
-        if (count($results) > 0) {
-            $result = $results[0];
-            $this->assertIsArray($result);
-            $this->assertArrayHasKey('hawaiiantext', $result);
-            $this->assertArrayHasKey('sourcename', $result);
-            $this->assertArrayHasKey('authors', $result);
+
+        if (count($results) === 0) {
+            // 'aloha' may legitimately have no hits in a small/test corpus;
+            // skipping keeps "no assertions performed" visible instead of
+            // silently passing.
+            $this->markTestSkipped("No hits for 'aloha' via {$providerName} — nothing to assert");
         }
+
+        $result = $results[0];
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('hawaiiantext', $result);
+        $this->assertArrayHasKey('sourcename', $result);
+        $this->assertArrayHasKey('authors', $result);
     }
 
     #[DataProvider('providerNamesProvider')]

@@ -15,7 +15,7 @@ require_once __DIR__ . '/../../db/PostgresFuncs.php';
  */
 class Backfill1024Test extends BaseTestCase
 {
-    public function testBackfillDocVectors1024PopulatesFiveRows(): void
+    public function testBackfillDocVectors1024PopulatesRows(): void
     {
         if (!getenv('PG_HOST')) {
             $this->markTestSkipped('No PG_HOST');
@@ -38,7 +38,9 @@ class Backfill1024Test extends BaseTestCase
         $pg = new \PostgresLaana();
         $this->assertNotNull($pg->conn, 'PostgresLaana connection failed');
 
-        // Pick 5 sourceids whose embedding_1024 is NULL (or all NULL if plenty)
+        // Pick up to 5 sourceids whose embedding_1024 is NULL. On a mostly
+        // backfilled corpus there may be none — the test then has nothing to
+        // prove and skips rather than failing on an arbitrary row count.
         $stmt = $pg->conn->query(
             "SELECT sourceid FROM contents
               WHERE embedding_1024 IS NULL
@@ -48,15 +50,18 @@ class Backfill1024Test extends BaseTestCase
               LIMIT 5"
         );
         $before = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-        $this->assertCount(5, $before, 'Need at least 5 rows with NULL embedding_1024 and non-empty text');
+        if (count($before) === 0) {
+            $this->markTestSkipped('No rows with NULL embedding_1024 to backfill');
+        }
+        $targetCount = count($before);
 
         $beforeIds = array_map('intval', $before);
 
-        // Run the backfill for exactly these 5 rows
-        $updated = backfillDocVectors1024(5, false);
-        $this->assertGreaterThanOrEqual(5, $updated, 'backfillDocVectors1024 should have updated at least 5 rows');
+        // Run the backfill for exactly these rows (same ORDER BY sourceid)
+        $updated = backfillDocVectors1024($targetCount, false);
+        $this->assertGreaterThanOrEqual($targetCount, $updated, 'backfillDocVectors1024 should have updated all targeted rows');
 
-        // Verify all 5 now have non-null embedding_1024
+        // Verify all targeted rows now have non-null embedding_1024
         $placeholders = implode(',', array_fill(0, count($beforeIds), '?'));
         $check = $pg->conn->prepare(
             "SELECT count(*) FROM contents
@@ -65,6 +70,6 @@ class Backfill1024Test extends BaseTestCase
         );
         $check->execute($beforeIds);
         $count = (int) $check->fetchColumn();
-        $this->assertEquals(5, $count, 'All 5 targeted rows should now have non-null embedding_1024');
+        $this->assertEquals($targetCount, $count, 'All targeted rows should now have non-null embedding_1024');
     }
 }

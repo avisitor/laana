@@ -258,7 +258,9 @@ class AssembleDocSourceTest extends BaseTestCase
         $caps = $iterator->getCapabilities();
 
         $this->assertTrue($caps->sentenceVectors);
-        $this->assertTrue($caps->documentVector384);
+        // The legacy 384-dim document vector (contents.embedding) is no longer
+        // populated; the authoritative document vector is 1024-dim.
+        $this->assertFalse($caps->documentVector384);
         $this->assertTrue($caps->documentVector1024);
         $this->assertTrue($caps->rawHtml);
         $this->assertTrue($caps->hasAnyVector());

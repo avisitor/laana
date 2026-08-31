@@ -165,12 +165,12 @@ if ($args['documents']) {
     if (!$args['quiet']) echo "Processing Documents\n" . str_repeat("-", 40) . "\n";
     
     $totalDocuments = $pgClient->countTotalDocuments();
-    $missingDocuments = $pgClient->countMissingDocumentEmbeddings();
+    $missingDocuments = $pgClient->countMissingDocumentMetrics();
     $willProcessDocuments = $limit > 0 ? min($missingDocuments, $limit) : $missingDocuments;
-    
+
     if (!$args['quiet']) {
         echo "Total documents: $totalDocuments\n";
-        echo "Missing embeddings/metrics: $missingDocuments\n";
+        echo "Missing metrics: $missingDocuments\n";
         echo "Will process: $willProcessDocuments\n\n";
     }
     
@@ -213,7 +213,6 @@ if ($args['documents']) {
             $t = $documentResults['timing'] ?? ['total_ms'=>0];
             echo "\nDocument Results:\n";
             echo "  Processed: {$documentResults['processed']}\n";
-            echo "  Embeddings: {$documentResults['embeddings']}\n";
             echo "  Metrics: {$documentResults['metrics']}\n";
             echo "  Errors: {$documentResults['errors']}\n";
             echo "  Time: " . number_format($t['total_ms'] ?? 0, 1) . "ms\n\n";
@@ -232,7 +231,6 @@ if (!$args['quiet']) {
     echo "Metrics: {$totalResults['sentences']['metrics']}, ";
     echo "Errors: {$totalResults['sentences']['errors']}\n";
     echo "Documents - Processed: {$totalResults['documents']['processed']}, ";
-    echo "Embeddings: {$totalResults['documents']['embeddings']}, ";
     echo "Metrics: {$totalResults['documents']['metrics']}, ";
     echo "Errors: {$totalResults['documents']['errors']}\n";
 }

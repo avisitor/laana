@@ -52,9 +52,15 @@ class PostgresClient extends \PostgresLaana
         return (int)($row['c'] ?? 0);
     }
 
-    public function countMissingDocumentEmbeddings(): int
+    /**
+     * Count documents still missing metrics. The legacy 384-dim document
+     * vector (contents.embedding) is no longer populated or consulted; the
+     * authoritative document vector is contents.embedding_1024, maintained
+     * by scripts/backfill_pg_doc_vectors_1024.php.
+     */
+    public function countMissingDocumentMetrics(): int
     {
-        $sql = 'SELECT COUNT(*) AS c FROM contents c LEFT JOIN document_metrics m ON m.sourceid = c.sourceID WHERE c.text IS NOT NULL AND octet_length(c.text) > 0 AND (c.embedding IS NULL OR m.sourceid IS NULL OR m.entity_count < 0)';
+        $sql = 'SELECT COUNT(*) AS c FROM contents c LEFT JOIN document_metrics m ON m.sourceid = c.sourceID WHERE c.text IS NOT NULL AND octet_length(c.text) > 0 AND (m.sourceid IS NULL OR m.entity_count < 0)';
         $stmt = $this->conn->query($sql);
         $row = $stmt->fetch();
         return (int)($row['c'] ?? 0);
@@ -66,7 +72,7 @@ class PostgresClient extends \PostgresLaana
                 FROM contents c
                 LEFT JOIN document_metrics m ON m.sourceid = c.sourceID
                 WHERE c.text IS NOT NULL AND octet_length(c.text) > 0
-                  AND (c.embedding IS NULL OR m.sourceid IS NULL OR m.entity_count < 0)
+                  AND (m.sourceid IS NULL OR m.entity_count < 0)
                 ORDER BY c.sourceID';
         if ($limit > 0) {
             $sql .= ' LIMIT :limit';
@@ -181,20 +187,6 @@ class PostgresClient extends \PostgresLaana
             $count++;
         }
         return $count;
-    }
-
-    public function bulkUpdateDocumentEmbeddings(array $embeddings): int
-    {
-        if (empty($embeddings)) return 0;
-        $this->conn->exec('CREATE TEMP TABLE IF NOT EXISTS staging_doc_embeddings (sourceid bigint, embedding vector(384)) ON COMMIT DROP');
-        $ins = $this->conn->prepare('INSERT INTO staging_doc_embeddings(sourceid, embedding) VALUES (:sid, (:emb)::vector(384))');
-        foreach ($embeddings as $sid => $vec) {
-            $ins->bindValue(':sid', (int)$sid, PDO::PARAM_INT);
-            $ins->bindValue(':emb', '[' . implode(',', array_map(function($v){ return is_int($v) ? (string)$v : (string)(float)$v; }, $vec)) . ']');
-            $ins->execute();
-        }
-        $updated = $this->conn->exec('UPDATE contents c SET embedding = st.embedding FROM staging_doc_embeddings st WHERE c.sourceID = st.sourceid');
-        return (int)$updated;
     }
 
     public function upsertDocumentMetrics(array $metricsRows): int

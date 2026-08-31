@@ -8,13 +8,18 @@ require_once __DIR__ . '/../../lib/MetricsComputer.php';
 
 use Noiiolelo\MetricsComputer;
 
+/**
+ * Computes document metrics only. The legacy 384-dim document vector
+ * (contents.embedding) is no longer populated or consulted; the authoritative
+ * document vector is contents.embedding_1024, maintained by
+ * scripts/backfill_pg_doc_vectors_1024.php.
+ */
 class PostgresDocumentIndexer
 {
     private PostgresClient $pg;
     private PostgresDocumentIterator $iterator;
     private bool $dryrun = true;
     private bool $verbose = false;
-    private const EXPECTED_VECTOR_DIMS = 384;
     private int $maxRecords = 0;
     private MetricsComputer $metrics;
     private ?string $outJson = null;
@@ -41,11 +46,10 @@ class PostgresDocumentIndexer
         $processed = 0;
         $results = [
             'processed' => 0,
-            'embeddings' => 0,
             'metrics' => 0,
             'errors' => 0,
             'ids' => [],
-            'timing' => ['embed_ms' => 0.0, 'metrics_ms' => 0.0, 'db_ms' => 0.0, 'total_ms' => 0.0],
+            'timing' => ['metrics_ms' => 0.0, 'db_ms' => 0.0, 'total_ms' => 0.0],
         ];
         $runStart = microtime(true);
         while (true) {
@@ -91,23 +95,21 @@ class PostgresDocumentIndexer
             $out = $this->processDocumentBatch($batch);
             $processed += $out['processed'];
             $results['processed'] += $out['processed'];
-            $results['embeddings'] += $out['embeddings'];
             $results['metrics'] += $out['metrics'];
             $results['errors'] += $out['errors'];
             if ($this->verbose) {
-                $t = $out['timing'] ?? ['embed_ms'=>0,'metrics_ms'=>0,'db_ms'=>0,'total_ms'=>0];
+                $t = $out['timing'] ?? ['total_ms'=>0,'metrics_ms'=>0,'db_ms'=>0];
                 $eps = ($t['total_ms'] ?? 0) > 0 ? sprintf('%.2f', ($out['processed'] / (($t['total_ms'])/1000.0))) : 'n/a';
                 echo sprintf(
-                    "Batch: processed=%d (%d / %d) emb=%d met=%d err=%d | time total=%.1fms embed=%.1fms metrics=%.1fms db=%.1fms | throughput=%s doc/s\n",
-                    $out['processed'], $results['processed'], ($this->willProcess ?: ($this->maxRecords ?: 0)), $out['embeddings'], $out['metrics'], $out['errors'],
-                    (float)($t['total_ms'] ?? 0), (float)($t['embed_ms'] ?? 0), (float)($t['metrics_ms'] ?? 0), (float)($t['db_ms'] ?? 0), $eps
+                    "Batch: processed=%d (%d / %d) met=%d err=%d | time total=%.1fms metrics=%.1fms db=%.1fms | throughput=%s doc/s\n",
+                    $out['processed'], $results['processed'], ($this->willProcess ?: ($this->maxRecords ?: 0)), $out['metrics'], $out['errors'],
+                    (float)($t['total_ms'] ?? 0), (float)($t['metrics_ms'] ?? 0), (float)($t['db_ms'] ?? 0), $eps
                 );
             }
             if (!empty($out['ids'])) {
                 $results['ids'] = array_merge($results['ids'], $out['ids']);
             }
             if (!empty($out['timing'])) {
-                $results['timing']['embed_ms'] += (float)($out['timing']['embed_ms'] ?? 0);
                 $results['timing']['metrics_ms'] += (float)($out['timing']['metrics_ms'] ?? 0);
                 $results['timing']['db_ms'] += (float)($out['timing']['db_ms'] ?? 0);
                 $results['timing']['total_ms'] += (float)($out['timing']['total_ms'] ?? 0);
@@ -122,7 +124,6 @@ class PostgresDocumentIndexer
                     'progress' => [
                         'processed' => $results['processed'],
                         'total' => ($this->willProcess ?: ($this->maxRecords ?: 0)),
-                        'embeddings' => $results['embeddings'],
                         'metrics' => $results['metrics'],
                         'errors' => $results['errors'],
                         'ids' => $results['ids'],
@@ -141,53 +142,21 @@ class PostgresDocumentIndexer
 
     private function processDocumentBatch(array $rows): array
     {
-        if (empty($rows)) return ['processed' => 0, 'embeddings' => 0, 'metrics' => 0, 'errors' => 0, 'ids' => [], 'timing' => ['embed_ms'=>0.0,'metrics_ms'=>0.0,'db_ms'=>0.0,'total_ms'=>0.0]];
+        if (empty($rows)) return ['processed' => 0, 'metrics' => 0, 'errors' => 0, 'ids' => [], 'timing' => ['metrics_ms' => 0.0, 'db_ms' => 0.0, 'total_ms' => 0.0]];
 
-        $texts = [];
+        $bStart = microtime(true);
         $ids = [];
+        $metricsRows = [];
+        $mStart = microtime(true);
         foreach ($rows as $r) {
             $sid = (int)$r['sourceid'];
             $txt = (string)($r['text'] ?? '');
             $ids[] = $sid;
-            $texts[] = $txt;
-        }
-
-        $bStart = microtime(true);
-        $eStart = microtime(true);
-        $vecs = $this->pg->getEmbeddingClient()->embedSentences($texts, 'passage: ');
-        $eEnd = microtime(true);
-        if (!is_array($vecs) || count($vecs) !== count($texts)) {
-            foreach ($ids as $sid) {
-                echo "Error: invalid_vector for document {$sid}\n";
-            }
-            return [
-                'processed' => count($rows), 'embeddings' => 0, 'metrics' => 0, 'errors' => count($rows),
-                'ids' => $ids,
-                'timing' => ['embed_ms' => ($eEnd - $eStart)*1000.0, 'metrics_ms' => 0.0, 'db_ms' => 0.0, 'total_ms' => (microtime(true)-$bStart)*1000.0]
-            ];
-        }
-
-        $embeddings = [];
-        $metricsRows = [];
-        $mStart = microtime(true);
-        for ($i = 0; $i < count($rows); $i++) {
-            $sid = $ids[$i];
-            $vec = $vecs[$i] ?? null;
-            if (!$this->isValidVector($vec)) {
-                echo "Error: invalid_vector for document {$sid}\n";
-                return [
-                    'processed' => count($rows), 'embeddings' => 0, 'metrics' => 0, 'errors' => count($rows),
-                    'ids' => $ids,
-                    'timing' => ['embed_ms' => ($eEnd - $eStart)*1000.0, 'metrics_ms' => (microtime(true)-$mStart)*1000.0, 'db_ms' => 0.0, 'total_ms' => (microtime(true)-$bStart)*1000.0]
-                ];
-            }
-            $embeddings[$sid] = $vec;
-            $m = $this->metrics->computeDocumentMetrics($texts[$i]);
+            $m = $this->metrics->computeDocumentMetrics($txt);
             $metricsRows[] = ['sourceid' => $sid] + $m;
         }
         $mEnd = microtime(true);
 
-        $updatedEmb = 0;
         $updatedMet = 0;
         $dStart = microtime(true);
         if (!$this->dryrun) {
@@ -195,17 +164,15 @@ class PostgresDocumentIndexer
             $conn->beginTransaction();
             try {
                 $targetCount = count($rows);
-                $updatedEmb = $this->pg->bulkUpdateDocumentEmbeddings($embeddings);
                 $updatedMet = $this->pg->upsertDocumentMetrics($metricsRows);
-                if ($updatedEmb !== $targetCount || $updatedMet !== $targetCount) {
-                    fwrite(STDERR, "Write mismatch: target={$targetCount} updatedEmb={$updatedEmb} updatedMet={$updatedMet}\n");
+                if ($updatedMet !== $targetCount) {
+                    fwrite(STDERR, "Write mismatch: target={$targetCount} updatedMet={$updatedMet}\n");
                     $conn->rollBack();
                     $dEnd = microtime(true);
                     return [
-                        'processed' => $targetCount, 'embeddings' => 0, 'metrics' => 0, 'errors' => $targetCount,
+                        'processed' => $targetCount, 'metrics' => 0, 'errors' => $targetCount,
                         'ids' => $ids,
                         'timing' => [
-                            'embed_ms' => ($eEnd - $eStart) * 1000.0,
                             'metrics_ms' => ($mEnd - $mStart) * 1000.0,
                             'db_ms' => ($dEnd - $dStart) * 1000.0,
                             'total_ms' => (microtime(true) - $bStart) * 1000.0,
@@ -218,10 +185,9 @@ class PostgresDocumentIndexer
                 fwrite(STDERR, 'Exception during write: ' . $e->getMessage() . "\n");
                 $dEnd = microtime(true);
                 return [
-                    'processed' => count($rows), 'embeddings' => 0, 'metrics' => 0, 'errors' => count($rows),
+                    'processed' => count($rows), 'metrics' => 0, 'errors' => count($rows),
                     'ids' => $ids,
                     'timing' => [
-                        'embed_ms' => ($eEnd - $eStart) * 1000.0,
                         'metrics_ms' => ($mEnd - $mStart) * 1000.0,
                         'db_ms' => ($dEnd - $dStart) * 1000.0,
                         'total_ms' => (microtime(true) - $bStart) * 1000.0,
@@ -232,24 +198,13 @@ class PostgresDocumentIndexer
         $dEnd = microtime(true);
 
         return [
-            'processed' => count($rows), 'embeddings' => $updatedEmb, 'metrics' => $updatedMet, 'errors' => 0,
+            'processed' => count($rows), 'metrics' => $updatedMet, 'errors' => 0,
             'ids' => $ids,
             'timing' => [
-                'embed_ms' => ($eEnd - $eStart) * 1000.0,
                 'metrics_ms' => ($mEnd - $mStart) * 1000.0,
                 'db_ms' => ($dEnd - $dStart) * 1000.0,
                 'total_ms' => (microtime(true) - $bStart) * 1000.0,
             ],
         ];
-    }
-
-    private function isValidVector($vec): bool
-    {
-        if (!is_array($vec) || count($vec) !== self::EXPECTED_VECTOR_DIMS) return false;
-        foreach ($vec as $v) {
-            if (!is_float($v) && !is_int($v)) return false;
-            if (!is_finite((float)$v)) return false;
-        }
-        return true;
     }
 }

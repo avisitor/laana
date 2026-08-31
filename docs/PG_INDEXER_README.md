@@ -3,8 +3,8 @@
 ## Overview
 
 The Postgres indexer system backfills the Postgres database with data from MySQL, including:
-- **Sentences**: Hawaiian text with embeddings and metrics
-- **Documents**: Full document text with embeddings and metrics
+- **Sentences**: Hawaiian text with 384-dim embeddings and metrics
+- **Documents**: metrics only (the legacy 384-dim document vector is no longer populated; the authoritative document vector is the 1024-dim `contents.embedding_1024`, maintained by `scripts/backfill_pg_doc_vectors_1024.php`)
 
 ## Components
 
@@ -12,12 +12,12 @@ The Postgres indexer system backfills the Postgres database with data from MySQL
 
 1. **PostgresClient.php** - Main client for Postgres operations
    - Sentence operations: `countTotalSentences()`, `countMissingEmbeddings()`, `fetchCandidateSentenceIds()`, `bulkUpdateSentenceEmbeddings()`, `upsertSentenceMetrics()`
-   - Document operations: `countTotalDocuments()`, `countMissingDocumentEmbeddings()`, `fetchCandidateDocumentIds()`, `bulkUpdateDocumentEmbeddings()`, `upsertDocumentMetrics()`
+   - Document operations: `countTotalDocuments()`, `countMissingDocumentMetrics()`, `fetchCandidateDocumentIds()`, `upsertDocumentMetrics()`
 
 2. **PostgresSentenceIterator.php** - Iterates over sentences needing embeddings/metrics
-3. **PostgresDocumentIterator.php** - Iterates over documents needing embeddings/metrics
+3. **PostgresDocumentIterator.php** - Iterates over documents needing metrics
 4. **PostgresSentenceIndexer.php** - Processes sentence batches with embeddings and metrics
-5. **PostgresDocumentIndexer.php** - Processes document batches with embeddings and metrics
+5. **PostgresDocumentIndexer.php** - Processes document batches with metrics
 6. **MetricsComputer.php** (in `lib/`) - Computes Hawaiian language metrics
    - `computeSentenceMetrics()` - For individual sentences
    - `computeDocumentMetrics()` - For full documents

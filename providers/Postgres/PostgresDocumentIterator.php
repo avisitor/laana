@@ -22,7 +22,7 @@ class PostgresDocumentIterator
                 FROM contents c
                 LEFT JOIN document_metrics m ON m.sourceid = c.sourceID
                 WHERE c.text IS NOT NULL AND octet_length(c.text) > 0
-                    AND (c.embedding IS NULL OR m.sourceid IS NULL OR m.entity_count < 0)
+                    AND (m.sourceid IS NULL OR m.entity_count < 0)
                     AND c.sourceID > :last_id
                 ORDER BY c.sourceID
                 LIMIT :limit';

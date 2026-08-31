@@ -24,7 +24,10 @@ class PostgresSourceIterator implements SourceProviderInterface
     {
         $caps = new SourceCapabilities();
         $caps->sentenceVectors = true;
-        $caps->documentVector384 = true;
+        // The legacy 384-dim document vector (contents.embedding) is no longer
+        // populated or consulted; the authoritative document vector is the
+        // 1024-dim contents.embedding_1024 column.
+        $caps->documentVector384 = false;
         $caps->documentVector1024 = true;
         $caps->rawHtml = true;
         return $caps;
