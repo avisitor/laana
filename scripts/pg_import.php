@@ -104,8 +104,72 @@ $verbose = in_array('--verbose', $argv, true);
 $quiet   = in_array('--quiet', $argv, true);
 $doSentences = in_array('--sentences', $argv, true);
 $doDocuments = in_array('--documents', $argv, true);
+$help    = in_array('--help', $argv, true);
 $limit = 0;
 $sourceId = 0;
+
+/**
+ * Print the usage/help message.
+ */
+function printUsage(): void {
+    $usage = <<<USAGE
+Unified Postgres Import — fills the Postgres laana schema from MySQL and
+generates every derived vector and metric (sentence embeddings, sentence and
+document metrics, 1024-dim document vectors, grammar patterns).
+
+Usage:
+  php scripts/pg_import.php [options]
+
+Options:
+  (no options)               Incremental backfill: copy missing sources/contents/
+                             sentences from MySQL and process existing rows
+                             lacking embeddings/metrics/doc vectors
+  --status                   Print what a full run would do, then exit (read-only)
+  --dryrun                   Everything except Postgres writes (transactions
+                             rolled back)
+  --force                    First truncate the corpus tables (sources, contents,
+                             sentences, documents, sentence_metrics,
+                             document_metrics, sentence_patterns), then rebuild
+                             everything from scratch. Guarded: --dryrun never
+                             truncates
+  --sentences                Only sentence embeddings/metrics (parents still
+                             migrate)
+  --documents                Only document metrics/vectors (parents still
+                             migrate)
+  --limit=N                  Process at most N sources (lowest sourceIDs first)
+  --source-id=ID             Process only this source
+  --verbose                  Per-source detail output
+  --quiet                    Suppress non-error output
+  --help                     Show this help message
+
+Notes:
+  --sentences and --documents are mutually exclusive; omitting both does both.
+  Each source is processed as ONE unit inside a single Postgres transaction.
+  Grammar patterns are scanned per source and grammar_pattern_counts is
+  refreshed once at the end of a write run.
+
+Examples:
+  php scripts/pg_import.php --status
+  php scripts/pg_import.php --dryrun
+  php scripts/pg_import.php --source-id=52441
+  php scripts/pg_import.php --limit=50
+  php scripts/pg_import.php --force
+
+Exit codes:
+  0  success (including --status and --help)
+  1  bad options, connection failure, or one or more sources failed
+
+Connection settings come from .env: DB_* (MySQL source), PG_* (Postgres
+target), EMBEDDING_SERVICE_URL. See docs/INGESTION.md for details.
+
+USAGE;
+    echo $usage;
+}
+
+if ($help) {
+    printUsage();
+    exit(0);
+}
 
 if ($status) {
     // --status reports on the whole corpus and exits before any work, so every
