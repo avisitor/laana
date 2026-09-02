@@ -59,7 +59,8 @@ class PostgresSourcePipelineTest extends BaseTestCase
         $mysql = self::connectTestMySql();
         if ($mysql === null) {
             return 0;
-        }        $exists = $mysql->prepare('SELECT COUNT(*) FROM sentences WHERE sourceID = :sid');
+        }
+        $exists = $mysql->prepare('SELECT COUNT(*) FROM sentences WHERE sourceID = :sid');
         foreach ($pgIds as $sid) {
             $exists->execute([':sid' => (int)$sid]);
             if ((int)$exists->fetchColumn() > 0) {

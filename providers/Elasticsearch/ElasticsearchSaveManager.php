@@ -44,10 +44,7 @@ class ElasticsearchSaveManager {
         global $parsermap;
         
         // Initialize Elasticsearch client
-        $this->client = new ElasticsearchClient([
-            'verbose' => $options['verbose'] ?? false,
-            'SPLIT_INDICES' => true
-        ]);
+        $this->client = $this->createClient($options);
         
         if (isset($GLOBALS['parsermap']) && is_array($GLOBALS['parsermap'])) {
             $this->parsers = $GLOBALS['parsermap'];
@@ -135,6 +132,18 @@ class ElasticsearchSaveManager {
             $this->outputLine("");
         }
         $this->outputLine("");
+    }
+
+    /**
+     * Client factory — overridden by OpenSearchSaveManager (Task 4) to target
+     * OpenSearch. Everything else in this manager is client-agnostic.
+     */
+    protected function createClient(array $options): ElasticsearchClient
+    {
+        return new ElasticsearchClient([
+            'verbose' => $options['verbose'] ?? false,
+            'SPLIT_INDICES' => true,
+        ]);
     }
 
     public function getParserKeys() {
