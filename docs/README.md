@@ -16,7 +16,6 @@ frontend and a JSON API.
 | [GRAMMAR_PATTERNS.md](GRAMMAR_PATTERNS.md) | The grammar pattern system: pattern definitions, scanners, pattern storage per backend, population scripts, and the grammar search view |
 | [ELASTICSEARCH_SAVE_MANAGER.md](ELASTICSEARCH_SAVE_MANAGER.md) | Web → Elasticsearch ingestion class (`ElasticsearchSaveManager`, driven by `scripts/save.php --provider=es`) |
 | [PARALLEL_EMBEDDINGS.md](PARALLEL_EMBEDDINGS.md) | Parallel embeddings ingestion (`scripts/ingest_embeddings.py --workers N`) |
-| [PG_INDEXER_README.md](PG_INDEXER_README.md) | Postgres embedding/metrics backfill (`scripts/pg_indexer.php`) |
 
 ## Provider directories
 
