@@ -111,10 +111,10 @@ CREATE TABLE laana.contents (
     html       text,
     text       text,
     created    timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    embedding  public.vector(384),
     text_tsv   tsvector GENERATED ALWAYS AS (
                    to_tsvector('simple'::regconfig, text)
-               ) STORED
+               ) STORED,
+    embedding_1024 public.vector(1024)
 );
 
 -- FK index (even though PK, explicit for clarity)
@@ -163,25 +163,7 @@ BEFORE INSERT OR UPDATE ON laana.sentences
 FOR EACH ROW EXECUTE FUNCTION laana.normalize_hawaiian();
 
 -- =========================================================
--- 4. DOCUMENTS
--- =========================================================
-
-CREATE TABLE laana.documents (
-    doc_id     bigint PRIMARY KEY,
-    groupname  varchar(50),
-    sourcename varchar(255),
-    authors    text,
-    date       date,
-    link       text,
-    title      varchar(255),
-    text       text,
-    text_vector public.vector(384)
-);
-
--- Add indexes as needed later (e.g., on date, groupname)
-
--- =========================================================
--- 5. METRICS
+-- 4. METRICS
 -- =========================================================
 
 CREATE TABLE laana.sentence_metrics (
@@ -212,7 +194,7 @@ CREATE INDEX document_metrics_sourceid_idx
     ON laana.document_metrics (sourceid);
 
 -- =========================================================
--- 6. SENTENCE PATTERNS
+-- 5. SENTENCE PATTERNS
 -- =========================================================
 
 CREATE TABLE laana.sentence_patterns (
@@ -233,7 +215,7 @@ CREATE INDEX sentence_patterns_type_idx
     ON laana.sentence_patterns (pattern_type);
 
 -- =========================================================
--- 7. LOGGING / SEARCH STATS
+-- 6. LOGGING / SEARCH STATS
 -- =========================================================
 
 CREATE TABLE laana.processing_log (
@@ -263,7 +245,7 @@ CREATE TABLE laana.searchstats (
 );
 
 -- =========================================================
--- 8. (OPTIONAL) STATS WITHOUT PER-ROW TRIGGERS
+-- 7. (OPTIONAL) STATS WITHOUT PER-ROW TRIGGERS
 -- =========================================================
 -- Instead of laana.stats + per-row triggers, prefer a view or
 -- query against pg_class when you need counts.
@@ -278,12 +260,10 @@ SELECT 'sentences',      count(*) FROM laana.sentences
 UNION ALL
 SELECT 'sentence_metrics', count(*) FROM laana.sentence_metrics
 UNION ALL
-SELECT 'sentence_patterns', count(*) FROM laana.sentence_patterns
-UNION ALL
-SELECT 'documents',      count(*) FROM laana.documents;
+SELECT 'sentence_patterns', count(*) FROM laana.sentence_patterns;
 
 -- =========================================================
--- 9. MATERIALIZED VIEWS
+-- 8. MATERIALIZED VIEWS
 -- =========================================================
 
 CREATE MATERIALIZED VIEW laana.grammar_pattern_counts AS
@@ -296,20 +276,12 @@ CREATE UNIQUE INDEX idx_pattern_type_counts
     ON laana.grammar_pattern_counts (pattern_type);
 
 -- =========================================================
--- 10. VECTOR INDEXES (CREATE AFTER DATA LOAD)
+-- 9. VECTOR INDEXES (CREATE AFTER DATA LOAD)
 -- =========================================================
 
 -- Run these AFTER bulk import for best performance:
-
--- Contents embedding
-CREATE INDEX contents_embedding_ivfflat
-    ON laana.contents USING ivfflat (embedding public.vector_cosine_ops);
 
 -- Sentences embedding
 CREATE INDEX sentences_embedding_ivfflat
     ON laana.sentences USING ivfflat (embedding public.vector_cosine_ops)
     WITH (lists = 1000);
-
--- Documents embedding
-CREATE INDEX documents_text_vec_ivfflat
-    ON laana.documents USING ivfflat (text_vector public.vector_cosine_ops);
