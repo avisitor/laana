@@ -104,9 +104,10 @@ with `PostgresClient`, `PostgresCorpusIndexer`, `PostgresSentenceIndexer`,
 Tables: `sources`, `contents`, `sentences`, `documents`,
 `sentence_metrics`, `document_metrics`, `sentence_patterns`,
 `processing_log`, `searchstats`. Sentence/document embeddings and metrics
-live in the `*_metrics` tables (pgvector-backed); `scripts/pg_indexer.php`
-and `scripts/ingest_embeddings.py` backfill them, and
-`scripts/repopulate_pg_from_mysql.php` copies the corpus over from MySQL.
+live in the `*_metrics` tables (pgvector-backed); `scripts/pg_import.php`
+copies the corpus over from MySQL and backfills embeddings, metrics, and
+`contents.embedding_1024` (and `scripts/ingest_embeddings.py` backfills
+embeddings/metrics in parallel).
 
 ## Neo4j
 
