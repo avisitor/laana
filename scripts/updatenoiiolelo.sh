@@ -5,7 +5,7 @@
 PARSERS="keaolama kaulanapilina kauakukalahale"
 # All providers
 PROVIDERS="mysql postgres elasticsearch opensearch"
-# Providers that do not get grammar analysis during ingestions
+# Providers that still need the populate_grammar_patterns backstop pass (ES/OS get grammar patterns at index time)
 GRAMMAR_PROVIDERS="mysql postgres"
 
 # Full log
