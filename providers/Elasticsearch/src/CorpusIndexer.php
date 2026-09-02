@@ -345,15 +345,20 @@ class CorpusIndexer
         if ( !$this->dryrun ) {
             if ( isset( $this->sourceMeta[$sourceid] ) ) {
                 if( !$this->sourceId ) {
-                    $meta = $this->sourceMeta[$sourceid];
-                    $discarded = ($meta['_source']['discarded'] ?? $meta['discarded'] ?? false);
-                    if( $discarded ) {
-                        $this->print( "Skipping discarded {$sourceid}" );
+                    if ( !$this->getSourceMetaFlag($sourceid, 'discarded')
+                        && $this->getSourceMetaFlag($sourceid, 'vectors_missing') ) {
+                        // Self-heal: the doc was indexed before its sentence
+                        // vectors were available; fall through and reprocess it.
+                        $this->print( "Reprocessing {$sourceid}: previously indexed with missing sentence vectors" );
                     } else {
-                        $this->print( "Skipping already indexed {$sourceid}" );
-                        $this->backfillRawContentIfMissing($sourceid);
+                        if ( $this->getSourceMetaFlag($sourceid, 'discarded') ) {
+                            $this->print( "Skipping discarded {$sourceid}" );
+                        } else {
+                            $this->print( "Skipping already indexed {$sourceid}" );
+                            $this->backfillRawContentIfMissing($sourceid);
+                        }
+                        return null;
                     }
-                    return null;
                 }
             } else {
                 $this->sourceMeta[$sourceid] = $source;
@@ -364,47 +369,77 @@ class CorpusIndexer
             $data = $this->postgresReader->readSource((int)$sourceid);
         } catch (\Throwable $e) {
             $this->print("❌ Error reading source {$sourceid} from Postgres: " . $e->getMessage());
-            $this->sourceMeta[$sourceid]['discarded'] = true;
+            $this->setSourceMetaFlag($sourceid, 'discarded', true);
             return null;
         }
 
         if ($data === null || empty($data['text'])) {
             $this->print("⚠️ Skipping: No text for {$sourceid}");
-            $this->sourceMeta[$sourceid]['discarded'] = true;
+            $this->setSourceMetaFlag($sourceid, 'discarded', true);
             return null;
         }
 
         $docHawaiianWordRatio = $data['hawaiian_word_ratio'] ?? $this->calculateHawaiianWordRatio($data['text']);
         if ($docHawaiianWordRatio < self::MIN_DOC_HAWAIIAN_WORD_RATIO) {
             $this->print("⚠️ Skipping: Document {$sourceid} has a low Hawaiian word ratio ({$docHawaiianWordRatio}).");
-            $this->sourceMeta[$sourceid]['english_only'] = true;
+            $this->setSourceMetaFlag($sourceid, 'english_only', true);
+            $this->setSourceMetaFlag($sourceid, 'vectors_missing', false);
             return null;
         }
 
+        // Split sentences into those with usable stored vectors and those
+        // needing the re-embed fallback (NULL/empty/wrong-dimension vectors).
         $sentenceObjects = [];
+        $needsEmbedding = [];
         foreach ($data['sentences'] as $s) {
             if (!is_array($s['vector']) || count($s['vector']) !== 384) {
-                $this->print("⚠️ Skipping sentence with invalid vector for {$sourceid}");
+                if (is_string($s['text'] ?? null) && $s['text'] !== '') {
+                    $needsEmbedding[] = $s;
+                } else {
+                    $this->print("⚠️ Skipping sentence with invalid vector and no embeddable text for {$sourceid}");
+                }
                 continue;
             }
-            $obj = [
-                'text' => $s['text'],
-                'vector' => $s['vector'],
-                'position' => $s['position'],
-                'doc_id' => $sourceid,
-            ];
-            foreach (['hawaiian_word_ratio', 'word_count', 'entity_count', 'boilerplate_score', 'length', 'frequency'] as $m) {
-                if (isset($s[$m]) && $s[$m] !== null) {
-                    $obj[$m] = $s[$m];
-                }
+            $sentenceObjects[] = $this->buildStoredSentenceObject($sourceid, $s);
+        }
+
+        if (!empty($needsEmbedding)) {
+            // Mirror of the document-vector fallback below: re-embed sentences
+            // whose stored vector is missing so the target ends up with every
+            // sentence vector the source should have had. Transport failures
+            // after retries throw and abort the run (resumable at checkpoints).
+            $recovered = $this->backfillSentenceVectors($sourceid, $needsEmbedding, $sentenceObjects);
+            if ($recovered > 0) {
+                usort($sentenceObjects, fn(array $a, array $b): int => ($a['position'] ?? 0) <=> ($b['position'] ?? 0));
             }
-            $sentenceObjects[] = $obj;
+            $this->print("↩️ Sentence vector backfill for {$sourceid}: recovered {$recovered} of " . count($needsEmbedding) . " missing");
         }
 
         if (empty($sentenceObjects)) {
-            $this->print("⚠️ Skipping: No Hawaiian sentences found for {$sourceid}");
-            $this->sourceMeta[$sourceid]['english_only'] = true;
+            if (empty($data['sentences'])) {
+                $this->print("⚠️ Skipping: No sentences found for {$sourceid}");
+                $this->setSourceMetaFlag($sourceid, 'empty', true);
+            } else {
+                $this->print("⚠️ Skipping: No usable sentence vectors for {$sourceid} after re-embed fallback");
+                $this->setSourceMetaFlag($sourceid, 'vectors_missing', true);
+            }
             return null;
+        }
+
+        // The indexer computes boilerplate_score itself unless the source
+        // provider declares (via capabilities) that it supplies the values.
+        if (!$this->sourceCapabilities->sentenceBoilerplateScore) {
+            $this->fillSentenceBoilerplateScores($sourceid, $sentenceObjects);
+        }
+
+        // Track self-heal state: keep the marker while any sentence vector is
+        // still unresolvable (future runs re-attempt), clear it once complete.
+        $stillMissing = count($data['sentences']) - count($sentenceObjects);
+        if ($stillMissing > 0) {
+            $this->setSourceMetaFlag($sourceid, 'vectors_missing', true);
+        } elseif ($this->getSourceMetaFlag($sourceid, 'vectors_missing')) {
+            $this->setSourceMetaFlag($sourceid, 'vectors_missing', false);
+            $this->print("✅ Cleared vectors_missing for {$sourceid} — all sentence vectors now present");
         }
 
         $textVector1024 = $data['text_vector_1024'];
@@ -423,6 +458,141 @@ class CorpusIndexer
             $sentenceObjects,
             (float)$docHawaiianWordRatio
         );
+    }
+
+    /**
+     * Read a boolean flag from the in-memory source metadata for a source.
+     * Entries loaded from the source-metadata index wrap their body in
+     * '_source'; entries created during this run are raw arrays. Both shapes
+     * are handled here (same convention as the discarded check).
+     */
+    private function getSourceMetaFlag(string $sourceid, string $flag): bool
+    {
+        if (!isset($this->sourceMeta[$sourceid])) {
+            return false;
+        }
+        $meta = $this->sourceMeta[$sourceid];
+        return (bool)($meta['_source'][$flag] ?? $meta[$flag] ?? false);
+    }
+
+    /**
+     * Write a boolean flag to the in-memory source metadata for a source so
+     * that it both reads back via getSourceMetaFlag() and persists through
+     * checkpointSourceMetadata() → saveSourceMetadata() (which stores the
+     * '_source' body when the entry has one).
+     */
+    private function setSourceMetaFlag(string $sourceid, string $flag, bool $value): void
+    {
+        if (!isset($this->sourceMeta[$sourceid])) {
+            $this->sourceMeta[$sourceid] = [];
+        }
+        if (isset($this->sourceMeta[$sourceid]['_source'])) {
+            $this->sourceMeta[$sourceid]['_source'][$flag] = $value;
+        }
+        $this->sourceMeta[$sourceid][$flag] = $value;
+    }
+
+    /**
+     * Build a target sentence object from a stored-vector source row,
+     * copying the source-supplied metrics (hawaiian_word_ratio, word_count,
+     * entity_count, boilerplate_score, length, frequency) when present.
+     */
+    private function buildStoredSentenceObject(string $sourceid, array $s): array
+    {
+        $obj = [
+            'text' => $s['text'],
+            'vector' => $s['vector'],
+            'position' => $s['position'] ?? null,
+            'doc_id' => $sourceid,
+        ];
+        foreach (['hawaiian_word_ratio', 'word_count', 'entity_count', 'boilerplate_score', 'length', 'frequency'] as $m) {
+            if (isset($s[$m]) && $s[$m] !== null) {
+                $obj[$m] = $s[$m];
+            }
+        }
+        return $obj;
+    }
+
+    /**
+     * Re-embed sentences whose stored vector is missing/invalid, appending
+     * successfully embedded ones to $sentenceObjects. Transport failures
+     * after retryEmbeddingOperation() retries throw, aborting the run at
+     * this source — the same fail-fast semantics as the document-vector
+     * fallback (the run is resumable at checkpoints).
+     *
+     * @return int Number of sentences recovered with a valid 384-dim vector
+     */
+    private function backfillSentenceVectors(string $sourceid, array $needsEmbedding, array &$sentenceObjects): int
+    {
+        $recovered = 0;
+        $embeddingClient = $this->client->getEmbeddingClient();
+
+        for ($i = 0, $total = count($needsEmbedding); $i < $total; $i += $this->sentenceBatchSize) {
+            $batch = array_slice($needsEmbedding, $i, $this->sentenceBatchSize);
+            $texts = array_column($batch, 'text');
+
+            $vectors = $this->retryEmbeddingOperation(
+                fn() => $embeddingClient->embedSentences($texts),
+                'embedSentences',
+                'sentence backfill ' . count($batch) . " sentences ({$sourceid})"
+            );
+
+            if (!is_array($vectors)) {
+                $this->print("⚠️ Sentence vector backfill returned invalid result for {$sourceid}: " . gettype($vectors));
+                continue;
+            }
+
+            foreach ($batch as $j => $s) {
+                $vector = $vectors[$j] ?? null;
+                if (!is_array($vector) || count($vector) !== 384) {
+                    continue;
+                }
+                $s['vector'] = $vector;
+                $sentenceObjects[] = $this->buildStoredSentenceObject($sourceid, $s);
+                $recovered++;
+            }
+        }
+
+        return $recovered;
+    }
+
+    /**
+     * Compute boilerplate_score (and populate the hawaiian-metadata index)
+     * for sentences whose source does not supply it. Only fields the source
+     * did not provide are merged; source-supplied metrics are authoritative.
+     */
+    private function fillSentenceBoilerplateScores(string $sourceid, array &$sentenceObjects): void
+    {
+        $missing = [];
+        foreach ($sentenceObjects as $i => $obj) {
+            if (!isset($obj['boilerplate_score']) || $obj['boilerplate_score'] === null) {
+                $missing[$i] = $obj['text'];
+            }
+        }
+        if (empty($missing)) {
+            return;
+        }
+
+        $this->print("🧠 Computing boilerplate scores for " . count($missing) . " sentence(s) of {$sourceid} (source does not supply them)");
+
+        $metadataBatch = [];
+        foreach ($missing as $i => $text) {
+            $metadata = $this->metadataExtractor->analyzeSentence($text, $sourceid);
+            $sentenceObjects[$i]['boilerplate_score'] = $metadata['boilerplate_score'] ?? null;
+            if (!$this->dryrun) {
+                $metadataBatch[] = [
+                    'text' => $text,
+                    'doc_id' => $sourceid,
+                    'position' => $sentenceObjects[$i]['position'] ?? 0,
+                ];
+            }
+        }
+
+        // Keep hawaiian-metadata in sync for postgres-sourced sentences too
+        // (the api path saves it via processSentencesInBatches).
+        if (!empty($metadataBatch)) {
+            $this->metadataExtractor->bulkSaveSentenceMetadata($metadataBatch);
+        }
     }
     
     private function fetchSource(string $sourceid, string $type): ?string
@@ -533,6 +703,7 @@ class CorpusIndexer
             "doc_id" => $sourceid,
             "groupname" => isset($source['groupname']) ? $source['groupname'] : 'N/A',
             "sourcename" => isset($source['sourcename']) ? $source['sourcename'] : 'N/A',
+            "title" => !empty($source['title']) ? $source['title'] : (!empty($source['sourcename']) ? $source['sourcename'] : 'N/A'),
             "text" => strlen($originalText) > 32000 ? substr($originalText, 0, 32000) . "..." : $originalText,
             "text_chunks" => $chunks,
             "text_vector_1024" => $textVector1024,
@@ -1475,24 +1646,30 @@ class CorpusIndexer
         // already-completed, expensive embedding work). --source-id explicitly
         // targets one source and is expected to always force a reprocess.
         if( isset( $this->sourceMeta[$sourceid] ) && !$this->sourceId ) {
-            $meta = $this->sourceMeta[$sourceid];
-            $discarded = ($meta['_source']['discarded'] ?? $meta['discarded'] ?? false);
-            if( $discarded ) {
-                $this->print( "Skipping discarded {$sourceid}" );
+            if ( !$this->getSourceMetaFlag($sourceid, 'discarded')
+                && $this->getSourceMetaFlag($sourceid, 'vectors_missing') ) {
+                // Self-heal: the doc was indexed before its sentence vectors
+                // were available; fall through and reprocess it.
+                $this->print( "Reprocessing {$sourceid}: previously indexed with missing sentence vectors" );
             } else {
-                $this->print( "Skipping already indexed {$sourceid}" );
-            }
-            if (!$this->dryrun) {
-                $this->print("Skipping already indexed or discarded {$sourceid}");
-                // Text/sentences are already up to date, but backfill raw
-                // content if it's missing for some reason (e.g. it was
-                // introduced after this source was originally indexed) so
-                // every index stays idempotently in sync, not just the ones
-                // touched in this run.
-                if (!$discarded) {
-                    $this->backfillRawContentIfMissing($sourceid);
+                $discarded = $this->getSourceMetaFlag($sourceid, 'discarded');
+                if( $discarded ) {
+                    $this->print( "Skipping discarded {$sourceid}" );
+                } else {
+                    $this->print( "Skipping already indexed {$sourceid}" );
                 }
-                return null;
+                if (!$this->dryrun) {
+                    $this->print("Skipping already indexed or discarded {$sourceid}");
+                    // Text/sentences are already up to date, but backfill raw
+                    // content if it's missing for some reason (e.g. it was
+                    // introduced after this source was originally indexed) so
+                    // every index stays idempotently in sync, not just the ones
+                    // touched in this run.
+                    if (!$discarded) {
+                        $this->backfillRawContentIfMissing($sourceid);
+                    }
+                    return null;
+                }
             }
         }
 
@@ -1543,7 +1720,7 @@ class CorpusIndexer
                 "sourceid" => $sourceid,
                 "groupname" => $docData['_source']['groupname'],
                 "sourcename" => $docData['_source']['sourcename'],
-                "title" => $docData['_source']['sourcename'],
+                "title" => !empty($docData['_source']['title']) ? $docData['_source']['title'] : $docData['_source']['sourcename'],
                 "text" => $docData['_source']['text'],
                 "text_chunks" => $docData['_source']['text_chunks'],
                 "text_vector_1024" => $docData['_source']['text_vector_1024'] ?? null,
@@ -1567,15 +1744,20 @@ class CorpusIndexer
         $sentencesIndexName = $this->client->getSentencesIndexName();
         $sentenceIndexObjects = [];
         foreach ($sentenceObjects as $idx => $sentence) {
+            // Use the source ordinal for _id/chunk_id so sentence IDs stay
+            // stable even when sibling sentences were dropped (the position
+            // field also carries the source ordinal); re-indexing replaces a
+            // doc's sentences wholesale via deleteByDocId().
+            $sentenceOrdinal = $sentence['position'] ?? $idx;
             $sentenceIndexObjects[] = [
                 "_index" => $sentencesIndexName,
-                "_id" => $sourceid . "_" . $idx,
+                "_id" => $sourceid . "_" . $sentenceOrdinal,
                 "_source" => [
                     "doc_id" => $sourceid,
                     "text" => $sentence['text'],
                     "vector" => $sentence['vector'],
                     "position" => $sentence['position'],
-                    "chunk_id" => $idx,
+                    "chunk_id" => $sentenceOrdinal,
                     // Add quality metadata
                     "quality_score" => $sentence['hawaiian_word_ratio'] ?? 0,
                     "hawaiian_word_ratio" => $sentence['hawaiian_word_ratio'] ?? null,
@@ -1590,7 +1772,7 @@ class CorpusIndexer
                     "authors" => $docData['_source']['authors'],
                     "date" => $docData['_source']['date'],
                     "groupname" => $docData['_source']['groupname'],
-                    "title" => $docData['_source']['sourcename'] // Use sourcename as title
+                    "title" => !empty($docData['_source']['title']) ? $docData['_source']['title'] : $docData['_source']['sourcename']
                 ]
             ];
         }
