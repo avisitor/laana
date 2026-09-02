@@ -67,9 +67,11 @@ class TriggerTest extends BaseTestCase
         $hawaiianText = "O ka ‘ōlelo ka iwi o ka no‘ono‘o.";
         $expectedSimplified = "O ka olelo ka iwi o ka noonoo.";
         
-        // Insert sentence
-        $sql = "INSERT INTO sentences (sourceid, hawaiiantext) VALUES (:sourceID, :text)";
-        $this->postgres->executePrepared($sql, ['sourceID' => $sourceID, 'text' => $hawaiianText]);
+        // Insert sentence (Postgres sentences.sentenceid has no default/sequence —
+        // ingestion always supplies ids carried over from MySQL — so tests must too)
+        $sentenceID = $this->newPostgresSentenceId();
+        $sql = "INSERT INTO sentences (sentenceid, sourceid, hawaiiantext) VALUES (:sentenceID, :sourceID, :text)";
+        $this->postgres->executePrepared($sql, ['sentenceID' => $sentenceID, 'sourceID' => $sourceID, 'text' => $hawaiianText]);
         
         // Verify simplified field (query by sourceid and hawaiiantext since sentenceid might be null/not auto-inc)
         $sql = "SELECT * FROM sentences WHERE sourceid = :sourceID AND hawaiiantext = :text";
@@ -128,9 +130,9 @@ class TriggerTest extends BaseTestCase
         
         $sourceID = $this->createTempSource($this->postgres);
         
-        // Insert sentence
-        $sql = "INSERT INTO sentences (sourceid, hawaiiantext) VALUES (:sourceID, 'Test sentence')";
-        $this->postgres->executePrepared($sql, ['sourceID' => $sourceID]);
+        // Insert sentence (sentenceid has no default on Postgres — see newPostgresSentenceId)
+        $sql = "INSERT INTO sentences (sentenceid, sourceid, hawaiiantext) VALUES (:sentenceID, :sourceID, 'Test sentence')";
+        $this->postgres->executePrepared($sql, ['sentenceID' => $this->newPostgresSentenceId(), 'sourceID' => $sourceID]);
         
         $newCount = $this->postgres->getSentenceCount();
         $this->assertEquals($initialCount + 1, $newCount, "Postgres stats count should increment on insert");
@@ -142,6 +144,16 @@ class TriggerTest extends BaseTestCase
         $this->assertEquals($initialCount, $finalCount, "Postgres stats count should decrement on delete");
         
         $this->cleanupTempSource($this->postgres, $sourceID);
+    }
+
+    /**
+     * The Postgres schema has no sequence for sentences.sentenceid (real ids
+     * are carried over from MySQL by ingestion), so tests must supply one.
+     * Pick from a range far above the corpus maximum to avoid collisions.
+     */
+    private function newPostgresSentenceId(): int
+    {
+        return rand(9000000000, 9999999999);
     }
 
     private function createTempSource($db)
