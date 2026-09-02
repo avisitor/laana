@@ -324,11 +324,6 @@ if ($force) {
             say("  {$t}: {$n} rows\n", $quiet);
         }
         $pg->exec('TRUNCATE TABLE ' . implode(', ', $resetTables));
-        try {
-            $pg->exec('REFRESH MATERIALIZED VIEW laana.grammar_pattern_counts');
-        } catch (Throwable $e) {
-            say("  (could not refresh grammar_pattern_counts: {$e->getMessage()})\n", $quiet);
-        }
         say("Reset done.\n\n", $quiet);
     }
 }
@@ -419,6 +414,12 @@ foreach ($sources as $source) {
     }
 
     if (function_exists('flush')) { flush(); }
+}
+
+// Counts policy: the materialized view is refreshed exactly once per run,
+// outside any transaction (REFRESH ... CONCURRENTLY cannot run inside one).
+if (!$dryrun && $pipeline->refreshGrammarPatternCounts()) {
+    say("grammar_pattern_counts refreshed.\n", $quiet);
 }
 
 // ---------------------------------------------------------------------------

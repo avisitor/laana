@@ -10,9 +10,9 @@ use Noiiolelo\EmbeddingClient;                            // sentence embeddings
 
 /**
  * Per-source Postgres pipeline: MySQL -> laana schema (data, vectors,
- * metrics). The grammar-pattern scan is a stub until Task 2; the counts
- * materialized view is refreshed by the run driver, once per run and
- * outside any transaction.
+ * metrics, grammar-pattern assignments — delta-scanned inside the same
+ * transaction). The counts materialized view is refreshed by the run
+ * driver, once per run and outside any transaction.
  *
  * One processSource() call = ONE Postgres transaction; the source is a
  * complete unit on commit. Used by scripts/pg_import.php (bootstrap) and
@@ -110,7 +110,7 @@ class PostgresSourcePipeline
             'sentence_metrics' => 0,
             'document_metrics' => 0,
             'document_vectors' => 0,
-            'patterns'         => 0, // TODO(Task 2): real count once the grammar scan runs pre-commit.
+            'patterns'         => 0,
             'has_content'      => false,
         ];
 
@@ -253,6 +253,9 @@ class PostgresSourcePipeline
                 }
             }
 
+            // --- 4. Grammar patterns (delta scan; rows visible in this tx) ---
+            $out['patterns'] = $this->scanGrammarPatterns($sourceId);
+
             if ($this->dryrun) {
                 $this->pg->rollBack();
             } else {
@@ -276,15 +279,24 @@ class PostgresSourcePipeline
     }
 
     /**
-     * TODO(Task 2): delta-scan sentence_patterns for one source, INSIDE the
-     * open tx after the document-vector step and before commit. Stub until
-     * then: always returns 0.
+     * Delta-scan sentence_patterns for one source. Runs INSIDE the open tx.
+     * Returns the number of delta-selected sentences processed (those of the
+     * source with no pattern rows yet); zero-match sentences legitimately
+     * get no rows (GrammarScanner::savePatterns writes nothing for them).
      */
     public function scanGrammarPatterns(int $sourceId): int
     {
-        // TODO(Task 2): $scanner = new \Noiiolelo\GrammarScanner($this->pgLaana);
-        //               return $scanner->updateSourcePatterns($sourceId, false);
-        return 0;
+        $scanner = new \Noiiolelo\GrammarScanner($this->pgLaana);
+        return $scanner->updateSourcePatterns($sourceId, false);
+    }
+
+    /**
+     * The shared Postgres connection (test support: lets integration tests
+     * inspect pipeline-written state on the same connection).
+     */
+    public function pg(): \PDO
+    {
+        return $this->pg;
     }
 
     /**
