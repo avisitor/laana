@@ -5,6 +5,8 @@ use Noiiolelo\Tests\BaseTestCase;
 
 class PostgresSourcePipelineTest extends BaseTestCase
 {
+    private string $mySqlConnectError = '';
+
     private function requirePg(): void
     {
         // The pipeline reads source rows from MySQL as well, so both DBs must
@@ -57,8 +59,7 @@ class PostgresSourcePipelineTest extends BaseTestCase
         $mysql = self::connectTestMySql();
         if ($mysql === null) {
             return 0;
-        }
-        $exists = $mysql->prepare('SELECT COUNT(*) FROM sentences WHERE sourceID = :sid');
+        }        $exists = $mysql->prepare('SELECT COUNT(*) FROM sentences WHERE sourceID = :sid');
         foreach ($pgIds as $sid) {
             $exists->execute([':sid' => (int)$sid]);
             if ((int)$exists->fetchColumn() > 0) {
@@ -86,6 +87,7 @@ class PostgresSourcePipelineTest extends BaseTestCase
                 [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]
             );
         } catch (\PDOException $e) {
+            $this->mySqlConnectError = $e->getMessage();
             return null;
         }
     }
@@ -95,7 +97,9 @@ class PostgresSourcePipelineTest extends BaseTestCase
         $this->requirePg();
         $sid = $this->resolveTestSourceId();
         if (!$sid) {
-            $this->markTestSkipped('No MySQL+Postgres source with sentences found; set TEST_SOURCE_ID to override');
+            $this->markTestSkipped($this->mySqlConnectError !== ''
+                ? "MySQL connection failed: {$this->mySqlConnectError}"
+                : 'No MySQL+Postgres source with sentences found; set TEST_SOURCE_ID to override');
         }
 
         // processSource() computes real embeddings when work is pending, so the
@@ -111,13 +115,14 @@ class PostgresSourcePipelineTest extends BaseTestCase
         // seeded corpus would make this test vacuous. Clear the source's rows
         // to re-establish the unscanned state; the scan under test recreates
         // them (a populate_grammar_patterns run would too).
+        // Assumes a disposable dev DB: until the scan below recreates the rows,
+        // pattern searches over this source come up empty for a few seconds.
         $pdo->exec(
             "DELETE FROM laana.sentence_patterns WHERE sentenceid IN "
             . "(SELECT sentenceid FROM laana.sentences WHERE sourceid = {$sid})"
         );
 
         $out = $pipeline->processSource($sid);
-        $this->assertGreaterThanOrEqual(0, $out['patterns']);
 
         // Expected state comes from an in-memory scan ONLY (no db passed to
         // the constructor, so savePatterns can never write from here).
@@ -154,6 +159,10 @@ class PostgresSourcePipelineTest extends BaseTestCase
         $this->assertGreaterThan(0, $checked, 'test source should have sentences');
         $this->assertGreaterThan(0, $withMatches,
             'test source has no pattern matches; pick another TEST_SOURCE_ID or the scan is untestable');
+        // Post-DELETE every examined sentence was delta-selected, so the
+        // counter must have observed at least the manufactured delta.
+        $this->assertGreaterThanOrEqual($checked, $out['patterns'],
+            "patterns counter {$out['patterns']} did not observe the delta (>= {$checked} sentences selected)");
     }
 
     public function testRefreshGrammarPatternCountsSyncsView(): void

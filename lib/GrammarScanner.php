@@ -125,11 +125,14 @@ class GrammarScanner {
             
             $sql = "SELECT sentenceID, hawaiianText FROM sentences WHERE sourceID = :sourceID";
         } else {
-            // Only select sentences that don't have any patterns yet
+            // Only select sentences that don't have any patterns yet. Empty or
+            // NULL text can never produce a match, so excluding it here keeps
+            // the delta convergent (mirrors updateAllPatternsDelta's guard).
             $sql = "SELECT s.sentenceID, s.hawaiianText 
                     FROM sentences s 
                     LEFT JOIN sentence_patterns sp ON s.sentenceID = sp.sentenceid 
-                    WHERE s.sourceID = :sourceID AND sp.sentenceid IS NULL";
+                    WHERE s.sourceID = :sourceID AND sp.sentenceid IS NULL
+                      AND s.hawaiiantext IS NOT NULL AND s.hawaiiantext <> ''";
         }
         
         $sentences = $this->db->getDBRows($sql, ['sourceID' => $sourceId]);

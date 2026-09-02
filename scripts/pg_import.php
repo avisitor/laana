@@ -380,6 +380,7 @@ $totals = [
     'sentence_metrics' => 0,
     'document_metrics' => 0,
     'document_vectors' => 0,
+    'patterns'         => 0,
     'errors'           => 0,
     'skipped'          => 0,
 ];
@@ -398,6 +399,7 @@ foreach ($sources as $source) {
         $totals['sentence_metrics'] += $out['sentence_metrics'];
         $totals['document_metrics'] += $out['document_metrics'];
         $totals['document_vectors'] += $out['document_vectors'];
+        $totals['patterns']         += $out['patterns'];
 
         if ($verbose && !$quiet) {
             echo "  data: {$out['sentences_data']} sentences, content=" . ($out['has_content'] ? 'yes' : 'no')
@@ -420,6 +422,8 @@ foreach ($sources as $source) {
 // outside any transaction (REFRESH ... CONCURRENTLY cannot run inside one).
 if (!$dryrun && $pipeline->refreshGrammarPatternCounts()) {
     say("grammar_pattern_counts refreshed.\n", $quiet);
+} elseif (!$dryrun) {
+    fwrite(STDERR, "warning: could not refresh grammar_pattern_counts\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -432,6 +436,7 @@ if (!$quiet) {
     echo "Sentences migrated: {$totals['sentences_data']}\n";
     echo "Sentence vectors:   {$totals['sentence_vectors']}\n";
     echo "Sentence metrics:   {$totals['sentence_metrics']}\n";
+    echo "Patterns scanned:   {$totals['patterns']}\n";
     echo "Document metrics:   {$totals['document_metrics']}\n";
     echo "Document vectors:   {$totals['document_vectors']}\n";
     echo "Errors:             {$totals['errors']}\n";

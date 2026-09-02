@@ -255,6 +255,8 @@ class PostgresSourcePipeline
 
             // --- 4. Grammar patterns (delta scan; rows visible in this tx) ---
             $out['patterns'] = $this->scanGrammarPatterns($sourceId);
+            // Liveness probe: the vendor DB layer swallows PDO exceptions, so a failed scan statement (deadlock, timeout) aborts the tx and every later statement silently no-ops; on an aborted tx this throws and forces the rollback path.
+            $this->pg->query('SELECT 1');
 
             if ($this->dryrun) {
                 $this->pg->rollBack();
