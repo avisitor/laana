@@ -18,7 +18,7 @@ class MySQLSaveManager {
     private $debug = false;
     private $verbose = true;
     private $maxrows = 20000;
-    private $options = [];
+    protected $options = [];
     private $parser = null;
     protected $logName = "MySQLSaveManager";
     protected $funcName = "";
