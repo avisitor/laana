@@ -30,6 +30,11 @@ class PostgresSourceIterator implements SourceProviderInterface
         $caps->documentVector384 = false;
         $caps->documentVector1024 = true;
         $caps->rawHtml = true;
+        // laana.sentence_metrics has no boilerplate_score column today, so the
+        // indexer computes it via MetadataExtractor. If the column is added,
+        // select it in PostgresSourceReader::readSource(), surface it in the
+        // sentence rows, and flip this to true to disable the fill-in.
+        $caps->sentenceBoilerplateScore = false;
         return $caps;
     }
 
