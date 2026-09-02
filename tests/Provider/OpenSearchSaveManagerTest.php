@@ -1,6 +1,8 @@
 <?php
 namespace Noiiolelo\Tests\Provider;
 
+use HawaiianSearch\ElasticsearchClient;
+use HawaiianSearch\OpenSearchClient;
 use Noiiolelo\Tests\BaseTestCase;
 
 class OpenSearchSaveManagerTest extends BaseTestCase
@@ -11,7 +13,8 @@ class OpenSearchSaveManagerTest extends BaseTestCase
             $this->markTestSkipped('OS_HOST must be set for OpenSearchSaveManager tests');
         }
         $mgr = new \Noiiolelo\Providers\OpenSearch\OpenSearchSaveManager(['verbose' => false]);
-        $this->assertInstanceOf(\HawaiianSearch\OpenSearchClient::class, $mgr->getClient());
-        $this->assertInstanceOf(\HawaiianSearch\ElasticsearchClient::class, $mgr->getClient());
+        $client = $mgr->getClient();
+        $this->assertInstanceOf(OpenSearchClient::class, $client);
+        $this->assertInstanceOf(ElasticsearchClient::class, $client);
     }
 }

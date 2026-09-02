@@ -1,8 +1,9 @@
 <?php
 namespace Noiiolelo\Providers\OpenSearch;
 
-use Noiiolelo\Providers\Elasticsearch\ElasticsearchSaveManager;
+use HawaiianSearch\ElasticsearchClient;
 use HawaiianSearch\OpenSearchClient;
+use Noiiolelo\Providers\Elasticsearch\ElasticsearchSaveManager;
 
 /**
  * OpenSearch ingestion: identical to the Elasticsearch save manager except
@@ -13,7 +14,9 @@ use HawaiianSearch\OpenSearchClient;
  */
 class OpenSearchSaveManager extends ElasticsearchSaveManager
 {
-    protected function createClient(array $options): \HawaiianSearch\ElasticsearchClient
+    protected $logName = "OpenSearchSaveManager";
+
+    protected function createClient(array $options): ElasticsearchClient
     {
         return new OpenSearchClient([
             'verbose' => $options['verbose'] ?? false,
