@@ -2,13 +2,10 @@
 /**
  * Unified script to save/index documents across different providers.
  * 
- * Usage: php save.php --provider=[es|mysql] [--parser=KEY] [--sourceid=ID] [--debug] [--verbose] [--maxrows=N]
+ * Usage: php save.php --provider=[mysql|postgres|es|elasticsearch|os|opensearch] [--parser=KEY] [--sourceid=ID] [--debug] [--verbose] [--maxrows=N]
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
-
-use Noiiolelo\Providers\MySQL\MySQLSaveManager;
-use Noiiolelo\Providers\Elasticsearch\ElasticsearchSaveManager;
 
 // Parse command line arguments
 $options = getopt("", [
@@ -83,12 +80,12 @@ if ($doclistFile) {
 }
 
 try {
-    if ($providerName === 'elasticsearch' || $providerName === 'es') {
-        echo "Using Elasticsearch provider\n";
-        $manager = new ElasticsearchSaveManager($managerOptions);
-    } else {
-        echo "Using MySQL provider\n";
-        $manager = new MySQLSaveManager($managerOptions);
+    try {
+        $manager = \Noiiolelo\SaveManagerFactory::create($providerName, $managerOptions);
+        echo "Using " . \Noiiolelo\SaveManagerFactory::normalize($providerName ?: 'mysql') . " provider\n";
+    } catch (\InvalidArgumentException $e) {
+        fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
+        exit(1);
     }
 
     if ($doclistSave !== null) {
