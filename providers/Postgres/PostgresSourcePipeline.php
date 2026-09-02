@@ -73,6 +73,11 @@ class PostgresSourcePipeline
             );
         }
         $this->pg->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        // Strict mode: the vendor layer's default (log + falsy return) would
+        // swallow scan/migration failures mid-transaction, silently voiding
+        // the "complete unit on commit" contract. Errors must throw here so
+        // the per-source catch rolls back and the run counts an error.
+        $this->pgLaana->throwOnError = true;
 
         $this->mysql = $config['mysql'] ?? self::connectMySql();
 
@@ -254,12 +259,10 @@ class PostgresSourcePipeline
             }
 
             // --- 4. Grammar patterns (delta scan; rows visible in this tx) ---
+            // pgLaana runs with throwOnError enabled (constructor), so a failed
+            // scan statement (deadlock, timeout) throws here and forces the
+            // rollback path instead of aborting the tx silently.
             $out['patterns'] = $this->scanGrammarPatterns($sourceId);
-            // Liveness probe: the vendor DB layer swallows PDO exceptions, so a
-            // failed scan statement (deadlock, timeout) aborts the tx and every
-            // later statement silently no-ops; on an aborted tx this throws
-            // and forces the rollback path.
-            $this->pg->query('SELECT 1');
 
             if ($this->dryrun) {
                 $this->pg->rollBack();

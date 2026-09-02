@@ -46,12 +46,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/avisitor/dbbase.git",
-                "reference": "a3c19a558ce8b822564a9de740a9caa7b83b55f0"
+                "reference": "ed9f4e32c9ae7fc25da76036c5deaaef3ac667ef"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/avisitor/dbbase/zipball/a3c19a558ce8b822564a9de740a9caa7b83b55f0",
-                "reference": "a3c19a558ce8b822564a9de740a9caa7b83b55f0",
+                "url": "https://api.github.com/repos/avisitor/dbbase/zipball/ed9f4e32c9ae7fc25da76036c5deaaef3ac667ef",
+                "reference": "ed9f4e32c9ae7fc25da76036c5deaaef3ac667ef",
                 "shasum": ""
             },
             "require": {
@@ -77,7 +77,7 @@
                 "source": "https://github.com/avisitor/dbbase/tree/master",
                 "issues": "https://github.com/avisitor/dbbase/issues"
             },
-            "time": "2026-08-23T21:46:45+00:00"
+            "time": "2026-09-02T18:30:10+00:00"
         },
         {
             "name": "avisitor/dbuser",
