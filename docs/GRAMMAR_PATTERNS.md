@@ -31,8 +31,9 @@ the JSON — nothing else needs to change.
 | MySQL | Rows in `sentence_patterns` | `grammar_pattern_counts` summary table (refreshed via `refresh_grammar_counts()`), or a live join when date filters are set |
 | Postgres | `sentence_patterns` in schema `laana` | Same pattern as MySQL |
 
-Populating is a **separate enrichment step** after indexing — run
-`scripts/populate_grammar_patterns.php` (see [INGESTION.md](INGESTION.md)):
+Most population is automatic (see *Keeping counts and assignments current*
+below); `scripts/populate_grammar_patterns.php` is the standalone delta
+backstop for the SQL backends (see [INGESTION.md](INGESTION.md)):
 
 ```bash
 php scripts/populate_grammar_patterns.php --provider=elasticsearch --force
@@ -48,6 +49,30 @@ Notes:
 - The MySQL save path also updates patterns incrementally:
   `addsentences.php` and `MySQLSaveManager` call
   `GrammarScanner::updateSourcePatterns()` for each ingested source.
+
+### Keeping counts and assignments current
+
+Per-provider story — who writes pattern assignments, and what keeps the
+counts feeding the grammar dropdown fresh:
+
+| Backend | Assignments | Counts |
+|---|---|---|
+| MySQL | Save-time scan: `MySQLSaveManager` calls `GrammarScanner::updateSourcePatterns()` per ingested source | Hourly MySQL event `hourly_grammar_refresh` calls `refresh_grammar_counts()` (see `createtables.sql`); the populate backstop refreshes after each run |
+| Postgres | Save-time scan: `PostgresSaveManager` and the `pg_import.php` pipeline scan each source inside its transaction (`PostgresSourcePipeline`) | Once per run after the loop: `REFRESH MATERIALIZED VIEW CONCURRENTLY` on `grammar_pattern_counts` (STDERR warning on failure, never inside a transaction) |
+| Elasticsearch / OpenSearch | Index time: the shared client code writes the `grammar_patterns` array while indexing sentences | Live terms aggregation on that field — nothing to refresh |
+
+Cron/backstop story: `scripts/updatenoiiolelo.sh` runs
+`populate_grammar_patterns.php` for both SQL providers after its save loop
+as the delta backstop; on MySQL the hourly `hourly_grammar_refresh` event
+keeps the counts table fresh between runs; Postgres counts are refreshed
+once per ingestion run by design (the `CONCURRENTLY` refresh can also be
+moved to cron if the view grows); ES/OpenSearch need no bookkeeping at all.
+
+Known limitation (delta non-convergence): a sentence with **zero** pattern
+matches never gets a `sentence_patterns` row (`savePatterns` writes nothing
+for zero matches), so the delta queries re-select those sentences on every
+run — bounded per source, but the scan never fully converges. A future
+scanned-state marker table would fix this.
 
 ## 4. Querying — provider methods
 
