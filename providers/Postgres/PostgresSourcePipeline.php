@@ -10,7 +10,9 @@ use Noiiolelo\EmbeddingClient;                            // sentence embeddings
 
 /**
  * Per-source Postgres pipeline: MySQL -> laana schema (data, vectors,
- * metrics) plus grammar-pattern scan and counts refresh.
+ * metrics). The grammar-pattern scan is a stub until Task 2; the counts
+ * materialized view is refreshed by the run driver, once per run and
+ * outside any transaction.
  *
  * One processSource() call = ONE Postgres transaction; the source is a
  * complete unit on commit. Used by scripts/pg_import.php (bootstrap) and
@@ -59,9 +61,9 @@ class PostgresSourcePipeline
             $this->pgLaana = $config['pgLaana'];
         } else {
             $this->pgLaana = new \PostgresLaana();
-            if (!$this->pgLaana->conn) {
-                throw new \RuntimeException('Postgres connection failed.');
-            }
+        }
+        if (!$this->pgLaana->conn) {
+            throw new \RuntimeException('Postgres connection failed.');
         }
 
         $this->pg = $config['pg'] ?? $this->pgLaana->conn;
@@ -89,20 +91,18 @@ class PostgresSourcePipeline
 
     /**
      * Migrate one source from MySQL and derive vectors/metrics/patterns.
-     * Fetches the source row from MySQL by id (reusing the source query).
-     * If the sourceid does not exist in MySQL, returns zero counters
-     * WITHOUT opening a Postgres transaction. Otherwise: one transaction;
-     * the source is a complete unit on commit. Throws on failure.
+     * Fetches the source row from MySQL by id (same column list as the
+     * pg_import source query). If the sourceid does not exist in MySQL,
+     * returns zero counters WITHOUT opening a Postgres transaction.
+     * Otherwise: one transaction; the source is a complete unit on commit.
+     * Throws on failure.
      *
      * Returns the per-source counters (sentences_data, sentence_vectors,
      * sentence_metrics, document_metrics, document_vectors, patterns) plus
      * has_content (whether a MySQL contents row exists) so run drivers can
      * report per-source detail.
-     *
-     * $onCommit is reserved for a caller hook around the commit step and is
-     * not invoked yet.
      */
-    public function processSource(int $sourceId, ?callable $onCommit = null): array
+    public function processSource(int $sourceId): array
     {
         $out = [
             'sentences_data'   => 0,
@@ -121,20 +121,19 @@ class PostgresSourcePipeline
             // Unknown source: nothing to migrate, and no transaction to open.
             return $out;
         }
-        $sid = $sourceId;
 
         $this->pg->beginTransaction();
         try {
             // --- 1. Migrate parent rows (always) ---
             $this->sourceUpsert->execute($source);
 
-            $this->contentStmt->execute([':sourceid' => $sid]);
+            $this->contentStmt->execute([':sourceid' => $sourceId]);
             $content = $this->contentStmt->fetch(\PDO::FETCH_ASSOC);
             if ($content) {
                 $this->contentUpsert->execute($content);
             }
 
-            $this->sentenceStmt->execute([':sourceid' => $sid]);
+            $this->sentenceStmt->execute([':sourceid' => $sourceId]);
             $sentenceDataCount = 0;
             while ($row = $this->sentenceStmt->fetch(\PDO::FETCH_ASSOC)) {
                 $this->sentenceUpsert->execute($row);
@@ -146,10 +145,10 @@ class PostgresSourcePipeline
             // --- 2. Sentence embeddings + metrics ---
             if ($this->doSentences) {
                 if ($this->force) {
-                    $this->allSentencesForSource->execute([':sourceid' => $sid]);
+                    $this->allSentencesForSource->execute([':sourceid' => $sourceId]);
                     $work = $this->allSentencesForSource->fetchAll(\PDO::FETCH_ASSOC);
                 } else {
-                    $this->sentenceNeedsWork->execute([':sourceid' => $sid]);
+                    $this->sentenceNeedsWork->execute([':sourceid' => $sourceId]);
                     $work = $this->sentenceNeedsWork->fetchAll(\PDO::FETCH_ASSOC);
                 }
 
@@ -162,7 +161,7 @@ class PostgresSourcePipeline
                     if (!$this->dryrun) {
                         if (!is_array($vecs) || count($vecs) !== count($texts)) {
                             throw new \RuntimeException(
-                                "sentence embedding count mismatch for source {$sid}: got "
+                                "sentence embedding count mismatch for source {$sourceId}: got "
                                 . (is_array($vecs) ? count($vecs) : 'non-array')
                                 . " expected " . count($texts)
                             );
@@ -212,17 +211,17 @@ class PostgresSourcePipeline
                 // Metric
                 $needMetric = $this->force;
                 if (!$needMetric) {
-                    $this->docNeedsMetrics->execute([':sourceid' => $sid]);
+                    $this->docNeedsMetrics->execute([':sourceid' => $sourceId]);
                     $needMetric = (bool)$this->docNeedsMetrics->fetchColumn();
                 }
                 if ($needMetric) {
-                    $this->docTextForSource->execute([':sourceid' => $sid]);
+                    $this->docTextForSource->execute([':sourceid' => $sourceId]);
                     $docText = (string)($this->docTextForSource->fetchColumn() ?: '');
                     if ($docText !== '') {
                         $dm = $this->metrics->computeDocumentMetrics($docText);
                         if (!$this->dryrun) {
                             $this->documentMetricsUpsert->execute([
-                                ':sid'   => $sid,
+                                ':sid'   => $sourceId,
                                 ':ratio' => (float)($dm['hawaiian_word_ratio'] ?? 0),
                                 ':wc'    => (int)($dm['word_count'] ?? 0),
                                 ':len'   => (int)($dm['length'] ?? 0),
@@ -236,19 +235,19 @@ class PostgresSourcePipeline
                 // 1024-dim vector
                 $vecText = null;
                 if ($this->force) {
-                    $this->docTextForSource->execute([':sourceid' => $sid]);
+                    $this->docTextForSource->execute([':sourceid' => $sourceId]);
                     $vecText = $this->docTextForSource->fetchColumn();
                 } else {
-                    $this->docNeedsVector->execute([':sourceid' => $sid]);
+                    $this->docNeedsVector->execute([':sourceid' => $sourceId]);
                     $vecText = $this->docNeedsVector->fetchColumn();
                 }
                 if ($vecText !== null && $vecText !== false && trim((string)$vecText) !== '') {
                     if (!$this->dryrun) {
                         $dvecVal = $this->docEmbed->embedText((string)$vecText, 'passage: ', DocEmbeddingClient::MODEL_LARGE);
                         if (!is_array($dvecVal) || count($dvecVal) !== 1024) {
-                            throw new \RuntimeException("invalid 1024-dim document vector for source {$sid}");
+                            throw new \RuntimeException("invalid 1024-dim document vector for source {$sourceId}");
                         }
-                        $this->docVectorUpdate->execute([':sid' => $sid, ':e' => self::vecLiteral($dvecVal)]);
+                        $this->docVectorUpdate->execute([':sid' => $sourceId, ':e' => self::vecLiteral($dvecVal)]);
                     }
                     $dvec++;
                 }
@@ -277,7 +276,9 @@ class PostgresSourcePipeline
     }
 
     /**
-     * Delta-scan sentence_patterns for one source. Runs INSIDE the open tx.
+     * TODO(Task 2): delta-scan sentence_patterns for one source, INSIDE the
+     * open tx after the document-vector step and before commit. Stub until
+     * then: always returns 0.
      */
     public function scanGrammarPatterns(int $sourceId): int
     {

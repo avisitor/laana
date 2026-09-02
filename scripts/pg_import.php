@@ -42,8 +42,6 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../db/PostgresFuncs.php';
-require_once __DIR__ . '/../lib/EmbeddingClient.php';
-require_once __DIR__ . '/../lib/MetricsComputer.php';
 
 if (class_exists('Avisitor\\Env\\Loader')) {
     \Avisitor\Env\Loader::load(__DIR__ . '/../.env');

@@ -31,6 +31,9 @@
         <testsuite name="Cli">
             <directory>tests/Cli</directory>
         </testsuite>
+        <testsuite name="Database">
+            <directory>tests/Database</directory>
+        </testsuite>
     </testsuites>
     
     <source>
