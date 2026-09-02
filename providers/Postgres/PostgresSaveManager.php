@@ -56,7 +56,7 @@ class PostgresSaveManager extends MySQLSaveManager
                 $this->patternsSaved += $out['patterns'];
                 $this->mirroredAnything = true;
                 $this->log("PG mirror sourceID {$sourceID}: {$out['sentences_data']} sentences, "
-                    . "{$out['patterns']} patterns");
+                    . "{$out['patterns']} sentences grammar-scanned");
             } catch (\Throwable $e) {
                 // MySQL save already succeeded; PG sync failure must not
                 // abort the batch — report and continue.
@@ -111,8 +111,11 @@ class PostgresSaveManager extends MySQLSaveManager
         return $summary;
     }
 
-    /** Patterns assigned to Postgres during the current run (also surfaced
-     *  as $summary['patterns_saved']). */
+    /** Sentences grammar-scanned for Postgres during the current run (also
+     *  surfaced as $summary['patterns_saved']). This is the delta-selected
+     *  sentence count (see GrammarScanner::updateSourcePatterns) — not the
+     *  number of pattern rows written: one sentence can produce several
+     *  pattern rows, and zero-match sentences produce none. */
     public function getPatternsSaved(): int
     {
         return $this->patternsSaved;
