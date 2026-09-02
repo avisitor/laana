@@ -43,6 +43,12 @@
       "empty": {
         "type": "boolean"
       },
+      "vectors_missing": {
+        "type": "boolean"
+      },
+      "english_only": {
+        "type": "boolean"
+      },
       "quality": {
         "type": "float"
       }
