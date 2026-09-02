@@ -34,7 +34,16 @@ class MySQLSaveManager {
         //global $parsermap;
         $this->laana = new Laana();
         require_once __DIR__ . '/../../scripts/parsers.php';
-        $this->parsers = $parsermap;
+        // parsers.php's require_once is consumed by the first include in the
+        // process (e.g. ElasticsearchSaveManager's file-level require), which
+        // leaves the function-scope $parsermap undefined here on any later
+        // construction. The script also mirrors the map into
+        // $GLOBALS['parsermap'], so prefer that and fall back to the local.
+        if (isset($GLOBALS['parsermap']) && is_array($GLOBALS['parsermap'])) {
+            $this->parsers = $GLOBALS['parsermap'];
+        } else {
+            $this->parsers = is_array($parsermap ?? null) ? $parsermap : [];
+        }
         if (isset($options['debug'])) {
             $this->setDebug($options['debug']);
             // Set global debug flag for parsehtml.php

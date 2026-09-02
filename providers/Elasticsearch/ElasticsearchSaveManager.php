@@ -595,6 +595,69 @@ class ElasticsearchSaveManager {
     }
 
     /**
+     * Process a single source by ID, resolving the parser and source
+     * metadata from the documents index (no MySQL involved). This is the
+     * Elasticsearch/OpenSearch equivalent of
+     * MySQLSaveManager::processOneSource and backs
+     * scripts/save.php --provider=... --sourceid=...
+     */
+    public function processOneSource($sourceid) {
+        $this->funcName = "processOneSource";
+
+        $source = $this->client->getDocumentOutline((string)$sourceid);
+        if (!$source) {
+            $this->log("No document outline found for sourceID $sourceid");
+            $this->outputLine("Error: Source $sourceid not found");
+            return $this->buildSummary(null, 0, 0, 0);
+        }
+        $this->log($source, "Source");
+
+        $sourceID = $source['sourceid'];
+        $sourceName = $source['sourcename'] ?? '';
+        $link = $source['link'] ?? '';
+        $groupname = $source['groupname'] ?? '';
+
+        $parser = $this->parser ?: $this->getParser($groupname);
+        if (!$parser) {
+            $this->log("No parser for groupname '{$groupname}'");
+            $this->outputLine("Error: No parser found for groupname '{$groupname}'");
+            return $this->buildSummary($groupname ?: null, 0, 0, 0);
+        }
+
+        $this->verbosePrint("Initializing parser from $link\n");
+        $parser->initialize($link);
+
+        $this->outputLine("Processing source: $sourceName (ID: $sourceID)");
+        $this->outputLine("");
+
+        $this->out("[0] Processing $sourceName (ID: $sourceID)... ");
+
+        // saveContents() resolves source metadata from
+        // $this->options['sources'][$sourceID] — the same contract
+        // getAllDocuments() uses for single-source runs.
+        $this->options['sources'][$sourceID] = $source;
+
+        $count = 0;
+        try {
+            $count = $this->saveContents($parser, $sourceID);
+            if ($count > 0) {
+                $this->outputLine("SUCCESS (added $count sentences)");
+            } else {
+                $this->outputLine("SKIP (no new sentences)");
+            }
+        } catch (Exception $e) {
+            $this->outputLine("ERROR: " . $e->getMessage());
+            $this->log("Error processing $sourceID: " . $e->getMessage());
+        }
+
+        $this->outputLine("");
+        $this->outputLine("processOneSource: processed 1 document with $count sentences");
+
+        $parserName = $parser->logName ?? ($groupname ?: null);
+        return $this->buildSummary($parserName, 1, $count > 0 ? 1 : 0, $count);
+    }
+
+    /**
      * Process documents from a parser's document list
      */
     public function getAllDocuments() {
