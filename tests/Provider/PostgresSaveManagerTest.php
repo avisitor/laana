@@ -88,9 +88,20 @@ class PostgresSaveManagerTest extends BaseTestCase
             throw $e;
         }
         $this->assertIsArray($summary);
-        // Guard against a vacuous pass: 1 proves the source actually went
-        // through updateSource + saveContents (and so the PG mirror ran).
+        // Guard against a vacuous pass on stale PG rows. documents_processed
+        // is always 1 once source+parser resolve (buildSummary's second arg
+        // is a literal), and the parent CATCHES exceptions from saveContents
+        // (MySQLSaveManager.php:422-424) — under force=true a failed fetch
+        // exits the override before the mirror block and still reports 1.
+        // A COMPLETED saveContents re-extracts (force bypasses the
+        // already-has-sentences skip), so sentences_new > 0 proves
+        // saveContents finished and the PG mirror actually ran. If upstream
+        // content legitimately went empty, failing loudly here is correct.
         $this->assertSame(1, $summary['documents_processed']);
+        $this->assertGreaterThan(0, $summary['sentences_new']);
+        // Mirror-outcome keys the save manager appends for run drivers.
+        $this->assertArrayHasKey('pg_mirror_failures', $summary);
+        $this->assertArrayHasKey('patterns_saved', $summary);
 
         require_once __DIR__ . '/../../db/PostgresFuncs.php';
         $pdo = (new \PostgresLaana())->conn;

@@ -18,6 +18,7 @@ class PostgresSaveManager extends MySQLSaveManager
     protected $logName = "PostgresSaveManager";
     private ?PostgresSourcePipeline $pipeline = null;
     private int $patternsSaved = 0;
+    private int $mirrorFailures = 0;
     private bool $mirroredAnything = false;
 
     private function pipeline(): PostgresSourcePipeline
@@ -45,7 +46,9 @@ class PostgresSaveManager extends MySQLSaveManager
         // the mirror exactly when it matters. The pipeline is delta-safe
         // (ON CONFLICT upserts; embeddings only for missing vectors; grammar
         // scan only for patternless sentences), so an already-mirrored source
-        // costs one small read-only-in-practice transaction.
+        // costs one small read-only-in-practice transaction, except
+        // zero-match sentences are re-scanned each run (documented delta
+        // non-convergence).
         // NOTE: no counts refresh here — it happens once per run (below).
         if ($sourceID > 0) {
             try {
@@ -57,6 +60,7 @@ class PostgresSaveManager extends MySQLSaveManager
             } catch (\Throwable $e) {
                 // MySQL save already succeeded; PG sync failure must not
                 // abort the batch — report and continue.
+                $this->mirrorFailures++;
                 $this->log("PG mirror failed for sourceID {$sourceID}: " . $e->getMessage());
                 \Avisitor\Monolog\Logger::logError("PostgresSaveManager PG mirror: " . $e->getMessage());
             }
@@ -82,19 +86,33 @@ class PostgresSaveManager extends MySQLSaveManager
 
     public function getAllDocuments()
     {
+        // "Current run" counters restart per batch entry, so the summary
+        // keys below (and getPatternsSaved()) are batch-scoped even if an
+        // instance ever runs two batches. getAllDocuments() delegates to
+        // processOneSource() for single-source runs; the inner reset then
+        // zeroes an already-zero counter and the outer append wins.
+        $this->patternsSaved = 0;
+        $this->mirrorFailures = 0;
         $summary = parent::getAllDocuments();
         $this->refreshCountsOnce();
+        $summary['pg_mirror_failures'] = $this->mirrorFailures;
+        $summary['patterns_saved'] = $this->patternsSaved;
         return $summary;
     }
 
     public function processOneSource($sourceid)
     {
+        $this->patternsSaved = 0;
+        $this->mirrorFailures = 0;
         $summary = parent::processOneSource($sourceid);
         $this->refreshCountsOnce();
+        $summary['pg_mirror_failures'] = $this->mirrorFailures;
+        $summary['patterns_saved'] = $this->patternsSaved;
         return $summary;
     }
 
-    /** Postgres patterns assigned during this run (for buildSummary). */
+    /** Patterns assigned to Postgres during the current run (also surfaced
+     *  as $summary['patterns_saved']). */
     public function getPatternsSaved(): int
     {
         return $this->patternsSaved;
