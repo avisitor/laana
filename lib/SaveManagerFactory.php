@@ -32,12 +32,14 @@ class SaveManagerFactory
     }
 
     /**
-     * @param string $provider raw --provider value ('' -> mysql default)
+     * @param string $provider raw --provider value ('' -> mysql default via normalize)
      * @throws \InvalidArgumentException on unsupported providers
      */
     public static function create(string $provider, array $options): object
     {
-        $normalized = self::normalize($provider ?: 'mysql');
+        // No `?: 'mysql'` here: normalize('') already returns 'mysql', and a
+        // falsy guard would silently accept falsy strings like '0'.
+        $normalized = self::normalize($provider);
         switch ($normalized) {
             case 'mysql':         return new MySQLSaveManager($options);
             case 'postgres':      return new PostgresSaveManager($options);

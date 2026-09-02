@@ -81,8 +81,9 @@ if ($doclistFile) {
 
 try {
     try {
-        $manager = \Noiiolelo\SaveManagerFactory::create($providerName, $managerOptions);
-        echo "Using " . \Noiiolelo\SaveManagerFactory::normalize($providerName ?: 'mysql') . " provider\n";
+        $normalized = \Noiiolelo\SaveManagerFactory::normalize($providerName);
+        $manager = \Noiiolelo\SaveManagerFactory::create($normalized, $managerOptions);
+        echo "Using $normalized provider\n";
     } catch (\InvalidArgumentException $e) {
         fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
         exit(1);

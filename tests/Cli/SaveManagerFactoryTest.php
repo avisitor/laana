@@ -27,4 +27,11 @@ class SaveManagerFactoryTest extends TestCase
             \Noiiolelo\SaveManagerFactory::supported()
         );
     }
+
+    public function testNormalizeIsIdempotentOverSupportedList(): void
+    {
+        foreach (\Noiiolelo\SaveManagerFactory::supported() as $p) {
+            $this->assertSame($p, \Noiiolelo\SaveManagerFactory::normalize($p));
+        }
+    }
 }
