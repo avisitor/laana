@@ -54,10 +54,6 @@ if (php_sapi_name() !== 'cli') {
     exit(1);
 }
 
-use Noiiolelo\EmbeddingClient;            // sentence embeddings (384-dim, small model)
-use HawaiianSearch\EmbeddingClient as DocEmbeddingClient; // document vectors (1024-dim, MODEL_LARGE)
-use Noiiolelo\MetricsComputer;
-
 // ---------------------------------------------------------------------------
 // Env + connections
 // ---------------------------------------------------------------------------
@@ -289,11 +285,6 @@ if ($status) {
     exit(0);
 }
 
-$embedUrl = envValue('EMBEDDING_SERVICE_URL') ?: null;
-$embed = new EmbeddingClient($embedUrl);              // 384-dim sentence embeddings
-$docEmbed = new DocEmbeddingClient($embedUrl);         // 1024-dim document vectors (MODEL_LARGE)
-$metrics = new MetricsComputer(__DIR__ . '/../hawaiian_words.txt');
-
 say("Unified Postgres Import\n", $quiet);
 say("=======================\n", $quiet);
 say("Mode:       " . ($dryrun ? "DRY RUN (no writes)" : "WRITE") . "\n", $quiet);
@@ -345,7 +336,7 @@ if ($force) {
 }
 
 // ---------------------------------------------------------------------------
-// Prepared statements
+// Source selection (MySQL)
 // ---------------------------------------------------------------------------
 
 // MySQL reads
@@ -364,95 +355,21 @@ if ($limit > 0) {
 }
 $sourceStmt = $mysql->prepare($sourceSql);
 
-$contentStmt = $mysql->prepare(
-    'SELECT sourceID AS sourceid, html, text, created FROM contents WHERE sourceID = :sourceid'
-);
-$sentenceStmt = $mysql->prepare(
-    'SELECT sentenceID AS sentenceid, sourceID AS sourceid, hawaiianText AS hawaiiantext, '
-    . 'englishText AS englishtext, created '
-    . 'FROM sentences WHERE sourceID = :sourceid ORDER BY sentenceID'
-);
+// ---------------------------------------------------------------------------
+// Per-source pipeline (extracted from this script into
+// providers/Postgres/PostgresSourcePipeline.php). One processSource() call =
+// one Postgres transaction; the source is a complete unit on commit.
+// ---------------------------------------------------------------------------
 
-// Postgres upserts (parents/data)
-$sourceUpsert = $pg->prepare(
-    'INSERT INTO sources (sourceid, sourcename, authors, link, created, groupname, title, date) '
-    . 'VALUES (:sourceid, :sourcename, :authors, :link, :created, :groupname, :title, :date) '
-    . 'ON CONFLICT (sourceid) DO UPDATE SET '
-    . 'sourcename = EXCLUDED.sourcename, authors = EXCLUDED.authors, link = EXCLUDED.link, '
-    . 'created = EXCLUDED.created, groupname = EXCLUDED.groupname, title = EXCLUDED.title, date = EXCLUDED.date'
-);
-$contentUpsert = $pg->prepare(
-    'INSERT INTO contents (sourceid, html, text, created) '
-    . 'VALUES (:sourceid, :html, :text, :created) '
-    . 'ON CONFLICT (sourceid) DO UPDATE SET '
-    . 'html = EXCLUDED.html, text = EXCLUDED.text, created = EXCLUDED.created'
-);
-$sentenceUpsert = $pg->prepare(
-    'INSERT INTO sentences (sentenceid, sourceid, hawaiiantext, englishtext, created) '
-    . 'VALUES (:sentenceid, :sourceid, :hawaiiantext, :englishtext, :created) '
-    . 'ON CONFLICT (sentenceid) DO UPDATE SET '
-    . 'sourceid = EXCLUDED.sourceid, hawaiiantext = EXCLUDED.hawaiiantext, '
-    . 'englishtext = EXCLUDED.englishtext, created = EXCLUDED.created'
-);
-
-// Postgres check statements (for incremental backfill)
-$sentenceNeedsWork = $pg->prepare(
-    'SELECT s.sentenceid, s.hawaiiantext '
-    . 'FROM sentences s LEFT JOIN sentence_metrics m ON m.sentenceid = s.sentenceid '
-    . 'WHERE s.sourceid = :sourceid '
-    . '  AND s.hawaiiantext IS NOT NULL AND octet_length(s.hawaiiantext) > 0 '
-    . '  AND (s.embedding IS NULL OR m.sentenceid IS NULL) '
-    . 'ORDER BY s.sentenceid'
-);
-$allSentencesForSource = $pg->prepare(
-    'SELECT sentenceid, hawaiiantext FROM sentences '
-    . 'WHERE sourceid = :sourceid AND hawaiiantext IS NOT NULL AND octet_length(hawaiiantext) > 0 '
-    . 'ORDER BY sentenceid'
-);
-$docNeedsMetrics = $pg->prepare(
-    'SELECT 1 FROM contents c LEFT JOIN document_metrics m ON m.sourceid = c.sourceid '
-    . 'WHERE c.sourceid = :sourceid '
-    . '  AND c.text IS NOT NULL AND octet_length(c.text) > 0 '
-    . '  AND (m.sourceid IS NULL OR m.entity_count < 0) '
-    . 'LIMIT 1'
-);
-$docNeedsVector = $pg->prepare(
-    'SELECT text FROM contents '
-    . 'WHERE sourceid = :sourceid AND embedding_1024 IS NULL '
-    . '  AND text IS NOT NULL AND text <> \'\' '
-    . 'LIMIT 1'
-);
-$docTextForSource = $pg->prepare(
-    'SELECT text FROM contents WHERE sourceid = :sourceid AND text IS NOT NULL AND octet_length(text) > 0'
-);
-
-// Sentence embedding write (384-dim) via staging, scoped to current tx.
-$sentenceMetricsUpsert = $pg->prepare(
-    'INSERT INTO sentence_metrics (sentenceid, hawaiian_word_ratio, word_count, length, entity_count, frequency, updated_at) '
-    . 'VALUES (:sid, :ratio, :wc, :len, :ec, :freq, CURRENT_TIMESTAMP) '
-    . 'ON CONFLICT (sentenceid) DO UPDATE SET '
-    . 'hawaiian_word_ratio = EXCLUDED.hawaiian_word_ratio, word_count = EXCLUDED.word_count, '
-    . 'length = EXCLUDED.length, entity_count = EXCLUDED.entity_count, '
-    . 'frequency = EXCLUDED.frequency, updated_at = CURRENT_TIMESTAMP'
-);
-$documentMetricsUpsert = $pg->prepare(
-    'INSERT INTO document_metrics (sourceid, hawaiian_word_ratio, word_count, length, entity_count, updated_at) '
-    . 'VALUES (:sid, :ratio, :wc, :len, :ec, CURRENT_TIMESTAMP) '
-    . 'ON CONFLICT (sourceid) DO UPDATE SET '
-    . 'hawaiian_word_ratio = EXCLUDED.hawaiian_word_ratio, word_count = EXCLUDED.word_count, '
-    . 'length = EXCLUDED.length, entity_count = EXCLUDED.entity_count, updated_at = CURRENT_TIMESTAMP'
-);
-$docVectorUpdate = $pg->prepare(
-    'UPDATE contents SET embedding_1024 = (:e)::vector(1024) WHERE sourceid = :sid'
-);
-
-/** Format a numeric vector as a pgvector literal. */
-function vecLiteral(array $vec): string {
-    return '[' . implode(',', array_map(
-        static function ($v) { return is_int($v) ? (string)$v : (string)(float)$v; },
-        $vec
-    )) . ']';
-}
+$pipeline = new \Noiiolelo\Providers\Postgres\PostgresSourcePipeline([
+    'pg'        => $pg,
+    'mysql'     => $mysql,
+    'pgLaana'   => $pgLaana,
+    'dryrun'    => $dryrun,
+    'force'     => $force,
+    'sentences' => $doSentences,
+    'documents' => $doDocuments,
+]);
 
 // ---------------------------------------------------------------------------
 // Main loop — one transaction per source, complete unit on commit.
@@ -480,153 +397,19 @@ foreach ($sources as $source) {
     $group = $source['groupname'] ?? 'N/A';
     say("[{$index}/{$totalSources}] sourceID={$sid} group={$group}\n", $quiet);
 
-    $pg->beginTransaction();
     try {
-        // --- 1. Migrate parent rows (always) ---
-        $sourceUpsert->execute($source);
-
-        $contentStmt->execute([':sourceid' => $sid]);
-        $content = $contentStmt->fetch(PDO::FETCH_ASSOC);
-        if ($content) {
-            $contentUpsert->execute($content);
-        }
-
-        $sentenceStmt->execute([':sourceid' => $sid]);
-        $sentenceDataCount = 0;
-        while ($row = $sentenceStmt->fetch(PDO::FETCH_ASSOC)) {
-            $sentenceUpsert->execute($row);
-            $sentenceDataCount++;
-        }
-
-        $svec = 0; $smet = 0; $dmet = 0; $dvec = 0;
-
-        // --- 2. Sentence embeddings + metrics ---
-        if ($doSentences) {
-            if ($force) {
-                $allSentencesForSource->execute([':sourceid' => $sid]);
-                $work = $allSentencesForSource->fetchAll(PDO::FETCH_ASSOC);
-            } else {
-                $sentenceNeedsWork->execute([':sourceid' => $sid]);
-                $work = $sentenceNeedsWork->fetchAll(PDO::FETCH_ASSOC);
-            }
-
-            if (!empty($work)) {
-                $texts = [];
-                foreach ($work as $w) { $texts[] = (string)$w['hawaiiantext']; }
-
-                // One embedding batch per source (passage prefix, small model = 384-dim).
-                $vecs = $dryrun ? [] : $embed->embedSentences($texts, 'passage: ');
-                if (!$dryrun) {
-                    if (!is_array($vecs) || count($vecs) !== count($texts)) {
-                        throw new RuntimeException(
-                            "sentence embedding count mismatch for source {$sid}: got "
-                            . (is_array($vecs) ? count($vecs) : 'non-array')
-                            . " expected " . count($texts)
-                        );
-                    }
-                }
-
-                foreach ($work as $i => $w) {
-                    $sentenceId = (int)$w['sentenceid'];
-                    $text = (string)$w['hawaiiantext'];
-
-                    if (!$dryrun) {
-                        $vec = $vecs[$i] ?? null;
-                        if (!is_array($vec) || count($vec) !== 384) {
-                            throw new RuntimeException("invalid 384-dim vector for sentence {$sentenceId}");
-                        }
-                        $pg->exec(
-                            'CREATE TEMP TABLE IF NOT EXISTS staging_sent384 (sentenceid bigint, embedding vector(384)) ON COMMIT DROP'
-                        );
-                        $stg = $pg->prepare('INSERT INTO staging_sent384 VALUES (:sid, (:e)::vector(384))');
-                        $stg->execute([':sid' => $sentenceId, ':e' => vecLiteral($vec)]);
-                        $pg->exec(
-                            'UPDATE sentences s SET embedding = st.embedding '
-                            . 'FROM staging_sent384 st WHERE s.sentenceid = st.sentenceid'
-                        );
-                        $pg->exec('DELETE FROM staging_sent384');
-                        $svec++;
-                    }
-
-                    $m = $metrics->computeSentenceMetrics($text);
-                    if (!$dryrun) {
-                        $sentenceMetricsUpsert->execute([
-                            ':sid'   => $sentenceId,
-                            ':ratio' => (float)($m['hawaiian_word_ratio'] ?? 0),
-                            ':wc'    => (int)($m['word_count'] ?? 0),
-                            ':len'   => (int)($m['length'] ?? 0),
-                            ':ec'    => (int)($m['entity_count'] ?? 0),
-                            ':freq'  => (float)($m['frequency'] ?? 0),
-                        ]);
-                    }
-                    $smet++;
-                }
-            }
-        }
-
-        // --- 3. Document metric + 1024-dim document vector ---
-        if ($doDocuments && $content) {
-            // Metric
-            $needMetric = $force;
-            if (!$needMetric) {
-                $docNeedsMetrics->execute([':sourceid' => $sid]);
-                $needMetric = (bool)$docNeedsMetrics->fetchColumn();
-            }
-            if ($needMetric) {
-                $docTextForSource->execute([':sourceid' => $sid]);
-                $docText = (string)($docTextForSource->fetchColumn() ?: '');
-                if ($docText !== '') {
-                    $dm = $metrics->computeDocumentMetrics($docText);
-                    if (!$dryrun) {
-                        $documentMetricsUpsert->execute([
-                            ':sid'   => $sid,
-                            ':ratio' => (float)($dm['hawaiian_word_ratio'] ?? 0),
-                            ':wc'    => (int)($dm['word_count'] ?? 0),
-                            ':len'   => (int)($dm['length'] ?? 0),
-                            ':ec'    => (int)($dm['entity_count'] ?? 0),
-                        ]);
-                    }
-                    $dmet++;
-                }
-            }
-
-            // 1024-dim vector
-            $vecText = null;
-            if ($force) {
-                $docTextForSource->execute([':sourceid' => $sid]);
-                $vecText = $docTextForSource->fetchColumn();
-            } else {
-                $docNeedsVector->execute([':sourceid' => $sid]);
-                $vecText = $docNeedsVector->fetchColumn();
-            }
-            if ($vecText !== null && $vecText !== false && trim((string)$vecText) !== '') {
-                if (!$dryrun) {
-                    $dvecVal = $docEmbed->embedText((string)$vecText, 'passage: ', DocEmbeddingClient::MODEL_LARGE);
-                    if (!is_array($dvecVal) || count($dvecVal) !== 1024) {
-                        throw new RuntimeException("invalid 1024-dim document vector for source {$sid}");
-                    }
-                    $docVectorUpdate->execute([':sid' => $sid, ':e' => vecLiteral($dvecVal)]);
-                }
-                $dvec++;
-            }
-        }
-
-        if ($dryrun) {
-            $pg->rollBack();
-        } else {
-            $pg->commit();
-        }
-
+        $out = $pipeline->processSource($sid);
         $totals['sources']++;
-        $totals['sentences_data']   += $sentenceDataCount;
-        $totals['sentence_vectors'] += $svec;
-        $totals['sentence_metrics'] += $smet;
-        $totals['document_metrics'] += $dmet;
-        $totals['document_vectors'] += $dvec;
+        $totals['sentences_data']   += $out['sentences_data'];
+        $totals['sentence_vectors'] += $out['sentence_vectors'];
+        $totals['sentence_metrics'] += $out['sentence_metrics'];
+        $totals['document_metrics'] += $out['document_metrics'];
+        $totals['document_vectors'] += $out['document_vectors'];
 
         if ($verbose && !$quiet) {
-            echo "  data: {$sentenceDataCount} sentences, content=" . ($content ? 'yes' : 'no')
-               . " | vectors: sent={$svec} doc={$dvec} | metrics: sent={$smet} doc={$dmet}"
+            echo "  data: {$out['sentences_data']} sentences, content=" . ($out['has_content'] ? 'yes' : 'no')
+               . " | vectors: sent={$out['sentence_vectors']} doc={$out['document_vectors']}"
+               . " | metrics: sent={$out['sentence_metrics']} doc={$out['document_metrics']}"
                . ($dryrun ? " (dryrun, rolled back)" : "") . "\n";
         }
     } catch (Throwable $e) {
