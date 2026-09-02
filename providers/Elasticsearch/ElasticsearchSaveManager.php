@@ -135,7 +135,7 @@ class ElasticsearchSaveManager {
     }
 
     /**
-     * Client factory — overridden by OpenSearchSaveManager (Task 4) to target
+     * Client factory — overridden by OpenSearchSaveManager to target
      * OpenSearch. Everything else in this manager is client-agnostic.
      */
     protected function createClient(array $options): ElasticsearchClient
