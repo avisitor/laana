@@ -339,18 +339,17 @@ class PostgresSourcePipeline
 
     private static function connectMySql(): \PDO
     {
-        $host   = self::envValue('DB_HOST', 'localhost');
-        $port   = self::envValue('DB_PORT', '3306');
-        $db     = self::envValue('DB_DATABASE');
-        $user   = self::envValue('DB_USER');
-        $pass   = self::envValue('DB_PASSWORD');
+        // Fail loudly when the MySQL read-side connection config is missing
+        // instead of silently connecting to localhost with empty credentials.
+        $host   = \Noiiolelo\EnvConfig::firstEnv('MySQL host', ['DB_HOST']);
+        $port   = \Noiiolelo\EnvConfig::firstEnv('MySQL port', ['DB_PORT']);
+        $db     = \Noiiolelo\EnvConfig::firstEnv('MySQL database', ['DB_DATABASE']);
+        $user   = \Noiiolelo\EnvConfig::firstEnv('MySQL user', ['DB_USER']);
+        $pass   = \Noiiolelo\EnvConfig::firstEnv('MySQL password', ['DB_PASSWORD']);
         $socket = self::envValue('DB_SOCKET');
 
         if ($socket !== '') {
             $socket = trim($socket, "\"'");
-        }
-        if ($db === '') {
-            throw new \RuntimeException('DB_DATABASE is not set.');
         }
 
         $config = [

@@ -1,18 +1,31 @@
 <?php
 // Safe runner scaffold: Postgres-only sentence indexing, dry-run by default.
 
+require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../providers/Postgres/PostgresClient.php';
 require_once __DIR__ . '/../providers/Postgres/PostgresSentenceIndexer.php';
 
+use Noiiolelo\EnvConfig;
 use Noiiolelo\Providers\Postgres\PostgresClient;
 use Noiiolelo\Providers\Postgres\PostgresSentenceIndexer;
+
+// Load .env so getenv() sees the project configuration; this script previously
+// ignored .env entirely and fell back to hardcoded connection defaults (cron risk).
+if (class_exists('Avisitor\\Env\\Loader')) {
+    \Avisitor\Env\Loader::load(__DIR__ . '/../.env');
+}
 
 $config = [
     'verbose' => in_array('--verbose', $argv, true),
     'quiet' => in_array('--quiet', $argv, true),
-    'PG_DSN' => getenv('PG_DSN') ?: 'pgsql:host=localhost;port=5432;dbname=noiiolelo',
-    'PG_USER' => getenv('PG_USER') ?: 'laana',
-    'PG_PASSWORD' => getenv('PG_PASSWORD') ?: '',
+    'PG_DSN' => getenv('PG_DSN') ?: sprintf(
+        'pgsql:host=%s;port=%s;dbname=%s',
+        EnvConfig::firstEnv('Postgres host', ['PG_HOST']),
+        EnvConfig::firstEnv('Postgres port', ['PG_PORT']),
+        EnvConfig::firstEnv('Postgres database', ['PG_DATABASE', 'PG_DB'])
+    ),
+    'PG_USER' => EnvConfig::firstEnv('Postgres user', ['PG_USER']),
+    'PG_PASSWORD' => EnvConfig::firstEnv('Postgres password', ['PG_PASSWORD']),
     'EMBEDDING_ENDPOINT' => getenv('EMBEDDING_ENDPOINT') ?: '',
     // Sentence-first processing, no Elasticsearch dependencies
     'SPLIT_INDICES' => true,

@@ -8,11 +8,13 @@ class PostgresLaana extends Laana {
     public function connect($dsn = null, $options = false) {
         // Load env and read PG_* variables
         $env = \Avisitor\Env\Loader::load(__DIR__ . '/../.env');
-        $host = $env['PG_HOST'] ?? getenv('PG_HOST') ?? 'localhost';
-        $port = $env['PG_PORT'] ?? getenv('PG_PORT') ?? '5432';
-        $db   = $env['PG_DATABASE'] ?? getenv('PG_DATABASE') ?? ($env['PG_DB'] ?? getenv('PG_DB') ?? '');
-        $user = $env['PG_USER'] ?? getenv('PG_USER') ?? '';
-        $pass = $env['PG_PASSWORD'] ?? getenv('PG_PASSWORD') ?? '';
+        // Fail loudly when the Postgres connection config is missing instead of
+        // silently connecting to localhost with empty credentials.
+        $host = \Noiiolelo\EnvConfig::firstEnv('Postgres host', ['PG_HOST']);
+        $port = \Noiiolelo\EnvConfig::firstEnv('Postgres port', ['PG_PORT']);
+        $db   = \Noiiolelo\EnvConfig::firstEnv('Postgres database', ['PG_DATABASE', 'PG_DB']);
+        $user = \Noiiolelo\EnvConfig::firstEnv('Postgres user', ['PG_USER']);
+        $pass = \Noiiolelo\EnvConfig::firstEnv('Postgres password', ['PG_PASSWORD']);
         $dsnOverride = $env['PG_DSN'] ?? getenv('PG_DSN') ?? null;
 
         $config = [

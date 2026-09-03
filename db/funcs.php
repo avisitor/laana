@@ -151,11 +151,13 @@ class DB extends Common\DB\DBBase {
     public function connect() {
         $envFile = getenv('NOIIOLELO_ENV_FILE') ?: __DIR__ . '/../.env';
         $env = \Avisitor\Env\Loader::load($envFile);
-        $env['port'] = $env['port'] ?? $env['DB_PORT'] ?? '3306';
-        $env['username'] = $env['username'] ?? $env['DB_USER'] ?? '';
-        $env['password'] = $env['password'] ?? $env['DB_PASSWORD'] ?? '';
-        $env['dbname'] = $env['dbname'] ?? $env['DB_DATABASE'] ?? '';
-        $env['host'] = $env['host'] ?? $env['DB_HOST'] ?? 'localhost';
+        // Fail loudly when the MySQL connection config is missing instead of
+        // silently connecting to localhost with empty credentials.
+        $env['port'] = $env['port'] ?? \Noiiolelo\EnvConfig::firstEnv('MySQL port', ['DB_PORT']);
+        $env['username'] = $env['username'] ?? \Noiiolelo\EnvConfig::firstEnv('MySQL user', ['DB_USER']);
+        $env['password'] = $env['password'] ?? \Noiiolelo\EnvConfig::firstEnv('MySQL password', ['DB_PASSWORD']);
+        $env['dbname'] = $env['dbname'] ?? \Noiiolelo\EnvConfig::firstEnv('MySQL database', ['DB_DATABASE']);
+        $env['host'] = $env['host'] ?? \Noiiolelo\EnvConfig::firstEnv('MySQL host', ['DB_HOST']);
         unset( $env['socket'] ); // Not used in this implementation
         try {
             return $this->createConnection( $env );

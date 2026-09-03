@@ -65,11 +65,13 @@ function envValue(string $key, string $default = ''): string {
 }
 
 function connectMySql(): PDO {
-    $host   = envValue('DB_HOST', 'localhost');
-    $port   = envValue('DB_PORT', '3306');
-    $db     = envValue('DB_DATABASE');
-    $user   = envValue('DB_USER');
-    $pass   = envValue('DB_PASSWORD');
+    // Fail loudly when the MySQL read-side connection config is missing
+    // instead of silently connecting to localhost with empty credentials.
+    $host   = \Noiiolelo\EnvConfig::firstEnv('MySQL host', ['DB_HOST']);
+    $port   = \Noiiolelo\EnvConfig::firstEnv('MySQL port', ['DB_PORT']);
+    $db     = \Noiiolelo\EnvConfig::firstEnv('MySQL database', ['DB_DATABASE']);
+    $user   = \Noiiolelo\EnvConfig::firstEnv('MySQL user', ['DB_USER']);
+    $pass   = \Noiiolelo\EnvConfig::firstEnv('MySQL password', ['DB_PASSWORD']);
     $socket = envValue('DB_SOCKET');
 
     if ($socket !== '') {
