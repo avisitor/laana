@@ -5,6 +5,12 @@ require_once __DIR__ . '/lib/provider.php';
 
 header('Content-Type: application/json');
 
+// Return a JSON error for any uncaught error/exception instead of a blank 500
+set_exception_handler(function (\Throwable $e) {
+    \Avisitor\Monolog\Logger::logError( 'api.php uncaught ' . get_class($e) . ': ' . $e->getMessage() );
+    error_response('Internal error', 500);
+});
+
 // Parse query string properly to handle provider parameter
 // This handles cases where REQUEST_URI might have the query string embedded
 $queryString = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);

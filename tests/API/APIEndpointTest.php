@@ -8,6 +8,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 class APIEndpointTest extends BaseTestCase
 {
     private string $baseUrl;
+    private string $lastHttpStatus = '';
+    private string $lastCurlError = '';
 
     protected function setUp(): void
     {
@@ -37,7 +39,11 @@ class APIEndpointTest extends BaseTestCase
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         $output = curl_exec($ch);
         $error = curl_error($ch);
+        $status = (string) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         curl_close($ch);
+
+        $this->lastHttpStatus = $status;
+        $this->lastCurlError = $error;
 
         if ($output === false) {
             return '';
@@ -56,7 +62,7 @@ class APIEndpointTest extends BaseTestCase
     private function executeOpsRequest(string $endpoint, array $params = []): string
     {
         $url = $this->baseUrl . 'ops/' . $endpoint . '?' . http_build_query($params);
-        
+
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
@@ -65,7 +71,11 @@ class APIEndpointTest extends BaseTestCase
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         $output = curl_exec($ch);
         $error = curl_error($ch);
+        $status = (string) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         curl_close($ch);
+
+        $this->lastHttpStatus = $status;
+        $this->lastCurlError = $error;
 
         if ($output === false) {
             return '';
@@ -81,8 +91,8 @@ class APIEndpointTest extends BaseTestCase
     public function testApiSourcesEndpoint(): void
     {
         $output = $this->executeApiRequest('sources');
-        
-        $this->assertNotEmpty($output, 'API should return output');
+
+        $this->assertNotEmpty($output, "sources returned no body (HTTP $this->lastHttpStatus, curl: $this->lastCurlError)");
         
         $data = json_decode($output, true);
         $this->assertNotNull($data, 'API response should be valid JSON');
@@ -99,8 +109,8 @@ class APIEndpointTest extends BaseTestCase
         $output = $this->executeApiRequest('sources', [
             'provider' => $providerName
         ]);
-        
-        $this->assertNotEmpty($output);
+
+        $this->assertNotEmpty($output, "$providerName sources returned no body (HTTP $this->lastHttpStatus, curl: $this->lastCurlError)");
         $data = json_decode($output, true);
         $this->assertNotNull($data);
         $this->assertIsArray($data);
