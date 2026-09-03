@@ -1602,6 +1602,24 @@ class ElasticsearchClient {
         $bulkBody = [];
         foreach ($meta as $record) {
             $data = $record['_source'] ?? $record;
+            $sourceid = $data['sourceid'] ?? null;
+            if ($sourceid === null || trim((string)$sourceid) === '') {
+                // A record without a sourceid cannot be upserted: ES would
+                // auto-generate an _id and the write becomes an append. This is
+                // how millions of duplicate counter-doc copies accumulated in
+                // hawaiian-source-metadata (see initializeSourceMetadata).
+                $this->print( "saveSourceMetadata: SKIPPING record without sourceid: " . json_encode($data) );
+                \Avisitor\Monolog\Logger::logError( "ElasticsearchClient::saveSourceMetadata skipped record without sourceid (index {$metadataIndexName}): " . json_encode($data) );
+                continue;
+            }
+            if ((string)$sourceid === '_sourceid_counter') {
+                // The counter doc is owned by getNextSourceId()/setSourceCounter().
+                // A checkpoint re-saving a stale cached snapshot would roll the
+                // counter back and cause future sourceid collisions.
+                $this->print( "saveSourceMetadata: SKIPPING stale counter-doc snapshot" );
+                \Avisitor\Monolog\Logger::logError( "ElasticsearchClient::saveSourceMetadata skipped stale _sourceid_counter snapshot (index {$metadataIndexName})" );
+                continue;
+            }
             $bulkBody[] = [
                 'index' => [
                     '_index' => $metadataIndexName,
@@ -1613,6 +1631,13 @@ class ElasticsearchClient {
             //if( isset($data['discarded']) && $data['discarded'] ) {
             //    echo "Discarded {$data['sourceid']}\n";
             //}
+        }
+
+        // Nothing left to write (e.g. every record was skipped): an empty
+        // bulk request would be rejected by ES.
+        if (empty($bulkBody)) {
+            $this->print( "saveSourceMetadata: nothing to index (all records skipped or meta empty)" );
+            return;
         }
 
         // Send the bulk request

@@ -303,6 +303,14 @@ class CorpusIndexer
         // Turn array into map
         $this->sourceMeta = [];
         foreach( $sourceMeta as $source ) {
+            // Never sweep the sourceid counter document into sourceMeta: its
+            // body has no 'sourceid' field, so checkpointSourceMetadata() would
+            // re-save it with a null _id (ES auto-generates one), appending a
+            // junk copy on every checkpoint. This grew hawaiian-source-metadata
+            // to 8.3M documents.
+            if (($source['_id'] ?? '') === '_sourceid_counter') {
+                continue;
+            }
             $this->sourceMeta[$source['_id']] = $source;
         }
         return $this->sourceMeta;
