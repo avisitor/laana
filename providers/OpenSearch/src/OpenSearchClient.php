@@ -40,30 +40,38 @@ class OpenSearchClient extends ElasticsearchClient
         $this->splitIndices = $options['SPLIT_INDICES'] ?? true;
         $this->vectorDimensionsValidated = false;
 
+        // Fail loudly when the OpenSearch endpoint/auth is unconfigured. The
+        // previous ES_HOST/ES_PORT/API_KEY fallbacks silently pointed
+        // OpenSearch operations at the Elasticsearch cluster.
+        $host = \Noiiolelo\EnvConfig::firstEnv('OpenSearch host', ['OS_HOST', 'OPENSEARCH_HOST']);
+        $port = \Noiiolelo\EnvConfig::firstEnv('OpenSearch port', ['OS_PORT', 'OPENSEARCH_PORT']);
+        $scheme = strtolower(\Noiiolelo\EnvConfig::firstEnv('OpenSearch scheme', ['OS_SCHEME', 'OPENSEARCH_SCHEME']));
         $apiKey = $options['apiKey']
             ?? $_ENV['OS_API_KEY'] ?? getenv('OS_API_KEY')
             ?? $_ENV['OPENSEARCH_API_KEY'] ?? getenv('OPENSEARCH_API_KEY')
-            ?? $_ENV['API_KEY'] ?? getenv('API_KEY')
             ?? null;
         $bearerToken = $options['bearerToken']
             ?? $_ENV['OS_BEARER_TOKEN'] ?? getenv('OS_BEARER_TOKEN')
             ?? $_ENV['OPENSEARCH_BEARER_TOKEN'] ?? getenv('OPENSEARCH_BEARER_TOKEN')
             ?? null;
-        $host = $_ENV['OS_HOST'] ?? $_ENV['ES_HOST'] ?? 'localhost';
-        $port = $_ENV['OS_PORT'] ?? $_ENV['ES_PORT'] ?? 9200;
         $user = $options['username']
             ?? $_ENV['OS_USER'] ?? getenv('OS_USER')
-            ?? $_ENV['ES_USER'] ?? getenv('ES_USER')
-            ?? $_ENV['ELASTIC_USER'] ?? getenv('ELASTIC_USER')
+            ?? $_ENV['OPENSEARCH_USER'] ?? getenv('OPENSEARCH_USER')
             ?? null;
         $pass = $options['password']
             ?? $_ENV['OS_PASS'] ?? getenv('OS_PASS')
-            ?? $_ENV['ES_PASS'] ?? getenv('ES_PASS')
-            ?? $_ENV['ELASTIC_PASSWORD'] ?? getenv('ELASTIC_PASSWORD')
+            ?? $_ENV['OPENSEARCH_PASS'] ?? getenv('OPENSEARCH_PASS')
             ?? null;
 
+        if (!$apiKey && !$bearerToken && !($user && $pass)) {
+            throw new \RuntimeException(
+                'Missing OpenSearch credentials. Set OS_USER/OS_PASS (or OS_API_KEY, or OS_BEARER_TOKEN) '
+                . 'in .env or the environment. Refusing to connect to ' . $host . ':' . $port . ' unauthenticated.'
+            );
+        }
+
         $builder = ClientBuilder::create()
-            ->setHosts(["https://{$host}:{$port}"])
+            ->setHosts(["{$scheme}://{$host}:{$port}"])
             ->setSSLVerification(false);
 
         $connectionParams = ['client' => ['headers' => []]];

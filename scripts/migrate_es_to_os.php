@@ -72,24 +72,25 @@ try {
     exit(1);
 }
 
-// Initialize Target Client (OpenSearch)
-// Ensure OS_PORT is set
-if (!isset($_ENV['OS_PORT']) && !getenv('OS_PORT')) {
-    echo "Warning: OS_PORT not set, defaulting to 9201.\n";
-    $_ENV['OS_PORT'] = 9201;
-}
+// Initialize Target Client (OpenSearch) — missing OS_* config fails loudly
+// (Noiiolelo\EnvConfig) instead of defaulting to 9201 and silently targeting
+// the wrong cluster.
+$osHost = \Noiiolelo\EnvConfig::firstEnv('OpenSearch host', ['OS_HOST']);
+$osPort = \Noiiolelo\EnvConfig::firstEnv('OpenSearch port', ['OS_PORT']);
+$osUser = \Noiiolelo\EnvConfig::firstEnv('OpenSearch user', ['OS_USER']);
+$osPass = \Noiiolelo\EnvConfig::firstEnv('OpenSearch password', ['OS_PASS']);
 
 try {
     $osClient = new OpenSearchClient([
         'indexName' => $targetIndexBase,
         'verbose' => false,
         'quiet' => true,
-        'OS_HOST' => $_ENV['OS_HOST'] ?? 'localhost',
-        'OS_PORT' => $_ENV['OS_PORT'] ?? 9201,
-        'OS_USER' => $_ENV['OS_USER'] ?? 'admin',
-        'OS_PASS' => $_ENV['OS_PASS'] ?? ''
+        'OS_HOST' => $osHost,
+        'OS_PORT' => $osPort,
+        'OS_USER' => $osUser,
+        'OS_PASS' => $osPass
     ]);
-    echo "✓ Connected to Target (OpenSearch) on port " . ($_ENV['OS_PORT'] ?? 9201) . "\n";
+    echo "✓ Connected to Target (OpenSearch) on port " . $osPort . "\n";
 } catch (Exception $e) {
     echo "✗ Failed to connect to Target: " . $e->getMessage() . "\n";
     exit(1);
