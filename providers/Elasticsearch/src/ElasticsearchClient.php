@@ -187,9 +187,11 @@ class ElasticsearchClient {
             throw new RuntimeException('Missing Elasticsearch credentials. Set API_KEY or API_KEY_ID/API_KEY_SECRET or ES_USER/ES_PASS.');
         }
 
-        $host = $_ENV['ES_HOST'] ?? 'localhost';
-        $port = $_ENV['ES_PORT'] ?? 9200;
-        $scheme = $_ENV['ES_SCHEME'] ?? 'https';
+        // Fail loudly when the Elasticsearch endpoint is unconfigured instead
+        // of silently connecting to localhost (see Noiiolelo\EnvConfig).
+        $host = \Noiiolelo\EnvConfig::firstEnv('Elasticsearch host', ['ES_HOST']);
+        $port = \Noiiolelo\EnvConfig::firstEnv('Elasticsearch port', ['ES_PORT']);
+        $scheme = strtolower(\Noiiolelo\EnvConfig::firstEnv('Elasticsearch scheme', ['ES_SCHEME']));
 
         $builder = ClientBuilder::create()
             ->setHosts(["{$scheme}://{$host}:{$port}"])

@@ -46,10 +46,12 @@ use Elastic\Elasticsearch\ClientBuilder;
 $verbose = in_array('--verbose', $argv, true);
 
 $apiBaseUrl = $_ENV['NOIIOLELO_API_BASE_URL'] ?? getenv('NOIIOLELO_API_BASE_URL') ?? '';
-$esHost     = $_ENV['ES_HOST'] ?? getenv('ES_HOST') ?? 'localhost';
-$esPort     = $_ENV['ES_PORT'] ?? getenv('ES_PORT') ?? 9200;
-$esScheme   = $_ENV['ES_SCHEME'] ?? getenv('ES_SCHEME') ?? 'https';
-$esApiKey   = $_ENV['ES_API_KEY'] ?? getenv('ES_API_KEY') ?? '';
+// Fail loudly on missing Elasticsearch connection config instead of silently
+// probing localhost.
+$esHost     = \Noiiolelo\EnvConfig::firstEnv('Elasticsearch host', ['ES_HOST']);
+$esPort     = \Noiiolelo\EnvConfig::firstEnv('Elasticsearch port', ['ES_PORT']);
+$esScheme   = \Noiiolelo\EnvConfig::firstEnv('Elasticsearch scheme', ['ES_SCHEME']);
+$esApiKey   = \Noiiolelo\EnvConfig::firstEnv('Elasticsearch API key', ['ES_API_KEY', 'API_KEY']);
 
 if (!$apiBaseUrl) {
     fwrite(STDERR, "Error: NOIIOLELO_API_BASE_URL must be set in .env\n");
