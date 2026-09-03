@@ -14,18 +14,26 @@ class Neo4jProvider extends AbstractSearchProvider implements GraphSearchProvide
     
     public function __construct(array $options = [])
     {
-        // Initialize from options or environment variables
+        // Load .env so getenv() sees the project configuration (entry points
+        // like auto_classify_entities.php never load it themselves).
+        if (class_exists('Avisitor\\Env\\Loader')) {
+            \Avisitor\Env\Loader::load(__DIR__ . '/../../.env');
+        }
+
+        // Initialize from options or environment variables, failing loudly when
+        // the graph connection is unconfigured instead of silently using
+        // hardcoded localhost defaults.
         if (isset($options['uri'])) {
             $this->uri = $options['uri'];
             // Convert bolt:// to http:// for HTTP API
             $this->uri = str_replace('bolt://', 'http://', $this->uri);
             $this->uri = str_replace(':7687', ':7474', $this->uri);
         } else {
-            $this->uri = getenv('NEO4J_URI') ?: 'http://localhost:7474';
+            $this->uri = \Noiiolelo\EnvConfig::firstEnv('Neo4j URI', ['NEO4J_URI']);
         }
-        
-        $this->username = $options['username'] ?? getenv('NEO4J_USERNAME') ?: 'neo4j';
-        $this->password = $options['password'] ?? getenv('NEO4J_PASSWORD') ?: 'password';
+
+        $this->username = $options['username'] ?? \Noiiolelo\EnvConfig::firstEnv('Neo4j username', ['NEO4J_USERNAME']);
+        $this->password = $options['password'] ?? \Noiiolelo\EnvConfig::firstEnv('Neo4j password', ['NEO4J_PASSWORD']);
     }
 
     public function getName(): string

@@ -3,9 +3,11 @@
 
 function neo4jRequest(string $query, array $parameters = []): array
 {
-    $uri = getenv('NEO4J_URI') ?: 'http://localhost:7474';
-    $username = getenv('NEO4J_USERNAME') ?: 'neo4j';
-    $password = getenv('NEO4J_PASSWORD') ?: 'password';
+    // Fail loudly when the graph connection is unconfigured instead of
+    // silently using hardcoded localhost defaults.
+    $uri = \Noiiolelo\EnvConfig::firstEnv('Neo4j URI', ['NEO4J_URI']);
+    $username = \Noiiolelo\EnvConfig::firstEnv('Neo4j username', ['NEO4J_USERNAME']);
+    $password = \Noiiolelo\EnvConfig::firstEnv('Neo4j password', ['NEO4J_PASSWORD']);
     $url = rtrim(str_replace(['bolt://', ':7687'], ['http://', ':7474'], $uri), '/') . '/db/neo4j/tx/commit';
 
     $payload = [

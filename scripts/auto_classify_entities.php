@@ -3,6 +3,12 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// Load .env so getenv() sees the project configuration; this script previously
+// never loaded it and silently used hardcoded Neo4j defaults (cron risk).
+if (class_exists('Avisitor\\Env\\Loader')) {
+    \Avisitor\Env\Loader::load(__DIR__ . '/../.env');
+}
+
 use HawaiianSearch\NameListManager;
 use HawaiianSearch\WordCleanupStore;
 
@@ -34,9 +40,11 @@ echo "Dry run: " . ($dryRun ? 'yes' : 'no') . "\n\n";
 // Neo4j request function (same as in word_cleanup.php)
 function neo4jRequest(string $query, array $parameters = []): array
 {
-    $uri = getenv('NEO4J_URI') ?: 'http://localhost:7474';
-    $username = getenv('NEO4J_USERNAME') ?: 'neo4j';
-    $password = getenv('NEO4J_PASSWORD') ?: 'password';
+    // Fail loudly when the graph connection is unconfigured instead of
+    // silently using hardcoded localhost defaults.
+    $uri = \Noiiolelo\EnvConfig::firstEnv('Neo4j URI', ['NEO4J_URI']);
+    $username = \Noiiolelo\EnvConfig::firstEnv('Neo4j username', ['NEO4J_USERNAME']);
+    $password = \Noiiolelo\EnvConfig::firstEnv('Neo4j password', ['NEO4J_PASSWORD']);
     $url = rtrim(str_replace(['bolt://', ':7687'], ['http://', ':7474'], $uri), '/') . '/db/neo4j/tx/commit';
 
     $payload = [
