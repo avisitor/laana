@@ -459,8 +459,26 @@ class ElasticsearchProvider extends AbstractSearchProvider {
     }
 
     public function getSourceIDs( $groupname = '' ) {
-        $sources = $this->getSources( $groupname );
-        return array_column( $sources, 'sourceid' );
+        // Memory-bounded: paginate the distinct sourceid values via composite
+        // aggregation instead of scrolling every document in the index.
+        $query = null;
+        if ($groupname !== '') {
+            $query = [ 'term' => [ 'groupname' => $groupname ] ];
+        } else {
+            $blockedGroups = array_values(array_filter(getBlockedSourceGroups()));
+            if (!empty($blockedGroups)) {
+                // case_insensitive matches filterSourcesByBlockedGroups(),
+                // which lowercases source groupnames before comparison.
+                $query = [ 'bool' => [ 'must_not' => [
+                    [ 'terms' => [ 'groupname' => [ 'terms' => $blockedGroups, 'case_insensitive' => true ] ] ],
+                ] ] ];
+            }
+        }
+        return $this->client->getDistinctFieldValues(
+            $this->client->getSourceMetadataName(),
+            'sourceid',
+            $query
+        );
     }
 
     public function getSentencesBySourceID( $sourceid ) {

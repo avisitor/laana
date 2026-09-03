@@ -2726,13 +2726,60 @@ private function formatResults(array $response, string $mode,
             }
 
             return $documents;
-        } catch (ClientResponseException |
-                 ConnectException | NoNodeAvailableException $e) {
-            $this->print( "Error getting source IDs: " . $e->getMessage() );
+        } catch (\Throwable $e) {
+            $this->print( "Error getting all records from $index: " . $e->getMessage() );
             return [];
         }
     }
-    
+
+    /**
+     * Get all distinct values of a keyword field, memory-bounded.
+     *
+     * Paginates a composite aggregation (doc_values only; _source is never
+     * loaded), so peak memory does not grow with the number of documents in
+     * the index. Returns [] on any failure, consistent with sibling methods.
+     */
+    public function getDistinctFieldValues( $index, $field, $query = null, $pageSize = 10000 ): array
+    {
+        try {
+            $values = [];
+            $after = null;
+            do {
+                $composite = [
+                    'size' => $pageSize,
+                    'sources' => [
+                        [ 'value' => [ 'terms' => [ 'field' => $field ] ] ],
+                    ],
+                ];
+                if ($after !== null) {
+                    $composite['after'] = $after;
+                }
+                $body = [
+                    'size' => 0,
+                    'aggs' => [
+                        'values' => [ 'composite' => $composite ],
+                    ],
+                ];
+                if ($query !== null) {
+                    $body['query'] = $query;
+                }
+                $response = $this->client->search([
+                    'index' => $index,
+                    'body' => $body,
+                ]);
+                $buckets = $response['aggregations']['values']['buckets'] ?? [];
+                foreach ($buckets as $bucket) {
+                    $values[] = $bucket['key']['value'];
+                }
+                $after = $response['aggregations']['values']['after_key'] ?? null;
+            } while ($after !== null && count($buckets) >= $pageSize);
+            return $values;
+        } catch (\Throwable $e) {
+            $this->print( "Error getting distinct values for $field: " . $e->getMessage() );
+            return [];
+        }
+    }
+
     /**
      * Get all source IDs (doc_ids) present in the main index
      */
