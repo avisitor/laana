@@ -11,9 +11,12 @@ class EmbeddingClient {
 
     public function __construct(?string $baseUrl = null) {
         if ($baseUrl === null) {
-            $baseUrl = $_ENV['EMBEDDING_SERVICE_URL']
-                ?? getenv('EMBEDDING_SERVICE_URL')
-                ?? 'http://localhost:5000';
+            // Ensure the project configuration is loaded before requiring the
+            // embedding service URL (some entry points never load .env).
+            if (class_exists('Avisitor\\Env\\Loader')) {
+                \Avisitor\Env\Loader::load(__DIR__ . '/../.env');
+            }
+            $baseUrl = \Noiiolelo\EnvConfig::firstEnv('Embedding service URL', ['EMBEDDING_SERVICE_URL']);
         }
         $this->httpClient = new HttpClient([
             'timeout' => 300,

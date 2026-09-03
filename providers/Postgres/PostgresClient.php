@@ -23,9 +23,11 @@ class PostgresClient extends \PostgresLaana
         $env = class_exists('Avisitor\\Env\\Loader') ? \Avisitor\Env\Loader::load(__DIR__ . '/../../.env') : [];
         $endpoint = $config['EMBEDDING_SERVICE_URL']
             ?? ($env['EMBEDDING_SERVICE_URL'] ?? null)
-            ?? getenv('EMBEDDING_SERVICE_URL')
-            ?? ($config['EMBEDDING_ENDPOINT'] ?? $env['EMBEDDING_ENDPOINT'] ?? getenv('EMBEDDING_ENDPOINT') ?? 'http://localhost:5000');
-        $this->embeddingClient = new EmbeddingClient($endpoint);
+            ?? (getenv('EMBEDDING_SERVICE_URL') ?: null)
+            ?? ($config['EMBEDDING_ENDPOINT'] ?? $env['EMBEDDING_ENDPOINT'] ?? (getenv('EMBEDDING_ENDPOINT') ?: null) ?? null);
+        // No localhost fallback: an unconfigured endpoint fails loudly in
+        // EmbeddingClient instead of silently targeting localhost:5000.
+        $this->embeddingClient = new EmbeddingClient(is_string($endpoint) && trim($endpoint) !== '' ? $endpoint : null);
     }
 
     public function countTotalSentences(): int

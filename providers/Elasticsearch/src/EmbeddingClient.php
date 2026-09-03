@@ -13,9 +13,14 @@ class EmbeddingClient {
     private string $baseUrl;
 
     public function __construct(string $baseUrl = null) {
-        // Use environment variable if available, otherwise default to localhost
+        // Use the configured embedding service; fail loudly when unset rather
+        // than silently targeting localhost (some entry points never load .env,
+        // so load it here before requiring the URL).
         if ($baseUrl === null) {
-            $baseUrl = $_ENV['EMBEDDING_SERVICE_URL'] ?? getenv('EMBEDDING_SERVICE_URL') ?: 'http://localhost:5000';
+            if (class_exists('Avisitor\\Env\\Loader')) {
+                \Avisitor\Env\Loader::load(__DIR__ . '/../../../.env');
+            }
+            $baseUrl = \Noiiolelo\EnvConfig::firstEnv('Embedding service URL', ['EMBEDDING_SERVICE_URL']);
         }
         
         // Configure HTTP client with generous timeouts for large document processing
