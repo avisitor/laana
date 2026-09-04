@@ -85,7 +85,7 @@ Reads the source list, plain text, and raw HTML from the site's HTTP API with
 computes Hawaiian word ratios, generates embeddings, and bulk-indexes.
 
 ```bash
-php scripts/createindex.php --recreate --verbose      # full rebuild (drops indices)
+php scripts/createindex.php --recreate --verbose      # full rebuild into *_staging indices, atomic switch on completion
 php scripts/createindex.php                           # incremental: skips already-indexed sources
 php scripts/createindex.php --source-id=52441         # force one source
 php scripts/createindex.php --group-name=kauakukalahale
@@ -133,15 +133,27 @@ Otherwise missing 1024-dim vectors are embedded live one document at a time
 (slower).
 
 Behavior notes:
-- Split-indices mode (default) writes `hawaiian_documents_new`,
-  `hawaiian_sentences_new`, `hawaiian-content`, and `hawaiian-source-metadata`.
+- All runtime reads and writes go through the production aliases
+  (`ES_DOCUMENTS_ALIAS`/`ES_SENTENCES_ALIAS`/`ES_CONTENT_ALIAS`/
+  `ES_SOURCE_METADATA_ALIAS`/`ES_METADATA_ALIAS`, defaulting to
+  `hawaiian_documents`, `hawaiian_sentences`, `hawaiian_content`,
+  `hawaiian_source_metadata`, `hawaiian_metadata`). Physical index names only
+  matter for index creation/deletion.
+- Split-indices mode (default) writes the documents, sentences, content, and
+  source-metadata indices (via those aliases).
 - Raw web content is ingested inline with each document; a re-run backfills
   content for already-indexed sources that are missing it.
 - Ctrl+C stops gracefully at the next batch boundary; a second Ctrl+C aborts.
-- `--recreate` is global — it drops the indices regardless of `--source-id`
-  or `--group-name` (see
+- `--recreate` is full-corpus only — the script aborts immediately if it is
+  combined with `--group-name`, `--source-id` or `--max-documents` (those are
+  for incremental ingestion). The rebuild goes into temporary
+  `*_staging` indices while the current indices keep serving search; when the
+  run completes, the production aliases are atomically switched to the staging
+  indices and the old physical indices are deleted. An interrupted run leaves
+  production untouched (re-run with `--recreate` to try again; use
+  `--no-aliases` to build staging without ever switching). See
   [providers/Elasticsearch/docs/DELETE_AND_REINDEX.md](providers/Elasticsearch/docs/DELETE_AND_REINDEX.md)
-  for the full reference, including the groupname-scoped delete caveat).
+  for the full reference, including the groupname-scoped delete caveat.
 
 ## Postgres import and backfill (MySQL → Postgres)
 

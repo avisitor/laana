@@ -2,11 +2,12 @@
 <?php
 /**
  * Check synchronization between MySQL source IDs and the Elasticsearch
- * `hawaiian-source-metadata` index.
+ * source-metadata index (via the production alias).
  *
  * Lightweight identification tool (detection only — no remediation):
  *   - Queries MySQL source IDs via the existing API (NOIIOLELO_API_BASE_URL)
- *   - Queries the ES `hawaiian-source-metadata` index
+ *   - Queries the ES source-metadata index through its alias
+ *     (ES_SOURCE_METADATA_ALIAS, default hawaiian_source_metadata)
  *   - Reports source IDs missing in ES and missing in MySQL
  *
  * Usage:
@@ -22,7 +23,7 @@ declare(strict_types=1);
 // ---------------------------------------------------------------------------
 // Path resolution (__DIR__ based) and bootstrap
 // ---------------------------------------------------------------------------
-$projectRoot = dirname(__DIR__, 2);
+$projectRoot = dirname(__DIR__);
 $autoloadPath = $projectRoot . '/vendor/autoload.php';
 
 if (!file_exists($autoloadPath)) {
@@ -58,7 +59,9 @@ if (!$apiBaseUrl) {
     exit(1);
 }
 
-$metadataIndex = 'hawaiian-source-metadata';
+// Resolve through the production alias so this keeps working after a
+// staging (--recreate) run switches the corpus to new physical indices.
+$metadataIndex = $_ENV['ES_SOURCE_METADATA_ALIAS'] ?? 'hawaiian_source_metadata';
 
 echo "=== MySQL vs Elasticsearch Sync Check ===\n\n";
 

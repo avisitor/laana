@@ -377,59 +377,61 @@ class OpenSearchClient extends ElasticsearchClient
     }
 
     /**
-     * Override createAlias to use OpenSearch-compatible POST /_aliases API
+     * createAlias()/pointAliasAt()/createAliases() are inherited from
+     * ElasticsearchClient. The two protected hooks below route the alias
+     * operations through rawOsClient because the wrapped client silently
+     * swallows some indices() calls on OpenSearch.
      */
-    public function createAlias(string $aliasName, string $indexName): void
+    protected function aliasHolders(string $aliasName): array
     {
-        if ($this->aliasExists($aliasName)) {
-            $this->removeAlias($aliasName);
+        try {
+            $response = $this->rawOsClient->indices()->getAlias(['name' => $aliasName]);
+            if (is_object($response) && method_exists($response, 'wait')) {
+                $response = $response->wait();
+            }
+            $arr = (is_object($response) && method_exists($response, 'asArray'))
+                ? $response->asArray()
+                : (array)$response;
+            return array_keys($arr);
+        } catch (\Throwable $e) {
+            return [];
         }
-        
-        $this->rawOsClient->indices()->putAlias([
-            'index' => $indexName,
-            'name' => $aliasName
-        ]);
-        $this->print("Created alias '{$aliasName}' for index '{$indexName}'");
+    }
+
+    protected function updateAliasesActions(array $actions): void
+    {
+        $result = $this->rawOsClient->indices()->updateAliases(['body' => ['actions' => $actions]]);
+        if (is_object($result) && method_exists($result, 'wait')) {
+            $result->wait();
+        }
     }
 
     /**
-     * Override removeAlias to use raw HTTP transport for OpenSearch compatibility
+     * Override refreshIndex to use rawOsClient directly (the wrapped client
+     * can silently swallow indices() operations on OpenSearch).
+     */
+    protected function refreshIndex(string $indexName): void
+    {
+        $result = $this->rawOsClient->indices()->refresh(['index' => $indexName]);
+        if (is_object($result) && method_exists($result, 'wait')) {
+            $result->wait();
+        }
+    }
+
+    /**
+     * Override removeAlias to drop the alias from all indices in one
+     * _aliases call via rawOsClient.
      */
     public function removeAlias(string $aliasName): void
     {
         if ($this->aliasExists($aliasName)) {
             try {
-                // Use raw HTTP DELETE to remove alias from all indices
-                $this->rawOsClient->transport->performRequest(
-                    'DELETE',
-                    "/_aliases/{$aliasName}",
-                    [],
-                    null
-                );
+                $this->updateAliasesActions([
+                    ['remove' => ['index' => '*', 'alias' => $aliasName]]
+                ]);
                 $this->print("Removed alias '{$aliasName}'");
             } catch (\Exception $e) {
                 $this->print("Warning: Could not remove alias '{$aliasName}': " . $e->getMessage());
-            }
-        }
-    }
-
-    /**
-     * Override createAliases to use rawOsClient directly for all operations
-     */
-    public function createAliases(): void
-    {
-        $this->print("Creating production aliases (OpenSearch)...");
-
-        $aliases = [
-            $this->getDocumentsAlias() => $this->getDocumentsIndexName(),
-            $this->getSentencesAlias() => $this->getSentencesIndexName(),
-        ];
-
-        foreach ($aliases as $alias => $index) {
-            if ($this->indexExists($index)) {
-                $this->createAlias($alias, $index);
-            } else {
-                $this->print("Warning: index '{$index}' does not exist, skipping alias '{$alias}'");
             }
         }
     }

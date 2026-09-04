@@ -70,7 +70,7 @@ class MetadataExtractor
             $esClient = $this->client->getTransportClient();
             
             $response = $esClient->get([
-                'index' => $this->client->getIndexName() . '-metadata',
+                'index' => $this->client->getMetadataName(),
                 'id' => $sentenceHash
             ]);
             
@@ -117,7 +117,7 @@ class MetadataExtractor
                 
                 $actions[] = [
                     'index' => [
-                        '_index' => $this->client->getIndexName() . '-metadata',
+                        '_index' => $this->client->getMetadataName(),
                         '_id' => $sentenceHash
                     ]
                 ];
@@ -145,7 +145,8 @@ class MetadataExtractor
         try {
             $esClient = $this->client->getTransportClient();
             
-            $indexName = $this->client->getIndexName() . '-metadata';
+            // Concrete name (staging-aware) — this creates/deletes the index.
+            $indexName = $this->client->getMetadataConcreteName();
             
             $exists = $this->client->indexExists($indexName);
             

@@ -9,6 +9,8 @@ abstract class TestBase extends BaseTest {
     protected $client;
     protected $createdIndices = [];
     protected $defaultSearchOptions;
+    /** @var array<string,string|null> alias env values saved by setUp() */
+    protected $savedEnv = [];
 
     // Centralized mapping file names using the global constant
     protected const DOCUMENTS_MAPPING = TEST_BASE_PATH . '/config/documents_mapping_optimized.json';
@@ -18,7 +20,7 @@ abstract class TestBase extends BaseTest {
     protected function setUp() {
         $this->log("Setting up " . get_class($this));
         $baseIndexName = 'test_index_' . uniqid();
-        
+
         $this->client = new ElasticsearchClient([
             'indexName' => $baseIndexName,
             'SPLIT_INDICES' => true,
@@ -26,8 +28,18 @@ abstract class TestBase extends BaseTest {
         ]);
 
         $this->defaultSearchOptions = ['k' => 10, 'offset' => 0];
-        $this->createDocumentsIndex($this->client->getDocumentsIndexName());
-        $this->createSentencesIndex($this->client->getSentencesIndexName());
+        // Concrete (physical) names: the test harness creates isolated
+        // test_index_* indices; the production aliases must not be touched.
+        $this->createDocumentsIndex($this->client->getDocumentsConcreteName());
+        $this->createSentencesIndex($this->client->getSentencesConcreteName());
+        // Route the client's active-name resolution (searches, lookups) to
+        // the test indices for the duration of the test. This replaces the
+        // previous behavior of repointing the PRODUCTION aliases at the test
+        // indices, which destroyed those aliases on tearDown.
+        $this->savedEnv['ES_DOCUMENTS_ALIAS'] = $_ENV['ES_DOCUMENTS_ALIAS'] ?? null;
+        $this->savedEnv['ES_SENTENCES_ALIAS'] = $_ENV['ES_SENTENCES_ALIAS'] ?? null;
+        $_ENV['ES_DOCUMENTS_ALIAS'] = $this->client->getDocumentsConcreteName();
+        $_ENV['ES_SENTENCES_ALIAS'] = $this->client->getSentencesConcreteName();
     }
 
     protected function createDocumentsIndex(string $indexName) {
@@ -55,5 +67,14 @@ abstract class TestBase extends BaseTest {
             }
         }
         $this->createdIndices = [];
+        // Restore the production alias environment before the next test.
+        foreach ($this->savedEnv as $key => $value) {
+            if ($value === null) {
+                unset($_ENV[$key]);
+            } else {
+                $_ENV[$key] = $value;
+            }
+        }
+        $this->savedEnv = [];
     }
 }

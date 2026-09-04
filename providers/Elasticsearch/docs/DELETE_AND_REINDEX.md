@@ -15,25 +15,21 @@ described in earlier versions of this document **no longer exist in
 [Groupname-scoped reindexing](#groupname-scoped-reindexing-source-id---group-name)
 below for the current equivalent and its important caveats.
 
-## ⚠️ `--recreate` is global, not scoped
+## ⚠️ `--recreate` is full-corpus only
 
-`--recreate` deletes and recreates the **entire** documents, sentences, and
-source-metadata indices — it is not limited by `--source-id` or
-`--group-name`. If you combine `--recreate` with `--group-name=X`, the
-script will:
+`--recreate` rebuilds the **entire** documents, sentences, source-metadata,
+content, and sentence-metadata indices — it is not scoped by `--source-id` or
+`--group-name`, and it cannot be limited by `--max-documents`. Combining
+`--recreate` with any of those options **aborts immediately** with an error:
+they are for incremental ingestion only. A completed scoped rebuild would
+switch a partial corpus over production, so the combination is refused rather
+than allowed.
 
-1. Delete **all** documents, sentences, and source-metadata (every group,
-   not just `X`).
-2. Re-index only the sources belonging to group `X`.
-
-Every other group's documents/sentences/source-metadata will be gone until
-a separate full (or per-group) reindex repopulates them. **Do not combine
-`--recreate` with `--source-id` or `--group-name` unless you intend a full
-wipe.** For a truly scoped delete-and-reindex of one group without
-affecting the rest of the corpus, use `--group-name=X` **without**
-`--recreate` — the indexer will index/overwrite documents for that group by
-ID, without touching anything else. `--recreate` is only for the
-"rebuild everything from scratch" case.
+For a truly scoped delete-and-reindex of one group without affecting the rest
+of the corpus, use `--group-name=X` **without** `--recreate` — the indexer
+will index/overwrite documents for that group by ID, without touching
+anything else. `--recreate` is only for the "rebuild everything from scratch"
+case.
 
 ## Usage
 
@@ -45,13 +41,13 @@ php scripts/createindex.php [options]
 
 | Option | Description |
 |---|---|
-| `--recreate` | Delete and recreate the documents/sentences/source-metadata indices before indexing (global — see warning above) |
+| `--recreate` | Rebuild the corpus into temporary `*_staging` indices, then atomically switch the production aliases on completion (full-corpus only — aborts when combined with `--group-name`, `--source-id` or `--max-documents`) |
 | `--dryrun`, `--dry-run` | Show what would happen without writing anything |
 | `--verbose` | Verbose output |
 | `--quiet` | Suppress non-error output |
-| `--max-documents=N`, `--limit=N` | Stop after indexing N documents |
-| `--source-id=N` | Only index the source with this ID |
-| `--group-name=NAME`, `--groupname=NAME` | Only index sources in this group |
+| `--max-documents=N`, `--limit=N` | Stop after indexing N documents (incremental ingestion only) |
+| `--source-id=N` | Only index the source with this ID (incremental ingestion only) |
+| `--group-name=NAME`, `--groupname=NAME` | Only index sources in this group (incremental ingestion only) |
 | `--batch-size=N` | Documents per batch (default: 1) |
 | `--sentence-batch-size=N` | Sentences per embedding request (default: 100) |
 | `--checkpoint-interval=N` | Sources between checkpoints (default: 50) |
@@ -159,7 +155,7 @@ unset. `opensearch` / `os` (case-insensitive) select OpenSearch.
 
 ```bash
 php scripts/createindex.php --dryrun
-php scripts/createindex.php --recreate --verbose --max-documents 10
+php scripts/createindex.php --verbose --max-documents 10
 php scripts/createindex.php --recreate --verbose
 php scripts/createindex.php --group-name=kauakukalahale --dryrun
 php scripts/createindex.php --aliases-only

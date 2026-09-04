@@ -67,7 +67,8 @@ if (in_array(strtolower($provider), ['opensearch', 'os'], true)) {
 }
 
 $sentencesIndex = $client->getSentencesIndexName();
-$metadataIndex  = $client->getIndexName() . '-metadata';
+// Physical (staging-aware) name: this script deletes and recreates the index.
+$metadataIndex  = $client->getMetadataConcreteName();
 
 echo "Sentences index: {$sentencesIndex}\n";
 echo "Metadata index:  {$metadataIndex}\n\n";
@@ -230,6 +231,11 @@ if ($dryrun) {
     }
 
     echo "  Indexed {$saved} metadata documents ({$errors} errors)\n";
+
+    // Recreating the physical index drops the alias that pointed at it; re-point
+    // the production metadata alias so reads follow the rebuilt index.
+    $client->createAlias($client->getMetadataAlias(), $metadataIndex);
+    echo "  Repointed alias '{$client->getMetadataAlias()}' at '{$metadataIndex}'\n";
 }
 
 echo "\nDone.\n";

@@ -6,6 +6,11 @@ Guidance for AI agents and developers working in this repository. Topic docs liv
 - Use skills where available
 - Prefer codegraph for code exploration
 - Prefer fd and rg over find and ls -R
+- **MCP tools** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them. `codegraph_node` returns one symbol's source + callers, or reads a whole file with line numbers. If the tools are listed but deferred, load them by name via tool search.
+- **Shell** (always works): `codegraph explore "<symbol names or question>"` and `codegraph node <symbol-or-file>` print the same output.
+- If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
+- Do not add Sisyphus co-author trailers or Ultraworked footers to commits.
+
 
 ## Coding guidelines
 - Failures in configuration or infrastructure are to cause fast and loud failure so they can be fixed, not fallback to defaults
@@ -100,7 +105,7 @@ bash ops/neo4j.sh start|status|stop
 ## Gotchas (details in docs/)
 
 - Opensearch and Elasticsearch keyword fields are mapped directly — `foo.keyword` silently returns nothing; the keyword variant of `text` is `text.raw`. The OpenSearch client strips `.keyword` at request time, the Elasticsearch client does not. Exception: the `processing-logs` index genuinely uses `.keyword`.
-- `createindex.php --recreate` wipes entire indices regardless of `--source-id`/`--group-name` — never combine them. Scoped reindex (`--group-name` without `--recreate`) only adds/overwrites; it never purges stale docs.
+- `createindex.php --recreate` is full-corpus only: it aborts immediately if combined with `--source-id`, `--group-name` or `--max-documents` (incremental-ingestion options). The rebuild goes into `*_staging` indices and is switched in atomically on completion; interrupted runs leave production untouched (partial staging is wiped on the next `--recreate`). Scoped reindex (`--group-name` without `--recreate`) only adds/overwrites; it never purges stale docs.
 - Postgres mirroring from MySQL must run for every selected source — never gate on sentence count (the MySQL pass runs first, so existing sources report 0).
 - `REFRESH MATERIALIZED VIEW` runs outside any transaction, exactly once per run, from the run driver — never inside `processSource()`/`scanGrammarPatterns()`.
 - A Postgres sync failure must not abort the batch — MySQL already succeeded; report and continue.

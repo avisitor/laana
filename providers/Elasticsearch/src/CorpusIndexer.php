@@ -41,7 +41,27 @@ class CorpusIndexer
     private ?string $sourceIndexForReindex = null;
     private ?string $sourceIndex = null;
     private ?string $targetIndex = null;
-    private int $totalDocuments;
+    private int $totalDocuments = 0; // Estimated total; set by runIndexing()/updateProperties()
+
+    // Run-summary counters, printed by printRunSummary() at the end of each
+    // indexing run. "Reviewed" counts every source/sentence the run examined;
+    // per-reason buckets keep the books balanced: reviewed = indexed + skipped
+    // + rejected + failed.
+    private int $documentsReviewed = 0;
+    private int $documentsSkippedResume = 0;
+    private int $documentsRejectedNoText = 0;
+    private int $documentsRejectedLowRatio = 0;
+    private int $documentsRejectedNoSentences = 0;
+    private int $documentsRejectedNoUsableVectors = 0;
+    private int $documentsRejectedRetrieval = 0;
+    private int $documentsRejectedValidation = 0;
+    private int $documentsFailedToIndex = 0;
+    private int $sentencesReviewed = 0;
+    private int $sentencesIndexed = 0;
+    private int $sentencesFailedToIndex = 0;
+    private int $sentencesRejectedLowRatio = 0;
+    private int $sentencesRejectedInvalidVector = 0;
+    private int $sentencesRejectedDocFailed = 0;
     
     private SourceCapabilities $sourceCapabilities;
     /** @var object{conn:\PDO}|null */
@@ -78,6 +98,20 @@ class CorpusIndexer
         $this->maxDocuments = $config['MAX_DOCUMENTS'] ?? null;
         $this->sourceId = $config['SOURCE_ID'] ?? null;
         $this->groupName = $config['groupName'] ?? null;
+
+        // --recreate rebuilds the whole corpus; the scoped/limited options are
+        // for incremental ingestion. A recreate scoped to one source/group/limit
+        // would swap a partial corpus over production on completion — refuse it
+        // here too, not just in the CLI, so programmatic callers cannot bypass
+        // the guard.
+        if ($this->recreate && ($this->maxDocuments || $this->sourceId || $this->groupName)) {
+            throw new \RuntimeException(
+                '--recreate cannot be combined with --group-name, --source-id or --max-documents; ' .
+                'those are for incremental ingestion only. Run --recreate on its own to rebuild ' .
+                'the whole corpus.'
+            );
+        }
+
         $this->updateProperties = $config['updateProperties'] ?? false;
         $this->updateMetadata = $config['updateMetadata'] ?? false;
         $this->updateSourceMetadata = $config['updateSourceMetadata'] ?? false;
@@ -156,6 +190,12 @@ class CorpusIndexer
                 // document/sentences (see createSplitIndexObjects()/
                 // processSource()), so it needs to exist up front too.
                 $this->client->createContentIndex($recreate);
+                // Ensure the production aliases exist and point at these
+                // indices. Done here (production-index context) rather than
+                // inside client->createIndex(), so ad-hoc clients creating
+                // throwaway indices never repoint the production aliases.
+                // No-op during staging runs (guarded inside createAliases()).
+                $this->client->createAliases();
             }
         }
 
@@ -274,7 +314,7 @@ class CorpusIndexer
 
     private function initializeSourceMetadata(): array
     {
-        $sourceMetadataIndexName = $this->client->getSourceMetadataName();
+        $sourceMetadataIndexName = $this->client->getSourceMetadataConcreteName();
         $this->print( "initializeSourceMetadata from  $sourceMetadataIndexName" );
 
         // Only wipe source-metadata for a genuine full reindex. Modes that only
@@ -284,8 +324,14 @@ class CorpusIndexer
         // providers when running `--import-raw --recreate`.
         $touchesOtherIndexOnly = $this->importRaw || $this->updateProperties || $this->updateMetadata;
         if ($this->recreate && !$touchesOtherIndexOnly) {
-            $this->print( "Recreate flag is set. Initializing with empty metadata." );
-            if ($this->dryrun ) {
+            if ($this->client->isStagingMode()) {
+                // Staging run: the rebuild goes into the *_staging indices and
+                // the production source-metadata index stays untouched until
+                // the completed run is switched over atomically. Reading the
+                // (empty) staging source-metadata index below yields no
+                // records, so every source is reprocessed as expected.
+                $this->print( "Staging run - production source-metadata left untouched; starting with empty metadata." );
+            } elseif ($this->dryrun ) {
                 $this->print( "Skipping deletion because dryrun" );
             } else {
                 $this->client->deleteIndex( $sourceMetadataIndexName );
@@ -365,6 +411,7 @@ class CorpusIndexer
                             $this->print( "Skipping already indexed {$sourceid}" );
                             $this->backfillRawContentIfMissing($sourceid);
                         }
+                        $this->documentsSkippedResume++;
                         return null;
                     }
                 }
@@ -377,12 +424,14 @@ class CorpusIndexer
             $data = $this->postgresReader->readSource((int)$sourceid);
         } catch (\Throwable $e) {
             $this->print("❌ Error reading source {$sourceid} from Postgres: " . $e->getMessage());
+            $this->documentsRejectedRetrieval++;
             $this->setSourceMetaFlag($sourceid, 'discarded', true);
             return null;
         }
 
         if ($data === null || empty($data['text'])) {
             $this->print("⚠️ Skipping: No text for {$sourceid}");
+            $this->documentsRejectedNoText++;
             $this->setSourceMetaFlag($sourceid, 'discarded', true);
             return null;
         }
@@ -390,6 +439,7 @@ class CorpusIndexer
         $docHawaiianWordRatio = $data['hawaiian_word_ratio'] ?? $this->calculateHawaiianWordRatio($data['text']);
         if ($docHawaiianWordRatio < self::MIN_DOC_HAWAIIAN_WORD_RATIO) {
             $this->print("⚠️ Skipping: Document {$sourceid} has a low Hawaiian word ratio ({$docHawaiianWordRatio}).");
+            $this->documentsRejectedLowRatio++;
             $this->setSourceMetaFlag($sourceid, 'english_only', true);
             $this->setSourceMetaFlag($sourceid, 'vectors_missing', false);
             return null;
@@ -397,6 +447,7 @@ class CorpusIndexer
 
         // Split sentences into those with usable stored vectors and those
         // needing the re-embed fallback (NULL/empty/wrong-dimension vectors).
+        $this->sentencesReviewed += count($data['sentences'] ?? []);
         $sentenceObjects = [];
         $needsEmbedding = [];
         foreach ($data['sentences'] as $s) {
@@ -405,6 +456,7 @@ class CorpusIndexer
                     $needsEmbedding[] = $s;
                 } else {
                     $this->print("⚠️ Skipping sentence with invalid vector and no embeddable text for {$sourceid}");
+                    $this->sentencesRejectedInvalidVector++;
                 }
                 continue;
             }
@@ -421,14 +473,17 @@ class CorpusIndexer
                 usort($sentenceObjects, fn(array $a, array $b): int => ($a['position'] ?? 0) <=> ($b['position'] ?? 0));
             }
             $this->print("↩️ Sentence vector backfill for {$sourceid}: recovered {$recovered} of " . count($needsEmbedding) . " missing");
+            $this->sentencesRejectedInvalidVector += max(0, count($needsEmbedding) - $recovered);
         }
 
         if (empty($sentenceObjects)) {
             if (empty($data['sentences'])) {
                 $this->print("⚠️ Skipping: No sentences found for {$sourceid}");
+                $this->documentsRejectedNoSentences++;
                 $this->setSourceMetaFlag($sourceid, 'empty', true);
             } else {
                 $this->print("⚠️ Skipping: No usable sentence vectors for {$sourceid} after re-embed fallback");
+                $this->documentsRejectedNoUsableVectors++;
                 $this->setSourceMetaFlag($sourceid, 'vectors_missing', true);
             }
             return null;
@@ -735,11 +790,15 @@ class CorpusIndexer
         if (!is_array($doc['_source']['text_vector_1024']) || empty($doc['_source']['text_vector_1024'])) {
             $this->print("❌ CRITICAL: Document text_vector_1024 is invalid for {$sourceid}!");
             $this->print("   Type: " . gettype($doc['_source']['text_vector_1024']));
+            $this->documentsRejectedValidation++;
+            $this->sentencesRejectedDocFailed += count($sentenceObjects);
             return null;
         }
 
         if (count($doc['_source']['text_vector_1024']) !== 1024) {
             $this->print("❌ CRITICAL: Document text_vector_1024 has wrong dimensions for {$sourceid}: " . count($doc['_source']['text_vector_1024']));
+            $this->documentsRejectedValidation++;
+            $this->sentencesRejectedDocFailed += count($sentenceObjects);
             return null;
         }
 
@@ -748,11 +807,15 @@ class CorpusIndexer
                 $this->print("❌ CRITICAL: Sentence {$idx} vector is invalid for {$sourceid}!");
                 $this->print("   Type: " . gettype($sentence['vector']));
                 $this->print("   Value: " . json_encode($sentence['vector']));
+                $this->documentsRejectedValidation++;
+                $this->sentencesRejectedDocFailed += count($sentenceObjects);
                 return null;
             }
 
             if (count($sentence['vector']) !== 384) {
                 $this->print("❌ CRITICAL: Sentence {$idx} vector has wrong dimensions for {$sourceid}: " . count($sentence['vector']));
+                $this->documentsRejectedValidation++;
+                $this->sentencesRejectedDocFailed += count($sentenceObjects);
                 return null;
             }
         }
@@ -769,18 +832,19 @@ class CorpusIndexer
     {
         $count = count($sentenceTexts);
         $this->print( "processSentencesInBatches [$count] [$sourceid]" );
-        
+        $this->sentencesReviewed += $count;
+
         $validSentences = [];
         $sentencesToEmbed = [];
         $sentencesMetadata = []; // For bulk metadata extraction
-        
+
         // Filter sentences first and prepare metadata extraction
         foreach ($sentenceTexts as $idx => $sText) {
             $hawaiianRatio = $this->calculateHawaiianWordRatio($sText);
             if ($hawaiianRatio >= self::MIN_SENTENCE_HAWAIIAN_WORD_RATIO) {
                 $validSentences[$idx] = $sText;
                 $sentencesToEmbed[] = $sText;
-                
+
                 // Prepare for metadata extraction
                 $sentencesMetadata[] = [
                     'text' => $sText,
@@ -789,6 +853,7 @@ class CorpusIndexer
                 ];
             }
         }
+        $this->sentencesRejectedLowRatio += $count - count($validSentences);
         
         if (empty($sentencesToEmbed)) {
             return [];
@@ -867,6 +932,7 @@ class CorpusIndexer
                 $this->print("⚠️ Skipping sentence at index {$vectorIdx} - invalid or missing vector for doc {$sourceid}");
                 $this->print("   Vector type: " . gettype($sentenceVectors[$vectorIdx] ?? 'undefined'));
                 $this->print("   Vector value: " . json_encode($sentenceVectors[$vectorIdx] ?? null));
+                $this->sentencesRejectedInvalidVector++;
                 $vectorIdx++;
                 continue;
             }
@@ -876,6 +942,7 @@ class CorpusIndexer
             if ($vectorDims !== 384) {
                 $this->print("⚠️ Vector dimension mismatch at index {$vectorIdx} for doc {$sourceid}: expected 384, got {$vectorDims}");
                 $this->print("   First 5 values: " . json_encode(array_slice($sentenceVectors[$vectorIdx], 0, 5)));
+                $this->sentencesRejectedInvalidVector++;
                 $vectorIdx++;
                 continue;
             }
@@ -901,6 +968,7 @@ class CorpusIndexer
                 $this->print("   Value: " . json_encode($sentenceObject["vector"]));
                 $this->print("   This will cause Elasticsearch mapping error!");
                 // Skip this sentence to prevent the error
+                $this->sentencesRejectedInvalidVector++;
                 $vectorIdx++;
                 continue;
             }
@@ -909,6 +977,7 @@ class CorpusIndexer
                 $this->print("❌ CRITICAL: Sentence vector has wrong dimensions: " . count($sentenceObject["vector"]));
                 $this->print("   First 5 values: " . json_encode(array_slice($sentenceObject["vector"], 0, 5)));
                 // Skip this sentence to prevent the error
+                $this->sentencesRejectedInvalidVector++;
                 $vectorIdx++;
                 continue;
             }
@@ -956,9 +1025,11 @@ class CorpusIndexer
                     $discarded = isset( $meta['_source']['discarded'] ) && $meta['_source']['discarded'];
                     if( $discarded ) {
                         $this->print( "Skipping discarded {$sourceid}" );
+                        $this->documentsSkippedResume++;
                     } else {
                         $this->print( "Preset sourceid: {$this->sourceId}, Preset group: {$this->groupName}" );
                         $this->print( "Skipping already indexed {$sourceid}" );
+                        $this->documentsSkippedResume++;
                         // Text/sentences are already up to date, but backfill raw
                         // content if it's missing, so every index stays
                         // idempotently in sync, not just the ones touched in
@@ -978,6 +1049,7 @@ class CorpusIndexer
         $doc = $this->client->getDocumentOutline( $sourceid, $this->targetIndex );
         if( $doc && sizeof($doc) && !$this->sourceId ) {
             $this->print( "Document found, skipping already indexed {$sourceid} {$source['sourcename']} in {$this->targetIndex}" );
+            $this->documentsSkippedResume++;
             return null;
         }
         
@@ -995,6 +1067,7 @@ class CorpusIndexer
 
             if (!$fullDoc) {
                 $this->print( "⚠️ Skipping: Could not retrieve full document for $sourceid from {$this->sourceIndex}." );
+                $this->documentsRejectedRetrieval++;
                 $this->sourceMeta[$sourceid]['discarded'] = true;
                 return null;
             }
@@ -1002,6 +1075,7 @@ class CorpusIndexer
             $originalText = $fullDoc['text'] ?? '';
             $text = $originalText; // Use full text for re-embedding
             $sentenceObjects = $fullDoc['sentences'] ?? []; // Get existing sentence objects
+            $this->sentencesReviewed += count($sentenceObjects);
             $docHawaiianWordRatio = $fullDoc['hawaiian_word_ratio'] ?? 0.0;
             $chunks = $fullDoc['text_chunks'] ?? []; // Keep existing chunks if any
 
@@ -1061,6 +1135,7 @@ class CorpusIndexer
             $text = $this->fetchText($sourceid);
             if (!$text) {
                 $this->print( "⚠️ Skipping: No text for {$sourceid}" );
+                $this->documentsRejectedNoText++;
                 $this->sourceMeta[$sourceid]['discarded'] = true;
                 return null;
             }
@@ -1070,19 +1145,21 @@ class CorpusIndexer
 
             if ($docHawaiianWordRatio < self::MIN_DOC_HAWAIIAN_WORD_RATIO) {
                 $this->print( "⚠️ Skipping: Document {$sourceid} has a low Hawaiian word ratio ({$docHawaiianWordRatio})." );
+                $this->documentsRejectedLowRatio++;
                 $this->sourceMeta[$sourceid]['english_only'] = true;
                 return null;
             }
 
             // Split sentences using pre-compiled regex
             $sentenceTexts = preg_split(self::SENTENCE_SPLIT_PATTERN, $text, -1, PREG_SPLIT_NO_EMPTY);
-            
+
             // Process sentences in batch for embedding efficiency AND metadata extraction
             // Note: processSentencesInBatches() has its own internal timers for sentence_embedding
             $sentenceObjects = $this->processSentencesInBatches($sentenceTexts, $sourceid);
 
             if (empty($sentenceObjects)) {
                 $this->print( "⚠️ Skipping: No Hawaiian sentences found for {$sourceid}" );
+                $this->documentsRejectedNoSentences++;
                 $this->sourceMeta[$sourceid]['english_only'] = true;
                 return null;
             }
@@ -1466,6 +1543,7 @@ class CorpusIndexer
                             // Split timing for documents vs sentences
                             $timerDocIndexing = TimerFactory::timer('document_indexing');
                             $succeededDocIds = $this->bulkIndexDocuments($documentActions);
+                            $this->documentsFailedToIndex += max(0, count($documentActions) - count($succeededDocIds));
                             $timerDocIndexing->stop(); // Explicit stop for precise timing
                             
                             $timerSentenceIndexing = TimerFactory::timer('sentence_indexing');
@@ -1489,6 +1567,7 @@ class CorpusIndexer
                     // Traditional single index approach  
                     foreach ($chunk as $idx => $source) {
                         $global_i++;
+                        $this->documentsReviewed++;
                     
                         // Check limits again at document level
                         if ($this->checkMax()) {
@@ -1517,12 +1596,16 @@ class CorpusIndexer
                             $verifiedDocIds = [];
                             foreach ($actions as $action) {
                                 $docId = $action['_source']['doc_id'];
+                                $nestedSentenceCount = count($action['_source']['sentences'] ?? []);
                                 if ($this->verifyDocumentIndexed($docId)) {
                                     $actuallyIndexed++;
                                     $this->actuallyIndexedDocuments++;
+                                    $this->sentencesIndexed += $nestedSentenceCount;
                                     $verifiedDocIds[] = $docId;
                                     $this->print( "✅ Verified: {$docId}" );
                                 } else {
+                                    $this->documentsFailedToIndex++;
+                                    $this->sentencesFailedToIndex += $nestedSentenceCount;
                                     $this->print( "❌ Failed to verify: {$docId}" );
                                 }
                                 $considered++;
@@ -1581,11 +1664,52 @@ class CorpusIndexer
 
         $this->print( "✅ Indexing complete. Total indexed: {$indexedTotal}" );
         $this->print( "📊 Cache hits: {$this->cacheHits}, Cache size: " . count($this->ratioCache) );
-        
+
+        $this->printRunSummary($indexedTotal);
+
         // Print Timer system report
         $this->printTimerSystemReport();
-        
+
         $this->print("Finished indexing run.");
+    }
+
+    /**
+     * Print the document/sentence review summary for the run: how many were
+     * reviewed, how many were indexed, and how many were rejected or failed,
+     * broken down by reason. The buckets balance: reviewed = indexed + skipped
+     * + rejected + failed (dry runs excepted, where nothing is indexed).
+     */
+    private function printRunSummary(int $documentsIndexed): void
+    {
+        $rejectedDocs = $this->documentsRejectedNoText
+            + $this->documentsRejectedLowRatio
+            + $this->documentsRejectedNoSentences
+            + $this->documentsRejectedNoUsableVectors
+            + $this->documentsRejectedRetrieval
+            + $this->documentsRejectedValidation;
+        $rejectedSentences = $this->sentencesRejectedLowRatio
+            + $this->sentencesRejectedInvalidVector
+            + $this->sentencesRejectedDocFailed;
+
+        $this->print("📊 Run summary:");
+        $this->print("   Documents reviewed: {$this->documentsReviewed}");
+        $this->print("     indexed: {$documentsIndexed}");
+        $this->print("     skipped (already indexed/discarded): {$this->documentsSkippedResume}");
+        $this->print("     rejected: {$rejectedDocs}");
+        $this->print("       no text (empty document): {$this->documentsRejectedNoText}");
+        $this->print("       low Hawaiian word ratio: {$this->documentsRejectedLowRatio}");
+        $this->print("       no Hawaiian sentences: {$this->documentsRejectedNoSentences}");
+        $this->print("       no usable sentence vectors: {$this->documentsRejectedNoUsableVectors}");
+        $this->print("       retrieval/read error: {$this->documentsRejectedRetrieval}");
+        $this->print("       failed vector validation: {$this->documentsRejectedValidation}");
+        $this->print("     failed to index: {$this->documentsFailedToIndex}");
+        $this->print("   Sentences reviewed: {$this->sentencesReviewed}");
+        $this->print("     indexed: {$this->sentencesIndexed}");
+        $this->print("     rejected: {$rejectedSentences}");
+        $this->print("       low Hawaiian word ratio: {$this->sentencesRejectedLowRatio}");
+        $this->print("       invalid/missing vector: {$this->sentencesRejectedInvalidVector}");
+        $this->print("       document rejected/failed: {$this->sentencesRejectedDocFailed}");
+        $this->print("     failed to index: {$this->sentencesFailedToIndex}");
     }
 
     /**
@@ -1637,7 +1761,8 @@ class CorpusIndexer
      */
     private function createSplitIndexObjects(array $source, int $indexCounter): ?array
     {
-        $this->print("createSplitIndexObjects: $indexCounter / {$source['sourcename']}");
+        $this->print("Source document {$indexCounter} ({$this->totalDocuments})");
+        $this->documentsReviewed++;
         
         // Check document limits
         if ($this->checkMax()) {
@@ -1668,6 +1793,7 @@ class CorpusIndexer
                 }
                 if (!$this->dryrun) {
                     $this->print("Skipping already indexed or discarded {$sourceid}");
+                    $this->documentsSkippedResume++;
                     // Text/sentences are already up to date, but backfill raw
                     // content if it's missing for some reason (e.g. it was
                     // introduced after this source was originally indexed) so
@@ -1813,6 +1939,7 @@ class CorpusIndexer
      */
     private function bulkIndexSentences(array $sentenceActions, array $succeededDocIds = []): void
     {
+        $sentForDocs = count($sentenceActions);
         if (empty($succeededDocIds)) {
             if (empty($sentenceActions)) {
                 return;
@@ -1827,12 +1954,17 @@ class CorpusIndexer
             );
             $sentenceActions = array_values($sentenceActions);
             $this->print("Filtered to " . count($sentenceActions) . " sentences for " . count($succeededDocIds) . " succeeded docs");
+            // Sentences belonging to documents that failed to index are
+            // dropped along with their document.
+            $this->sentencesRejectedDocFailed += max(0, $sentForDocs - count($sentenceActions));
             if (empty($sentenceActions)) {
                 return;
             }
         }
-        
+
         $this->print("Bulk indexing " . count($sentenceActions) . " sentences to sentences index");
-        $this->client->bulkIndex($sentenceActions);
+        $succeededIds = $this->client->bulkIndex($sentenceActions);
+        $this->sentencesIndexed += count($succeededIds ?? []);
+        $this->sentencesFailedToIndex += max(0, count($sentenceActions) - count($succeededIds ?? []));
     }
 }

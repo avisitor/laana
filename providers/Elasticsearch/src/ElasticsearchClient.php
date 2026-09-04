@@ -150,6 +150,14 @@ class ElasticsearchClient {
     // Expected model (should match Python TRANSFORMER_MODEL)
     private const EXPECTED_MODEL = 'intfloat/multilingual-e5-large-instruct';
 
+    /**
+     * Staging mode: when true, all active index-name getters resolve to the
+     * *_staging concrete indices instead of the production aliases, so a
+     * --recreate run rebuilds outside the production path. Completed runs are
+     * switched over atomically via switchStagingToProduction().
+     */
+    private bool $stagingMode = false;
+
     public function __construct(array $options = []) {
         if (class_exists('Avisitor\\Env\\Loader')) {
             \Avisitor\Env\Loader::load(__DIR__ . '/../../../.env');
@@ -254,10 +262,13 @@ class ElasticsearchClient {
 
                 $settings = $response->asArray();
 
-                // Navigate to the char_filter definition
-                $charFilters = $settings[$index]['settings']['index']['analysis']['char_filter'] ?? [];
-
-                $present[$index] = isset($charFilters[$filterName]);
+                // Navigate to the char_filter definition. When $index is an
+                // alias, the response is keyed by the backing index name(s),
+                // so iterate the response instead of assuming the key.
+                foreach ($settings as $indexName => $setting) {
+                    $charFilters = $setting['settings']['index']['analysis']['char_filter'] ?? [];
+                    $present[$indexName] = isset($charFilters[$filterName]);
+                }
             }
         }
         return $present;
@@ -300,13 +311,23 @@ class ElasticsearchClient {
     }
     
     public function getMetadataName( $indexName = null ) {
-        $index = $indexName ?? $this->getIndexName();
-        return $index . '-metadata';
+        if ($indexName !== null && $indexName !== '') {
+            // Explicit base: derive the concrete (physical) index name.
+            return $indexName . '-metadata';
+        }
+        // Active name: staging concrete during a --recreate staging run,
+        // production alias otherwise.
+        return $this->isStagingMode() ? $this->getMetadataConcreteName() : $this->getMetadataAlias();
     }
     
     public function getContentName( $indexName = null ) {
-        $index = $indexName ?? $this->getIndexName();
-        return $index . '-content';
+        if ($indexName !== null && $indexName !== '') {
+            // Explicit base: derive the concrete (physical) index name.
+            return $indexName . '-content';
+        }
+        // Active name: staging concrete during a --recreate staging run,
+        // production alias otherwise.
+        return $this->isStagingMode() ? $this->getContentConcreteName() : $this->getContentAlias();
     }
     
     public function getDocumentText(string $id, string $indexName = null): ?string
@@ -344,8 +365,13 @@ class ElasticsearchClient {
     }
     
     public function  getSourceMetadataName( $indexName = null ) {
-        $index = $indexName ?? $this->getIndexName();
-        return $index . '-source-metadata';
+        if ($indexName !== null && $indexName !== '') {
+            // Explicit base: derive the concrete (physical) index name.
+            return $indexName . '-source-metadata';
+        }
+        // Active name: staging concrete during a --recreate staging run,
+        // production alias otherwise.
+        return $this->isStagingMode() ? $this->getSourceMetadataConcreteName() : $this->getSourceMetadataAlias();
     }
 
     public function getDocumentsAlias(): string
@@ -356,6 +382,65 @@ class ElasticsearchClient {
     public function getSentencesAlias(): string
     {
         return $_ENV['ES_SENTENCES_ALIAS'] ?? 'hawaiian_sentences';
+    }
+
+    public function getContentAlias(): string
+    {
+        return $_ENV['ES_CONTENT_ALIAS'] ?? 'hawaiian_content';
+    }
+
+    public function getSourceMetadataAlias(): string
+    {
+        return $_ENV['ES_SOURCE_METADATA_ALIAS'] ?? 'hawaiian_source_metadata';
+    }
+
+    public function getMetadataAlias(): string
+    {
+        return $_ENV['ES_METADATA_ALIAS'] ?? 'hawaiian_metadata';
+    }
+
+    public function setStagingMode(bool $staging): void
+    {
+        $this->stagingMode = $staging;
+    }
+
+    public function isStagingMode(): bool
+    {
+        return $this->stagingMode;
+    }
+
+    private function stagingSuffix(): string
+    {
+        return $this->stagingMode ? '_staging' : '';
+    }
+
+    /**
+     * Concrete (physical) index names, staging-aware: during a staging run
+     * these resolve to the *_staging variants that the rebuild writes into.
+     */
+    public function getDocumentsConcreteName(): string
+    {
+        return $this->getIndexName() . '_documents_new' . $this->stagingSuffix();
+    }
+
+    public function getSentencesConcreteName(): string
+    {
+        return $this->getIndexName() . '_sentences_new' . $this->stagingSuffix();
+    }
+
+    public function getContentConcreteName(): string
+    {
+        return $this->getIndexName() . '-content' . $this->stagingSuffix();
+    }
+
+    public function getSourceMetadataConcreteName(): string
+    {
+        return $this->getIndexName() . '-source-metadata' . $this->stagingSuffix();
+    }
+
+    public function getMetadataConcreteName(): string
+    {
+        return $this->getIndexName() . '-metadata' . $this->stagingSuffix();
     }
 
     public function aliasExists(string $aliasName): bool
@@ -369,14 +454,49 @@ class ElasticsearchClient {
 
     public function createAlias(string $aliasName, string $indexName): void
     {
-        if ($this->aliasExists($aliasName)) {
-            $this->removeAlias($aliasName);
+        $this->pointAliasAt($aliasName, $indexName);
+    }
+
+    /**
+     * Point an alias at exactly one index atomically: a single _aliases call
+     * that removes the alias from every index currently holding it and adds
+     * it to $indexName. Readers never observe the alias missing or pointing
+     * at two indices.
+     */
+    public function pointAliasAt(string $aliasName, string $indexName): void
+    {
+        $actions = [];
+        foreach ($this->aliasHolders($aliasName) as $holder) {
+            if ($holder === $indexName) {
+                continue; // Already correct; the add below is idempotent.
+            }
+            $actions[] = ['remove' => ['index' => $holder, 'alias' => $aliasName]];
         }
-        $this->client->indices()->putAlias([
-            'index' => $indexName,
-            'name' => $aliasName
-        ]);
-        $this->print("Created alias '{$aliasName}' for index '{$indexName}'");
+        $actions[] = ['add' => ['index' => $indexName, 'alias' => $aliasName]];
+        $this->updateAliasesActions($actions);
+        $this->print("Alias '{$aliasName}' now points at '{$indexName}'");
+    }
+
+    /**
+     * Indices currently holding the given alias (empty when it does not exist).
+     */
+    protected function aliasHolders(string $aliasName): array
+    {
+        try {
+            $response = $this->client->indices()->getAlias(['name' => $aliasName]);
+            return array_keys($this->getArrayResponse($response));
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Execute a list of _aliases actions. Split out so the OpenSearch client
+     * can route it through its raw transport.
+     */
+    protected function updateAliasesActions(array $actions): void
+    {
+        $this->client->indices()->updateAliases(['body' => ['actions' => $actions]]);
     }
 
     public function removeAlias(string $aliasName): void
@@ -545,7 +665,7 @@ class ElasticsearchClient {
             case 'all':
                 $this->createDocumentsIndex($recreate);
                 $this->createSentencesIndex($recreate);
-                $this->createSourceMetadataIndex($recreate, $this->indexName);
+                $this->createSourceMetadataIndex($recreate);
                 break;
             default:
                 // Backward compatibility: create the original combined index
@@ -553,16 +673,26 @@ class ElasticsearchClient {
                 break;
         }
 
-        $this->createAliases();
+        // NOTE: createAliases() is deliberately NOT called here. Callers that
+        // create production indices (CorpusIndexer) ensure aliases explicitly;
+        // ad-hoc clients that create throwaway indices (e.g. the custom test
+        // runners) must never repoint the production aliases.
     }
 
     public function createAliases(): void
     {
+        if ($this->stagingMode) {
+            $this->print("Staging mode active - not touching production aliases.");
+            return;
+        }
         $this->print("Creating production aliases...");
 
         $aliases = [
-            $this->getDocumentsAlias() => $this->getDocumentsIndexName(),
-            $this->getSentencesAlias() => $this->getSentencesIndexName(),
+            $this->getDocumentsAlias()      => $this->getDocumentsConcreteName(),
+            $this->getSentencesAlias()      => $this->getSentencesConcreteName(),
+            $this->getContentAlias()        => $this->getContentConcreteName(),
+            $this->getSourceMetadataAlias() => $this->getSourceMetadataConcreteName(),
+            $this->getMetadataAlias()       => $this->getMetadataConcreteName(),
         ];
 
         foreach ($aliases as $alias => $index) {
@@ -574,9 +704,84 @@ class ElasticsearchClient {
         }
     }
 
+    /**
+     * Refresh a single index. Hooked out so the OpenSearch client can route
+     * the call through its raw transport (the wrapped client can silently
+     * swallow indices() operations).
+     */
+    protected function refreshIndex(string $indexName): void
+    {
+        $response = $this->client->indices()->refresh(['index' => $indexName]);
+        if (is_object($response) && method_exists($response, 'wait')) {
+            $response->wait();
+        }
+    }
+
+    /**
+     * Switch a completed staging run into production: atomically repoint the
+     * production aliases at the *_staging indices, then delete the old
+     * production indices. Only pairs whose staging index actually exists are
+     * switched (e.g. --import-raw rebuilds only the content index). The client
+     * must be in staging mode; it is turned off before returning so subsequent
+     * operations use the production aliases again.
+     */
+    public function switchStagingToProduction(): void
+    {
+        if (!$this->stagingMode) {
+            throw new \RuntimeException('switchStagingToProduction() requires staging mode (setStagingMode(true)).');
+        }
+
+        $pairs = [
+            ['alias' => $this->getDocumentsAlias(),      'new' => $this->getDocumentsConcreteName(),      'old' => $this->getIndexName() . '_documents_new'],
+            ['alias' => $this->getSentencesAlias(),      'new' => $this->getSentencesConcreteName(),      'old' => $this->getIndexName() . '_sentences_new'],
+            ['alias' => $this->getContentAlias(),        'new' => $this->getContentConcreteName(),        'old' => $this->getIndexName() . '-content'],
+            ['alias' => $this->getSourceMetadataAlias(), 'new' => $this->getSourceMetadataConcreteName(), 'old' => $this->getIndexName() . '-source-metadata'],
+            ['alias' => $this->getMetadataAlias(),       'new' => $this->getMetadataConcreteName(),       'old' => $this->getIndexName() . '-metadata'],
+        ];
+
+        // Make every staged document searchable BEFORE the aliases move.
+        // Scheduled refreshes can lag minutes behind during heavy indexing
+        // runs; without this the freshly switched indices would serve a
+        // truncated corpus until the next scheduled refresh fires.
+        foreach ($pairs as $pair) {
+            if ($this->indexExists($pair['new'])) {
+                try {
+                    $this->refreshIndex($pair['new']);
+                    $this->print("Refreshed staging index '{$pair['new']}'");
+                } catch (\Throwable $e) {
+                    $this->print("Warning: could not refresh '{$pair['new']}': " . $e->getMessage());
+                }
+            }
+        }
+
+        $switched = [];
+        foreach ($pairs as $pair) {
+            if (!$this->indexExists($pair['new'])) {
+                $this->print("Staging index '{$pair['new']}' does not exist - leaving '{$pair['alias']}' unchanged.");
+                continue;
+            }
+            $this->pointAliasAt($pair['alias'], $pair['new']);
+            $switched[] = $pair;
+        }
+
+        if (empty($switched)) {
+            $this->setStagingMode(false);
+            throw new \RuntimeException('No staging indices found - nothing was switched into production.');
+        }
+
+        foreach ($switched as $pair) {
+            if ($this->indexExists($pair['old'])) {
+                $this->deleteIndex($pair['old']);
+            }
+        }
+
+        $this->setStagingMode(false);
+        $this->print("Staging switch complete: " . count($switched) . " alias(es) repointed and old production indices removed.");
+    }
+
     protected function createDocumentsIndex(bool $recreate = false, string $customIndexName = '', string $customMappingFile = ''): void
     {
-        $indexName = $customIndexName ?: $this->getDocumentsIndexName();
+        $indexName = $customIndexName ?: $this->getDocumentsConcreteName();
         $mappingFile = $customMappingFile ?: $this->configDir() . 'documents_mapping.json';
         
         $this->print("Creating documents index: {$indexName}");
@@ -585,7 +790,7 @@ class ElasticsearchClient {
 
     protected function createSentencesIndex(bool $recreate = false, string $customIndexName = '', string $customMappingFile = ''): void
     {
-        $indexName = $customIndexName ?: $this->getSentencesIndexName();
+        $indexName = $customIndexName ?: $this->getSentencesConcreteName();
         $mappingFile = $customMappingFile ?: $this->configDir() . 'sentences_mapping.json';
         
         $this->print("Creating sentences index: {$indexName}");
@@ -687,10 +892,9 @@ class ElasticsearchClient {
 
     public function createSourceMetadataIndex( $recreate = false, $indexName = "" ): bool {
         $status = false;
-        if (empty($indexName)) {
-            $indexName = $this->getIndexName();
-        }
-        $sourceMetadataIndexName = $this->getSourceMetadataName( $indexName );
+        $sourceMetadataIndexName = ($indexName === "")
+            ? $this->getSourceMetadataConcreteName()
+            : $this->getSourceMetadataName( $indexName );
         if ($recreate && $this->indexExists($sourceMetadataIndexName)) {
             $this->print("Deleting existing index: {$sourceMetadataIndexName}");
             $this->deleteIndex($sourceMetadataIndexName);
@@ -702,10 +906,9 @@ class ElasticsearchClient {
     }
 
     public function createContentIndex( $recreate = false, $indexName = "" ): bool {
-        if (empty($indexName)) {
-            $indexName = $this->getIndexName();
-        }
-        $contentIndexName = $this->getContentName( $indexName );
+        $contentIndexName = ($indexName === "")
+            ? $this->getContentConcreteName()
+            : $this->getContentName( $indexName );
         if ($recreate && $this->indexExists($contentIndexName)) {
             $this->print("Deleting existing index: {$contentIndexName}");
             $this->deleteIndex($contentIndexName);
@@ -1669,14 +1872,24 @@ class ElasticsearchClient {
 
     public function getDocumentsIndexName( $indexName = '' ): string
     {
-        $index = empty($indexName) ? $this->getIndexName() : $indexName;
-        return $index . "_documents_new";
+        if ($indexName !== '') {
+            // Explicit base: derive the concrete (physical) index name.
+            return $indexName . "_documents_new";
+        }
+        // Active name: staging concrete during a --recreate staging run,
+        // production alias otherwise.
+        return $this->isStagingMode() ? $this->getDocumentsConcreteName() : $this->getDocumentsAlias();
     }
 
     public function getSentencesIndexName( $indexName = '' ): string
     {
-        $index = empty($indexName) ? $this->getIndexName() : $indexName;
-        return $index . "_sentences_new";
+        if ($indexName !== '') {
+            // Explicit base: derive the concrete (physical) index name.
+            return $indexName . "_sentences_new";
+        }
+        // Active name: staging concrete during a --recreate staging run,
+        // production alias otherwise.
+        return $this->isStagingMode() ? $this->getSentencesConcreteName() : $this->getSentencesAlias();
     }
 
      /**
@@ -1878,11 +2091,14 @@ class ElasticsearchClient {
         }
     }
 
-    // Note that $indexName is for the main or base index
+    // Note that $indexName is for the main or base index; without it the
+    // active source-metadata name is used (production alias, or the staging
+    // index during a staging run).
     public function getSourceMetadata(string $indexName = null): ?array
     {
-        $index = $indexName ?? $this->getIndexName();
-        $index = $this->getSourceMetadataName( $index );
+        $index = $indexName !== null
+            ? $this->getSourceMetadataName( $indexName )
+            : $this->getSourceMetadataName();
         
         // If index doesn't exist (e.g., after --recreate), return empty without error
         if (!$this->indexExists($index)) {
@@ -2708,7 +2924,9 @@ private function formatResults(array $response, string $mode,
         } else {
             foreach( [$this->getDocumentsIndexName(),
                       $this->getSentencesIndexName(),
-                      $this->getSourceMetadataName()] as $indexName ) {
+                      $this->getSourceMetadataName(),
+                      $this->getContentName(),
+                      $this->getMetadataName()] as $indexName ) {
                 $this->client->indices()->refresh(['index' => $indexName]);
             }
         }

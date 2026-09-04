@@ -75,7 +75,7 @@ function createAliasClient(array $options, string $provider): ElasticsearchClien
 // CLI argument parsing
 // ---------------------------------------------------------------------------
 $longOptions = [
-    'recreate',                 // Delete and recreate the index before indexing
+    'recreate',                 // Rebuild into *_staging indices, atomic alias switch on completion
     'dryrun',                   // Dry run: show what would happen without indexing
     'dry-run',                  // Alias for --dryrun
     'verbose',                  // Verbose output
@@ -135,6 +135,28 @@ $aliasesOnly = isset($options['aliases-only']);
 $noAliases = isset($options['no-aliases']);
 $importRaw = isset($options['import-raw']);
 
+// --recreate rebuilds the entire corpus and switches it in atomically on
+// completion; the scoped/limited options only make sense for incremental
+// ingestion. Abort immediately (before connecting to anything) rather than
+// risk swapping a partial corpus into production at the end of the run.
+if ($recreate) {
+    $used = array_values(array_intersect(
+        ['group-name', 'groupname', 'source-id', 'max-documents', 'limit'],
+        array_keys($options)
+    ));
+    if ($used) {
+        fwrite(STDERR, "Error: --recreate cannot be combined with --" . implode(', --', $used) . ".\n");
+        fwrite(STDERR, "--group-name, --source-id and --max-documents are for incremental ingestion only.\n");
+        fwrite(STDERR, "Run --recreate on its own to rebuild the whole corpus.\n");
+        exit(1);
+    }
+}
+
+// Staging runs: on --recreate, ingest into temporary *_staging indices and
+// switch the production aliases over atomically when the run completes, so
+// the live indices are never wiped mid-run. (Dry runs never enable staging.)
+$stagingRun = $recreate && !$dryrun;
+
 // Search provider: --provider flag, falling back to the PROVIDER env var,
 // then to the default Elasticsearch.
 $provider = $options['provider'] ?? $_ENV['PROVIDER'] ?? 'Elasticsearch';
@@ -187,7 +209,7 @@ if (!$quiet) {
     echo "Group name:           " . ($config['groupName'] ?? 'all') . "\n";
     echo "Verbose:              " . ($config['verbose'] ? 'yes' : 'no') . "\n";
     echo "Quiet:                " . ($config['quiet'] ? 'yes' : 'no') . "\n";
-    echo "Recreate index:       " . ($recreate ? 'yes' : 'no') . "\n";
+    echo "Recreate index:       " . ($recreate ? ($stagingRun ? 'yes (staging indices, atomic switch on completion)' : 'yes') : 'no') . "\n";
     echo "Dry run:              " . ($dryrun ? 'yes' : 'no') . "\n";
     echo "Aliases only:         " . ($aliasesOnly ? 'yes' : 'no') . "\n";
     echo "Skip aliases:         " . ($noAliases ? 'yes' : 'no') . "\n";
@@ -267,6 +289,17 @@ if ($isIndexingMode) {
     echo "ℹ️  Skipping schema validation (metadata-only mode).\n\n";
 }
 
+// Enable staging AFTER validation so the pre-flight checks run against the
+// current production indices. From here on the client routes every read and
+// write to the *_staging indices; the production aliases keep serving the
+// live corpus until switchStagingToProduction() runs below.
+if ($stagingRun) {
+    $esClient->setStagingMode(true);
+    if (!$quiet) {
+        echo "🔁 Staging mode: indices will be rebuilt as *_staging and switched into production on completion.\n";
+    }
+}
+
 // $esClient is passed to CorpusIndexer below — do NOT unset it here.
 
 // ---------------------------------------------------------------------------
@@ -318,9 +351,28 @@ try {
     // content pass to run here. In --import-raw mode, runIndexing() already
     // performed the content-only ingestion and returned.
 
-    // Ensure production aliases exist after index creation (unless --no-aliases).
-    // In content-only mode we must not touch the other indices' aliases.
-    if (!$noAliases && !$config['importRaw']) {
+    // Switch-over: in a staging (--recreate) run, atomically repoint the
+    // production aliases at the completed *_staging indices and delete the
+    // old production indices. Skipped when the run was interrupted (an
+    // incomplete staging corpus must never replace production) or when
+    // --no-aliases was given. In content-only staging runs only the pairs
+    // whose staging index exists are switched (e.g. just hawaiian-content).
+    if ($stagingRun) {
+        if ($noAliases) {
+            fwrite(STDERR, "Warning: --no-aliases given - staging indices were built but NOT switched into production.\n");
+            fwrite(STDERR, "The production indices are unchanged. Re-run without --no-aliases to complete the switch.\n");
+        } elseif ($shutdownRequested) {
+            fwrite(STDERR, "Shutdown requested - staging indices were built but NOT switched into production.\n");
+            fwrite(STDERR, "The production indices are unchanged. Re-run with --recreate to complete the rebuild.\n");
+        } else {
+            if (!$quiet) {
+                echo "Switching staging indices into production (atomic alias swap)...\n";
+            }
+            $esClient->switchStagingToProduction();
+        }
+    } elseif (!$noAliases && !$config['importRaw']) {
+        // Ensure production aliases exist after index creation (unless --no-aliases).
+        // In content-only mode we must not touch the other indices' aliases.
         if (!$quiet) {
             echo "Ensuring production aliases...\n";
         }
@@ -345,6 +397,10 @@ try {
     if ($verbose) {
         fwrite(STDERR, $e->getTraceAsString() . "\n");
     }
+    if ($stagingRun) {
+        fwrite(STDERR, "Note: this was a staging (--recreate) run - the production indices are unchanged.\n");
+        fwrite(STDERR, "Staging indices may be left behind; re-run with --recreate to try again.\n");
+    }
     exit(1);
 }
 
@@ -360,15 +416,19 @@ Usage:
   php scripts/createindex.php [options]
 
 Options:
-  --recreate                 Delete and recreate the index before indexing
+  --recreate                 Rebuild into temporary *_staging indices, then atomically
+                             switch the production aliases when done (the live
+                             indices are never wiped mid-run). Full-corpus only:
+                             cannot be combined with --group-name, --source-id or
+                             --max-documents
   --dryrun                   Dry run: show what would happen without indexing
   --dry-run                  Alias for --dryrun
   --verbose                  Verbose output
   --quiet                    Suppress non-error output
-  --max-documents=N          Stop after indexing N documents
+  --max-documents=N          Stop after indexing N documents (incremental ingestion only)
   --limit=N                  Alias for --max-documents
-  --source-id=N              Only index the source with this ID
-  --group-name=NAME          Only index sources in this group
+  --source-id=N              Only index the source with this ID (incremental ingestion only)
+  --group-name=NAME          Only index sources in this group (incremental ingestion only)
   --groupname=NAME           Alias for --group-name
   --batch-size=N             Documents per batch (default: 1)
   --sentence-batch-size=N    Sentences per embedding request (default: 100)
@@ -385,8 +445,8 @@ Options:
 
 Examples:
   php scripts/createindex.php --dryrun
-  php scripts/createindex.php --recreate --verbose --max-documents 10
   php scripts/createindex.php --recreate --verbose
+  php scripts/createindex.php --verbose --max-documents 10
   php scripts/createindex.php --group-name=kauakukalahale --dryrun
   php scripts/createindex.php --aliases-only
   php scripts/createindex.php --recreate --provider=opensearch

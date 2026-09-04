@@ -30,8 +30,10 @@ Under the hood, the Elasticsearch/OpenSearch `QueryBuilder` supports a larger
 set of internal modes (`matchsentence`, `matchsentence_all`, `termsentence`,
 `phrasesentence`, `match`, `term`, `phrase`, `regexp`, `regexpsentence`,
 `vector`, `hybrid`, `vectorsentence`, `hybridsentence`, `knn`, `knnsentence`)
-— document-level modes hit `hawaiian_documents_new`, sentence-level modes hit
-`hawaiian_sentences_new`. `hybrid`/`hybriddoc` combine keyword matching with
+— document-level modes hit the documents index, sentence-level modes hit the
+sentences index (both resolved through the production aliases
+`hawaiian_documents` / `hawaiian_sentences`, configurable via
+`ES_DOCUMENTS_ALIAS` / `ES_SENTENCES_ALIAS`). `hybrid`/`hybriddoc` combine keyword matching with
 kNN vector search (384-dim sentence vectors / 1024-dim document vectors);
 documents longer than ~32K chars are searched via `text_chunks` chunk vectors.
 
