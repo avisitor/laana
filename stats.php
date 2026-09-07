@@ -1,6 +1,10 @@
 <?php
 // Simple framework page for Stats Dashboard
 $base = './'; // Adjust based on where this file is relative to root, assuming root.
+require_once __DIR__ . '/lib/provider.php';
+// Persist a deliberate ?provider= selection before any output (the stats
+// shell itself constructs no provider; the tab iframes use the cookie).
+rememberProviderSelection();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -16,13 +20,27 @@ $base = './'; // Adjust based on where this file is relative to root, assuming r
 </head>
 <body id="fadein" onload="changeid()">
 
-    <!-- Header / Navigation matching index.php style -->
+    <!-- Header / Navigation matching index.php style; provider pinned across tabs -->
+    <?php
+        $selectedProviderName = resolveProviderName();
+        $providerParam = 'provider=' . urlencode($selectedProviderName);
+        $homeProviderQuery = "?$providerParam";
+        $tabProviderQuery = "&$providerParam";
+    ?>
     <ul class="nav nav-tabs">
-        <li class="nav-item"><a href="index.php" class="nav-link">Home</a></li>
-        <li class="nav-item"><a href="index.php?sources" class="nav-link">Sources</a></li>
-        <li class="nav-item"><a href="index.php?resources" class="nav-link">Resources</a></li>
-        <li class="nav-item"><a href="index.php?grammar" class="nav-link">Grammar</a></li>
-        <li class="nav-item"><a href="stats.php" class="nav-link active">Stats</a></li>
+        <li class="nav-item" style="display:flex; align-items:center; gap:0.4em; padding:0.4em 0.8em 0.4em 0; margin-right:auto;">
+            <label for="provider-select" style="font-size:0.85em; font-weight:600; margin:0;">Provider:</label>
+            <select id="provider-select" class="dd-menu" onchange="switchProvider(this)" style="font-size:0.85em; max-width:12em;">
+                <?php foreach (array_keys(getKnownProviders()) as $provName): ?>
+                    <option value="<?=$provName?>" <?= strcasecmp($selectedProviderName, $provName) === 0 ? 'selected' : '' ?>><?=$provName?></option>
+                <?php endforeach; ?>
+            </select>
+        </li>
+        <li class="nav-item"><a href="index.php<?=$homeProviderQuery?>" class="nav-link">Home</a></li>
+        <li class="nav-item"><a href="index.php?sources<?=$tabProviderQuery?>" class="nav-link">Sources</a></li>
+        <li class="nav-item"><a href="index.php?resources<?=$tabProviderQuery?>" class="nav-link">Resources</a></li>
+        <li class="nav-item"><a href="index.php?grammar<?=$tabProviderQuery?>" class="nav-link">Grammar</a></li>
+        <li class="nav-item"><a href="stats.php<?=$homeProviderQuery?>" class="nav-link active">Stats</a></li>
     </ul>
 
     <div class="container-fluid stats-container">

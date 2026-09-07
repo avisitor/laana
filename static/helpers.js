@@ -44,6 +44,14 @@ function changeid() {
     }
 }
 
+// Global provider selector: reload with ?provider=<value>; the server
+// remembers the choice (see getProvider() in lib/provider.php).
+function switchProvider(select) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('provider', select.value);
+    window.location.href = url.toString();
+}
+
 function providerSelected(object) {
     let providerName = object.value;
     console.log('Provider selected:', providerName);

@@ -10,15 +10,10 @@ if (preg_match('~^/ops/(neo4j_qa|word_cleanup|graphs|graph_refresh)$~', $request
 }
 
 require_once __DIR__ . '/lib/provider.php';
-$provider = getProvider();
+require_once __DIR__ . '/lib/web_error.php';
 //require_once __DIR__ . '/lib/utils.php';
 $word = isset($_GET['search']) ? $_GET['search'] : "";
-$normalizedWord = $provider->normalizeString( $word );
 $pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "";
-if( !$pattern ) {
-    $modes = $provider->getAvailableSearchModes();
-    $pattern = array_keys( $modes )[0];
-}
 $from = isset($_GET['from']) ? $_GET['from'] : "";
 $to = isset($_GET['to']) ? $_GET['to'] : "";
 $groupname = isset($_GET['group']) ? $_GET['group'] : "";
@@ -31,10 +26,38 @@ $doSources = isset( $_GET['sources'] );
 $doResources = isset( $_GET['resources'] );
 $doGrammar = isset( $_GET['grammar'] );
 $doStats = isset( $_GET['stats'] );
+// A provider is only needed by views that query a backend: home/overview,
+// search results (word), and Sources (its AJAX embeds the provider name).
+// Resources is static HTML and Grammar/Stats resolve their provider
+// client-side, so no provider is constructed for those views — an
+// unavailable default backend must not block them.
+$needsProvider = ($word !== "") || !($doResources || $doGrammar || $doStats);
+try {
+    $provider = $needsProvider ? getProvider() : null;
+} catch (\Throwable $e) {
+    noiiolelo_render_error('page', $e);  // exits with a clear 503/500 error page
+}
+// Views that skip construction (resources/grammar/stats) still land with a
+// deliberate ?provider= selection and must remember it.
+rememberProviderSelection();
+if( !$pattern && $provider ) {
+    $modes = $provider->getAvailableSearchModes();
+    $pattern = array_keys( $modes )[0];
+}
 $nodiacriticals = ( isset( $_REQUEST['nodiacriticals'] ) && $_REQUEST['nodiacriticals'] == 1 ) ? 1 : 0;
 $nodiacriticalsparam = ($nodiacriticals) ? "&nodiacriticals=1" : "";
 $order = isset($_GET['order']) ? $_GET['order'] : "rand";
-$provider->debuglog( "pattern: $pattern; word: $word; order: $order; nodiacriticals: $nodiacriticals" );
+if( $provider ) {
+    $provider->debuglog( "pattern: $pattern; word: $word; order: $order; nodiacriticals: $nodiacriticals" );
+}
+// Name shown as the current selection in the global provider selector: the
+// same precedence getProvider() uses (URL parameter > remembered cookie >
+// .env default), resolved without constructing a provider. Nav links thread
+// it so the selection stays pinned across tabs until changed again.
+$selectedProviderName = resolveProviderName();
+$providerParam = 'provider=' . urlencode($selectedProviderName);
+$homeProviderQuery = "?$providerParam";
+$tabProviderQuery = "&$providerParam";
 $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 //\Avisitor\Monolog\Logger::logError( var_export( $_SERVER, true ) );
 ?>
@@ -55,20 +78,30 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 
     <body id=fadein onload="changeid()">
         <ul class="nav nav-tabs">
+            <?php if (!$doResources) { ?>
+            <li class="nav-item" style="display:flex; align-items:center; gap:0.4em; padding:0.4em 0.8em 0.4em 0; margin-right:auto;">
+                <label for="provider-select" style="font-size:0.85em; font-weight:600; margin:0;">Provider:</label>
+                <select id="provider-select" class="dd-menu" onchange="switchProvider(this)" style="font-size:0.85em; max-width:12em;">
+                    <?php foreach (array_keys(getKnownProviders()) as $provName): ?>
+                        <option value="<?=$provName?>" <?= strcasecmp($selectedProviderName, $provName) === 0 ? 'selected' : '' ?>><?=$provName?></option>
+                    <?php endforeach; ?>
+                </select>
+            </li>
+            <?php } ?>
             <li class="nav-item">
-                <a class="nav-link <?= (!($doSources || $doResources || $doGrammar || $doStats)) ? 'active' : '' ?>" href="<?=$base?>">Home</a>
+                <a class="nav-link <?= (!($doSources || $doResources || $doGrammar || $doStats)) ? 'active' : '' ?>" href="<?=$base?><?=$homeProviderQuery?>">Home</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link <?= ($doSources) ? 'active' : '' ?>" href="?sources">Sources</a>
+                <a class="nav-link <?= ($doSources) ? 'active' : '' ?>" href="?sources<?=$tabProviderQuery?>">Sources</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link <?= ($doResources) ? 'active' : '' ?>" href="?resources">Resources</a>
+                <a class="nav-link <?= ($doResources) ? 'active' : '' ?>" href="?resources<?=$tabProviderQuery?>">Resources</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link <?= ($doGrammar) ? 'active' : '' ?>" href="?grammar">Grammar</a>
+                <a class="nav-link <?= ($doGrammar) ? 'active' : '' ?>" href="?grammar<?=$tabProviderQuery?>">Grammar</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link <?= ($doStats) ? 'active' : '' ?>" href="stats.php">Stats</a>
+                <a class="nav-link <?= ($doStats) ? 'active' : '' ?>" href="stats.php<?=$homeProviderQuery?>">Stats</a>
             </li>
         </ul>
 
@@ -112,7 +145,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         <button class="character-insert-button" type="button" onclick="insertcharacter('‘')">‘</button>
         
         <div id="search-options" style="display:none; font-size:0.8em; max-width:100%; padding:0.5em;">
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.5em; max-width:500px; margin:0 auto;">
+            <div style="display:grid; grid-template-columns: repeat(5, auto); gap:0.5em 1.5em; width:fit-content; max-width:100%; margin:0 auto;">
                 <div>
                     <label for="searchtype" style="font-size:0.85em; display:block;">Search type:</label>
                     <select id="searchtype" class="dd-menu" onchange="patternSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
@@ -172,32 +205,19 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                     <label for="nodiacriticals" style="font-size:0.85em; display:block;">No diacriticals</label>
                     <input id="checkbox-nodiacriticals" type="checkbox" name="checkbox-nodiacriticals" <?=($nodiacriticals)?'checked':''?> onclick="setNoDiacriticals()"/>
                 </div>
-                <div>
-                    <label for="provider-select" style="font-size:0.85em; display:block;">Provider:</label>
-                    <select id="provider-select" class="dd-menu" onchange="providerSelected(this)" style="font-size:0.85em; width:100%; max-width:10em;">
-                        <?php 
-                            // Dynamically render known providers
-                            require_once __DIR__ . '/lib/provider.php';
-                            $known = getKnownProviders();
-                            foreach (array_keys($known) as $provName) {
-                                $selected = ($provider->getName() === $provName) ? 'selected' : '';
-                                echo "<option value=\"$provName\" $selected>$provName</option>";
-                            }
-                        ?>
-                    </select>
-                </div>
             </div>
 		</div>
-       </center>
+        </center>
 
 <?php } // !($doSources || $doResources || $doGrammar || $doStats) ?>
 
 <?php
-     $groups = $provider->getLatestSourceDates();
-     //$groupcounts = $provider->getSourceGroupCounts();
      $groupdates = [];
-     foreach( $groups as $group ) {
-         $groupdates[$group['groupname']] = $group['date'] ?? date('Y');
+     if( $provider ) {
+         $groups = $provider->getLatestSourceDates();
+         foreach( $groups as $group ) {
+             $groupdates[$group['groupname']] = $group['date'] ?? date('Y');
+         }
      }
 
      if( $doSources ) {
@@ -211,37 +231,14 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
 
 <?php if( $doGrammar ) { ?>
 <div style="padding:.3em 0.5em; text-align:center; color:#333; background-color:rgba(255,255,255,0.85); margin:0.5em auto; max-width:fit-content;">
-    Select a provider and a grammar pattern to find matching sentences.
+    Select a grammar pattern to find matching sentences.
 </div>
 
 <center style="max-width:100vw; overflow-x:hidden;">
     <form id="grammar-form" style="max-width:fit-content; background-color:rgba(255,255,255,0.85); padding:0.5em; border-radius:8px;">
         <div style="display:flex; flex-direction:column; gap:0.5em;">
-            <!-- First row: Provider, Pattern, Go button -->
+            <!-- First row: Pattern, Go button (provider is the global top-left selector) -->
             <div style="display:flex; gap:1em; align-items:flex-end; justify-content:center;">
-                <div>
-                    <label for="grammar-provider-select" style="display:block; font-size:0.85em; color:#333; font-weight:600;">Provider:</label>
-                    <select id="grammar-provider-select" class="dd-menu" onchange="grammarProviderSelected(this)" style="font-size:0.85em; width:10em;">
-                        <?php 
-                            require_once __DIR__ . '/lib/provider.php';
-                            $known = getKnownProviders();
-                            // In grammar view, default to MySQL
-                            // Resolve ?provider= case-insensitively to the canonical provider name
-                            $grammarProvider = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'MySQL';
-                            $grammarProviderKey = 'MySQL';
-                            foreach (array_keys($known) as $provName) {
-                                if( strcasecmp( $grammarProvider, $provName ) === 0 ) {
-                                    $grammarProviderKey = $provName;
-                                    break;
-                                }
-                            }
-                            foreach (array_keys($known) as $provName) {
-                                $selected = ($grammarProviderKey === $provName) ? 'selected' : '';
-                                echo "<option value=\"$provName\" $selected>$provName</option>";
-                            }
-                        ?>
-                    </select>
-                </div>
                 <div>
                     <label for="grammar-pattern-select" style="display:block; font-size:0.85em; color:#333; font-weight:600;">Grammar Pattern:</label>
                     <select id="grammar-pattern-select" class="dd-menu" style="font-size:0.85em; width:20em;">
@@ -291,14 +288,6 @@ var grammarInfiniteScroll = null;
 // Pattern requested via URL parameter, e.g. ?grammar&provider=MySQL&pattern=pepeke_aike_he&sortorder=date
 var grammarRequestedPattern = new URLSearchParams(window.location.search).get('pattern');
 
-function grammarProviderSelected(selectElement) {
-    let providerName = selectElement.value;
-    console.log('Grammar provider selected:', providerName);
-    
-    // Fetch patterns for this provider
-    updateGrammarPatterns(providerName);
-}
-
 function updateGrammarMatchCount() {
     // Get date filters if they exist
     let fromYear = document.getElementById('grammar-from-year').value;
@@ -307,7 +296,7 @@ function updateGrammarMatchCount() {
         let patternSelect = document.getElementById('grammar-pattern-select');
         let targetPattern = patternSelect.value;
         // Build URL with date filters
-        let providerName = document.getElementById('grammar-provider-select').value;
+        let providerName = document.getElementById('provider-select').value;
         let url = 'ops/getGrammarPatterns.php?provider=' + encodeURIComponent(providerName);
         if (fromYear) url += '&from=' + encodeURIComponent(fromYear);
         if (toYear) url += '&to=' + encodeURIComponent(toYear);
@@ -379,7 +368,7 @@ function updateGrammarPatterns(providerName) {
 }
 
 function loadGrammarResults() {
-    let providerName = document.getElementById('grammar-provider-select').value;
+    let providerName = document.getElementById('provider-select').value;
     let patternSelect = document.getElementById('grammar-pattern-select');
     let pattern = patternSelect.value;
     let fromYear = document.getElementById('grammar-from-year').value;
@@ -484,8 +473,8 @@ function loadGrammarResults() {
 
 // Initialize grammar patterns on page load if in grammar view
 $(document).ready(function() {
-    if (document.getElementById('grammar-provider-select')) {
-        let providerName = document.getElementById('grammar-provider-select').value;
+    if (document.getElementById('provider-select')) {
+        let providerName = document.getElementById('provider-select').value;
         updateGrammarPatterns(providerName);
         // Hide the sentences div until results are loaded
         $('#sentences').hide();
@@ -493,7 +482,7 @@ $(document).ready(function() {
         // Add event listeners to date fields to refresh pattern counts on Enter key
         $('#grammar-from-year, #grammar-to-year').on('keypress', function(e) {
             if (e.which === 13) { // Enter key
-                let providerName = document.getElementById('grammar-provider-select').value;
+                let providerName = document.getElementById('provider-select').value;
                 updateGrammarPatterns(providerName);
             }
         });
