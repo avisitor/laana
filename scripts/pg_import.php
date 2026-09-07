@@ -21,9 +21,22 @@ declare(strict_types=1);
  * only then committed. If interrupted, every source already committed is complete
  * (data + sentence vectors + document vector); the next run resumes with the rest.
  *
+ * In --force mode the derivative search indexes on laana.sentences (the
+ * ivfflat embedding index and the two GIN full-text indexes) are dropped
+ * before loading and recreated at the end: the import never reads them, but
+ * every sentence rewrite pays for them. Interruption safety: SIGINT/SIGTERM
+ * recreate missing indexes before exiting, a shutdown hook covers fatal
+ * errors, uncatchable deaths are repaired by the startup check of the next
+ * run, and normal completion always ensures they exist.
+ *
+ * A schema sanity check runs before any work (all modes, --status included):
+ * the corpus tables and the grammar_pattern_counts materialized view must
+ * exist, otherwise the script exits 1 before touching anything.
+ *
  * Options:
  *   --status           Report what a full run would do, then exit (no writes).
  *   --force            Reset corpus tables, then full rebuild.
+ *   --recreate         Alias for --force (createindex.php terminology).
  *   --dryrun           Do everything except write to Postgres (default is write).
  *   --verbose          Per-source detail.
  *   --quiet            Suppress non-error output.
@@ -95,12 +108,70 @@ function connectMySql(): PDO {
     return \Common\DB\DBBase::createConnection($config);
 }
 
+// Corpus tables every run reads and writes. Single source of truth for the
+// schema sanity check below and the --force reset. The legacy documents
+// table is deliberately absent: it was dropped by
+// db/migrations/2026-09-01-drop-dead-vector-columns.sql.
+$corpusTables = [
+    'laana.sentence_patterns',
+    'laana.sentence_metrics',
+    'laana.document_metrics',
+    'laana.sentences',
+    'laana.contents',
+    'laana.sources',
+];
+
+/**
+ * Fail loudly if any required Postgres object is missing from the laana
+ * schema: the corpus tables above plus the grammar_pattern_counts
+ * materialized view the run refreshes at the end. Runs before any work
+ * (including --status) so schema drift exits fast instead of mid-run.
+ */
+function verifyRequiredTables(PDO $pg, array $tables): void {
+    $names = [];
+    foreach ($tables as $qualified) {
+        $names[] = substr($qualified, strlen('laana.'));
+    }
+    $placeholders = implode(', ', array_fill(0, count($names), '?'));
+    $stmt = $pg->prepare(
+        "SELECT table_name FROM information_schema.tables
+          WHERE table_schema = 'laana' AND table_name IN ($placeholders)"
+    );
+    $stmt->execute($names);
+    $present = array_flip($stmt->fetchAll(PDO::FETCH_COLUMN));
+
+    $missing = [];
+    foreach ($names as $name) {
+        if (!isset($present[$name])) { $missing[] = "laana.{$name}"; }
+    }
+
+    // Materialized views are absent from information_schema.tables.
+    $stmt = $pg->prepare(
+        "SELECT 1 FROM pg_matviews WHERE schemaname = 'laana' AND matviewname = :name"
+    );
+    $stmt->execute([':name' => 'grammar_pattern_counts']);
+    if (!$stmt->fetchColumn()) {
+        $missing[] = 'laana.grammar_pattern_counts (materialized view)';
+    }
+
+    if ($missing !== []) {
+        fwrite(STDERR, "ERROR: missing required Postgres objects in the laana schema:\n");
+        foreach ($missing as $name) {
+            fwrite(STDERR, "  - {$name}\n");
+        }
+        fwrite(STDERR, "Apply pending migrations in db/migrations/ before running this script.\n");
+        exit(1);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // CLI options
 // ---------------------------------------------------------------------------
 
 $status  = in_array('--status', $argv, true);
 $force   = in_array('--force', $argv, true);
+// --recreate: alias for --force, matching createindex.php terminology.
+if (in_array('--recreate', $argv, true)) { $force = true; }
 $dryrun  = in_array('--dryrun', $argv, true);
 $verbose = in_array('--verbose', $argv, true);
 $quiet   = in_array('--quiet', $argv, true);
@@ -130,10 +201,11 @@ Options:
   --dryrun                   Everything except Postgres writes (transactions
                              rolled back)
   --force                    First truncate the corpus tables (sources, contents,
-                             sentences, documents, sentence_metrics,
-                             document_metrics, sentence_patterns), then rebuild
+                             sentences, sentence_metrics, document_metrics,
+                             sentence_patterns), then rebuild
                              everything from scratch. Guarded: --dryrun never
                              truncates
+  --recreate                 Alias for --force (createindex.php terminology)
   --sentences                Only sentence embeddings/metrics (parents still
                              migrate)
   --documents                Only document metrics/vectors (parents still
@@ -149,6 +221,15 @@ Notes:
   Each source is processed as ONE unit inside a single Postgres transaction.
   Grammar patterns are scanned per source and grammar_pattern_counts is
   refreshed once at the end of a write run.
+  In --force mode the derivative search indexes on laana.sentences (the
+  ivfflat embedding index and the two GIN full-text indexes) are dropped
+  for the load and recreated at the end (the ivfflat rebuild can take a
+  while on a full corpus). Interrupted runs are repaired: SIGINT/SIGTERM
+  recreate the indexes before exiting, and the next run recreates any
+  still missing at startup.
+  A schema check runs first: the required laana corpus tables and the
+  grammar_pattern_counts materialized view must exist, otherwise the script
+  exits 1 before touching anything.
 
 Examples:
   php scripts/pg_import.php --status
@@ -342,6 +423,10 @@ if (!$pgLaana->conn) {
 $pg = $pgLaana->conn;
 $pg->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// Fail fast on schema drift before any work (a status run included).
+verifyRequiredTables($pg, $corpusTables);
+say("Schema:     OK (" . count($corpusTables) . " corpus tables + grammar_pattern_counts matview)\n", $quiet);
+
 // Report and stop, before the embedding clients are built (a status run must not
 // depend on the embedding service) and before --force could reset anything.
 if ($status) {
@@ -361,21 +446,100 @@ if ($limit > 0)    { say("Limit:      {$limit} sources\n", $quiet); }
 say("\n", $quiet);
 
 // ---------------------------------------------------------------------------
+// Derivative search indexes (ivfflat + 2 GIN on laana.sentences).
+//
+// Search-only indexes the import never reads, but every sentence rewrite
+// pays for them: each non-HOT UPDATE inserts into the ivfflat index
+// (scanning every IVF centroid) and both GIN indexes. --force drops them
+// for the load and recreates them at the end. The drop targets are
+// discovered live and each dropped definition is captured to
+// logs/pg-import-index-state.json BEFORE it is dropped; recreation
+// restores exactly what was captured (SentenceSearchIndexManager).
+// Every interruption path recreates whatever is missing:
+//   * SIGINT/SIGTERM handler below (Ctrl-C, kill)
+//   * shutdown function (fatal errors)
+//   * the startup check here (a previous run died uncatchably)
+//   * the end-of-run ensure (normal completion)
+// ---------------------------------------------------------------------------
+
+$indexManager = new \Noiiolelo\Providers\Postgres\SentenceSearchIndexManager($pg);
+$indexesDroppedByThisRun = false;
+
+$recreateIndexes = static function () use ($indexManager): void {
+    foreach ($indexManager->ensureAll() as $name) {
+        fwrite(STDERR, "  recreated index {$name}\n");
+    }
+};
+
+if (function_exists('pcntl_signal')) {
+    pcntl_async_signals(true);
+    $signalHandler = static function (int $sig) use ($pg, $recreateIndexes): void {
+        fwrite(STDERR, "\nInterrupted (" . ($sig === SIGINT ? 'SIGINT' : 'SIGTERM')
+            . ") — recreating missing derivative indexes before exit\n");
+        if ($pg->inTransaction()) {
+            $pg->rollBack();
+        }
+        try {
+            $recreateIndexes();
+        } catch (Throwable $e) {
+            fwrite(STDERR, 'WARNING: could not recreate derivative indexes: ' . $e->getMessage() . "\n");
+            fwrite(STDERR, "The next pg_import run will repair them at startup.\n");
+        }
+        exit($sig === SIGINT ? 130 : 143);
+    };
+    pcntl_signal(SIGINT, $signalHandler);
+    pcntl_signal(SIGTERM, $signalHandler);
+}
+
+// Fatal-error safety net: if this run dropped the indexes and died before
+// the end-of-run recreate, rebuild them while shutting down. No-op on
+// normal exits (the indexes are present by then) and in dryrun (nothing
+// was ever dropped).
+register_shutdown_function(static function () use (&$indexesDroppedByThisRun, $indexManager, $recreateIndexes): void {
+    if (!$indexesDroppedByThisRun) {
+        return;
+    }
+    try {
+        $missing = $indexManager->missing();
+        if ($missing === []) {
+            return;
+        }
+        fwrite(STDERR, "\nRecreating derivative indexes left missing by this aborted run: "
+            . implode(', ', $missing) . "\n");
+        $recreateIndexes();
+    } catch (Throwable $e) {
+        fwrite(STDERR, 'WARNING: shutdown recreate of derivative indexes failed: ' . $e->getMessage() . "\n");
+        fwrite(STDERR, "The next pg_import run will repair them at startup.\n");
+    }
+});
+
+// Repair path for uncatchable deaths (SIGKILL, power loss) of a previous
+// --force run: any non-force run recreates missing indexes up front. A
+// following --force run instead drops them again and recreates at the end.
+if (!$force) {
+    $missing = $indexManager->missing();
+    if ($missing !== []) {
+        if ($dryrun) {
+            fwrite(STDERR, "note: derivative search indexes are missing (previous run interrupted); "
+                . "--dryrun leaves them untouched\n");
+        } else {
+            fwrite(STDERR, 'WARNING: derivative search indexes are missing — a previous run was interrupted '
+                . 'before recreating them: ' . implode(', ', $missing) . "\n");
+            fwrite(STDERR, "Recreating now (the ivfflat build can take a while on a large corpus)...\n");
+            $recreateIndexes();
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Reset (only under --force). Guarded so a dry run never destroys data.
 // ---------------------------------------------------------------------------
 
 if ($force) {
-    // All corpus tables truncated together (FK-safe within one statement).
+    // All corpus tables truncated together (FK-safe within one statement);
+    // the same list the schema sanity check validated above.
     // searchstats/processing_log are operational and deliberately preserved.
-    $resetTables = [
-        'laana.sentence_patterns',
-        'laana.sentence_metrics',
-        'laana.document_metrics',
-        'laana.documents',
-        'laana.sentences',
-        'laana.contents',
-        'laana.sources',
-    ];
+    $resetTables = $corpusTables;
     if ($dryrun) {
         say("Reset (dryrun — no truncate performed):\n", $quiet);
         foreach ($resetTables as $t) {
@@ -390,7 +554,15 @@ if ($force) {
             say("  {$t}: {$n} rows\n", $quiet);
         }
         $pg->exec('TRUNCATE TABLE ' . implode(', ', $resetTables));
-        say("Reset done.\n\n", $quiet);
+        say("Reset done.\n", $quiet);
+
+        // Bulk-load window: derivative search indexes are pure write tax
+        // here (see the block comment above). Recreated at end of run; the
+        // signal/shutdown hooks repair an interrupted load.
+        $dropped = $indexManager->dropAll();
+        $indexesDroppedByThisRun = $dropped !== [];
+        say("Dropped derivative search indexes: "
+            . ($dropped === [] ? '(none present)' : implode(', ', $dropped)) . "\n\n", $quiet);
     }
 }
 
@@ -429,6 +601,20 @@ $pipeline = new \Noiiolelo\Providers\Postgres\PostgresSourcePipeline([
     'sentences' => $doSentences,
     'documents' => $doDocuments,
 ]);
+
+// Bulk incremental loads pay the same per-row index tax as --force (every
+// backlog INSERT maintains the ivfflat/GIN indexes and recomputes the
+// generated tsvector columns), so when the pending migration is large the
+// indexes are dropped for the load too. Same capture/recreate safety net
+// as --force: definitions stashed before the drop, recreated at the end,
+// repaired after an interruption.
+$bulkIndexDropSentenceThreshold = 100000;
+if (!$force && !$dryrun && $pipeline->pendingSentenceMigration() >= $bulkIndexDropSentenceThreshold) {
+    $dropped = $indexManager->dropAll();
+    $indexesDroppedByThisRun = $dropped !== [];
+    say("Pending incremental migration is large — dropped derivative search indexes for the load: "
+        . ($dropped === [] ? '(none present)' : implode(', ', $dropped)) . "\n", $quiet);
+}
 
 // ---------------------------------------------------------------------------
 // Main loop — one transaction per source, complete unit on commit.
@@ -471,6 +657,7 @@ foreach ($sources as $source) {
             echo "  data: {$out['sentences_data']} sentences, content=" . ($out['has_content'] ? 'yes' : 'no')
                . " | vectors: sent={$out['sentence_vectors']} doc={$out['document_vectors']}"
                . " | metrics: sent={$out['sentence_metrics']} doc={$out['document_metrics']}"
+               . ($out['skipped_data'] ? ' | already mirrored, data upserts skipped' : '')
                . ($dryrun ? " (dryrun, rolled back)" : "") . "\n";
         }
     } catch (Throwable $e) {
@@ -482,6 +669,21 @@ foreach ($sources as $source) {
     }
 
     if (function_exists('flush')) { flush(); }
+}
+
+// Derivative search indexes: recreate whatever the bulk load dropped
+// (no-op when the indexes were never dropped). --dryrun never touches
+// them. A failure counts as a run error: search would be degraded.
+if (!$dryrun) {
+    try {
+        $created = $indexManager->ensureAll();
+        if ($created !== []) {
+            say("Derivative search indexes recreated: " . implode(', ', $created) . "\n", $quiet);
+        }
+    } catch (Throwable $e) {
+        $totals['errors']++;
+        fwrite(STDERR, 'ERROR: recreating derivative search indexes failed: ' . $e->getMessage() . "\n");
+    }
 }
 
 // Counts policy: the materialized view is refreshed exactly once per run,

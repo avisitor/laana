@@ -285,3 +285,13 @@ CREATE UNIQUE INDEX idx_pattern_type_counts
 CREATE INDEX sentences_embedding_ivfflat
     ON laana.sentences USING ivfflat (embedding public.vector_cosine_ops)
     WITH (lists = 1000);
+
+-- Full-text search indexes on laana.sentences. pg_import --force drops all
+-- three derivative indexes for the load and recreates them at the end
+-- (providers/Postgres/SentenceSearchIndexManager.php captures the live
+-- definitions before dropping, so recreates match what was there).
+CREATE INDEX sentences_hawaiian_tsv_gin
+    ON laana.sentences USING gin (hawaiian_tsv);
+
+CREATE INDEX sentences_hawaiian_unaccent_tsv_gin
+    ON laana.sentences USING gin (hawaiian_unaccent_tsv);

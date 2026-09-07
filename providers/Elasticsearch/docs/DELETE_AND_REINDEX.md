@@ -10,8 +10,9 @@ OpenSearch.
 This document describes the options that currently exist. The
 `--delete-existing` / `--domain` flags and the groupname-scoped delete
 described in earlier versions of this document **no longer exist in
-`createindex.php`** — that functionality lived in `scripts/savedocument.php`
-(via `ElasticsearchClient::deleteByGroupname()`), not here. See
+`createindex.php`** — that functionality now lives in
+`scripts/save.php --delete-existing` (via
+`ElasticsearchClient::deleteByGroupname()`), not here. See
 [Groupname-scoped reindexing](#groupname-scoped-reindexing-source-id---group-name)
 below for the current equivalent and its important caveats.
 
@@ -42,6 +43,7 @@ php scripts/createindex.php [options]
 | Option | Description |
 |---|---|
 | `--recreate` | Rebuild the corpus into temporary `*_staging` indices, then atomically switch the production aliases on completion (full-corpus only — aborts when combined with `--group-name`, `--source-id` or `--max-documents`) |
+| `--resume` | Continue an interrupted `--recreate`: add the sources still missing from the `*_staging` indices, then switch the production aliases. Takes no options except `--verbose` — provider, source, collection name and split-indices are read from the state persisted when `--recreate` started |
 | `--dryrun`, `--dry-run` | Show what would happen without writing anything |
 | `--verbose` | Verbose output |
 | `--quiet` | Suppress non-error output |
@@ -63,6 +65,37 @@ php scripts/createindex.php [options]
 Exit codes: `0` success, `1` error, `130` interrupted by SIGINT (Ctrl+C),
 `143` interrupted by SIGTERM. Pressing Ctrl+C once requests a graceful stop
 at the next batch boundary; pressing it again forces an immediate exit.
+
+## Resuming an interrupted `--recreate`
+
+When a `--recreate` run starts it persists its configuration (provider,
+source, collection name, split-indices setting) to
+`logs/createindex-staging-state.json`. If the run is interrupted
+(Ctrl+C, crash, reboot), production is untouched and the `*_staging` indices
+keep whatever was indexed so far. Running:
+
+```bash
+php scripts/createindex.php --resume --verbose
+```
+
+then continues that run with the same provider and source: sources already
+present in the staging indices are skipped (the staging source-metadata
+checkpoint drives the skip, exactly like a single uninterrupted run) and the
+missing sources are added, after which the production aliases are switched
+atomically and the old physical indices are deleted.
+
+- `--resume` accepts no options except `--verbose` — everything that could
+  make it diverge from the run it continues is fixed by the state file.
+- With no staging indices for the collection (nothing was ever staged, or the
+  state is stale) it prints that there is no state to resume and exits
+  non-zero, removing the stale state file.
+- If the staging indices already hold the production aliases the rebuild
+  completed earlier; it exits successfully and removes the stale state file.
+- The state file is removed when `--recreate` or `--resume` completes the
+  alias switch. `--recreate --no-aliases` keeps it, so a later `--resume`
+  can complete the switch without rebuilding.
+- Re-running `--recreate` overwrites the state file and starts a fresh
+  rebuild (existing staging indices are wiped).
 
 ## What a normal (full) run does
 
@@ -124,7 +157,7 @@ untouched. This does **not** first delete stale documents that may have
 been removed from the source group upstream; it only adds/overwrites. If
 you need to purge documents whose sources have since disappeared from a
 group, that is a separate operation (see `ElasticsearchClient::deleteByGroupname()`,
-used by `scripts/savedocument.php`) and is not currently wired into
+used by `scripts/save.php --delete-existing`) and is not currently wired into
 `createindex.php`.
 
 ### Testing first (recommended)
@@ -157,6 +190,7 @@ unset. `opensearch` / `os` (case-insensitive) select OpenSearch.
 php scripts/createindex.php --dryrun
 php scripts/createindex.php --verbose --max-documents 10
 php scripts/createindex.php --recreate --verbose
+php scripts/createindex.php --resume --verbose
 php scripts/createindex.php --group-name=kauakukalahale --dryrun
 php scripts/createindex.php --aliases-only
 php scripts/createindex.php --recreate --provider=opensearch

@@ -35,15 +35,26 @@ php scripts/save.php --provider=es --parser=nupepa --force --maxrows=20
 php scripts/save.php --provider=es --parser=nupepa --sourceid=45678
 php scripts/save.php --provider=es --parser=nupepa --minsourceid=1000 --maxsourceid=1050
 
+# Without --parser, the parser key is resolved from the source's groupname
+php scripts/save.php --provider=es --sourceid=45678
+
+# Wipe the parser group's indexed data, then re-save it (5-second cancel window)
+php scripts/save.php --provider=es --parser=nupepa --delete-existing
+
+# Preview what a run would do without writing anything
+php scripts/save.php --provider=es --parser=nupepa --dryrun
+
 # Snapshot a parser's document list, then run against it later
 php scripts/save.php --provider=es --parser=nupepa --doclist-save
 php scripts/save.php --provider=es --parser=nupepa --doclist-file=scripts/doclists/nupepa.json
 ```
 
-Options (parsed by `scripts/save.php`): `--parser=KEY` (required),
-`--sourceid=`, `--minsourceid=`, `--maxsourceid=`, `--maxrows=N`,
-`--force`, `--resplit`, `--local`, `--doclist-save[=PATH]`,
-`--doclist-file=PATH`, `--doclist-only`, `--debug`, `--verbose`.
+Options (parsed by `scripts/save.php`): `--parser=KEY` (optional when
+`--sourceid` resolves it from the source's groupname), `--sourceid=`,
+`--minsourceid=`, `--maxsourceid=`, `--remote=ID`, `--delete-existing`,
+`--dryrun`, `--maxrows=N`, `--force`, `--resplit`, `--local`,
+`--doclist-save[=PATH]`, `--doclist-file=PATH`, `--doclist-only` (requires
+`--doclist-save`), `--debug`, `--verbose`, `--help`.
 
 ## Available parser keys
 

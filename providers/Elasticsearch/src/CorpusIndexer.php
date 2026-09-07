@@ -1824,6 +1824,7 @@ class CorpusIndexer
         if (!$docData) {
             return null;
         }
+        $this->print( $docData['_source']['sourcename'] );
         $this->actuallyIndexedDocuments++;
 
         // NOW start timing the actual split index creation work

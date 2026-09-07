@@ -49,6 +49,21 @@ php scripts/save.php --provider=es --parser=nupepa
 php scripts/save.php --provider=es --parser=ulukau --maxrows=50 --force
 php scripts/save.php --provider=es --parser=nupepa --sourceid=45678
 
+# Single source / range
+php scripts/save.php --provider=es --parser=nupepa --sourceid=45678
+
+# Without --parser, the parser key is resolved from the source's groupname
+php scripts/save.php --provider=es --sourceid=45678
+
+# Re-catalog just one source's metadata from its live page (no content fetch)
+php scripts/save.php --provider=mysql --remote=45678
+
+# Wipe a parser group's existing data, then re-save it (5-second cancel window)
+php scripts/save.php --provider=es --parser=nupepa --delete-existing
+
+# Preview what a run would do without writing anything
+php scripts/save.php --provider=es --parser=nupepa --dryrun
+
 # Same parsers, but store into the MySQL Laana DB instead
 php scripts/save.php --provider=mysql --parser=nupepa
 
@@ -62,17 +77,23 @@ php scripts/save.php --provider=postgres --parser=keaolama
 | Option | Meaning |
 |---|---|
 | `--provider=mysql\|postgres\|es\|elasticsearch\|os\|opensearch` | Storage backend (default `mysql`). `mysql` → `MySQLSaveManager`, `es`/`elasticsearch` → `ElasticsearchSaveManager`, `os`/`opensearch` → `OpenSearchSaveManager` (same flow, OpenSearch client), `postgres` → `PostgresSaveManager`. Any other value fails loudly on STDERR with exit 1 — there is no silent fallback to MySQL. `--provider=postgres` scrapes through the MySQL flow (MySQL stays the catalog of record, keeping IDs in parity with `pg_import.php`), then mirrors every selected source into Postgres (data, 384/1024-dim vectors, metrics, grammar patterns) in one transaction per source and refreshes `grammar_pattern_counts` once per run; its Summary JSON reports `pg_mirror_failures` and `patterns_saved` |
-| `--parser=KEY` | Site parser key (required): `nupepa`, `ulukau`, `ulukaulocal`, `keaolama`, `kauakukalahale`, `kapaamoolelo`, `baibala`, `ehooululahui`, `kaiwakiloumoku`, `kaulanapilina` — defined in `scripts/parsers.php` |
-| `--sourceid=ID` | Process a single source |
+| `--parser=KEY` | Site parser key (optional when `--sourceid` resolves it from the source's registered groupname): `nupepa`, `ulukau`, `ulukaulocal`, `keaolama`, `kauakukalahale`, `kapaamoolelo`, `baibala`, `ehooululahui`, `kaiwakiloumoku`, `kaulanapilina` — defined in `scripts/parsers.php` |
+| `--sourceid=ID` | Process a single source; with no `--parser`, the parser key is resolved from the source's groupname in the selected backend |
 | `--minsourceid=/--maxsourceid=` | Source ID range |
+| `--remote=ID` | Re-catalog just the metadata for this sourceid from its live page (no content fetch) |
+| `--delete-existing` | Delete all existing documents for the parser's groupname before re-saving (5-second cancel window; press Ctrl+C to abort). Works per provider: MySQL deletes Laana rows, Elasticsearch/OpenSearch delete index entries, Postgres deletes through the MySQL catalog of record |
+| `--dryrun` | Print what the run would do — provider, parser, document-list preview (first 10 entries), delete/report decisions — without writing anything. Script-level only: it does not simulate per-document new/updated/skip decisions (that logic lives inside the managers and writes as a side effect of evaluating it). The doc-list preview reads the parser's live listing page; combine with `--doclist-file` for a fully offline preview |
 | `--maxrows=N` | Max documents (default 20000) |
 | `--force` | Re-process already-saved documents |
 | `--resplit` | Re-run sentence splitting |
 | `--local` | Use the local/queued variant of the parser where supported |
 | `--doclist-save[=PATH]` | Save the parser's document list to JSON (default `scripts/doclists/<parser>.json`) |
 | `--doclist-file=PATH` | Run against a previously saved document list |
-| `--doclist-only` | Save the doc list and exit without fetching documents |
+| `--doclist-only` | Save the doc list and exit without fetching documents (requires `--doclist-save`) |
 | `--debug`, `--verbose` | Output control |
+| `--help` | Show the full usage block and exit 0 |
+
+With no `--parser`, `--sourceid`, source ID range, or `--remote`, the script prints usage and exits 1 instead of starting a full-corpus run.
 
 Engine details: [ELASTICSEARCH_SAVE_MANAGER.md](ELASTICSEARCH_SAVE_MANAGER.md).
 
@@ -86,6 +107,7 @@ computes Hawaiian word ratios, generates embeddings, and bulk-indexes.
 
 ```bash
 php scripts/createindex.php --recreate --verbose      # full rebuild into *_staging indices, atomic switch on completion
+php scripts/createindex.php --resume --verbose        # continue an interrupted --recreate (reads its persisted state)
 php scripts/createindex.php                           # incremental: skips already-indexed sources
 php scripts/createindex.php --source-id=52441         # force one source
 php scripts/createindex.php --group-name=kauakukalahale
@@ -150,8 +172,15 @@ Behavior notes:
   `*_staging` indices while the current indices keep serving search; when the
   run completes, the production aliases are atomically switched to the staging
   indices and the old physical indices are deleted. An interrupted run leaves
-  production untouched (re-run with `--recreate` to try again; use
-  `--no-aliases` to build staging without ever switching). See
+  production untouched; `--recreate` persists its provider/source/collection
+  settings to `logs/createindex-staging-state.json` when it starts, so
+  `php scripts/createindex.php --resume` continues the interrupted run — it
+  adds the sources still missing from the staging indices (already-staged
+  sources are skipped), then switches the aliases. `--resume` takes no options
+  except `--verbose`, and exits when there is no staging state to resume. The
+  state file is removed when `--recreate` or `--resume` completes the switch.
+  Use `--no-aliases` to build staging without ever switching (the state file
+  is kept, so `--resume` can complete the switch later). See
   [providers/Elasticsearch/docs/DELETE_AND_REINDEX.md](providers/Elasticsearch/docs/DELETE_AND_REINDEX.md)
   for the full reference, including the groupname-scoped delete caveat.
 
@@ -168,10 +197,14 @@ every derived vector and metric. It replaces the former three-step pipeline
    MySQL (upserts; sentence IDs carried over unchanged).
 2. Embeds sentences with the small embedding model (**384-dim**,
    `passage: ` prefix) via `lib/EmbeddingClient.php` and writes
-   `sentences.embedding vector(384)` through a per-transaction staging table.
+   `sentences.embedding vector(384)` in one batched statement per source:
+   all vectors for the source are staged into a per-transaction temp table
+   (chunked multi-row INSERTs, 250 rows per statement) and applied with a
+   single `UPDATE ... FROM staging`.
 3. Computes sentence metrics (`hawaiian_word_ratio`, `word_count`, `length`,
    `entity_count`, `frequency`) with `lib/MetricsComputer.php`
-   (`hawaiian_words.txt`) and upserts `sentence_metrics`.
+   (`hawaiian_words.txt`) and upserts `sentence_metrics` in batched
+   multi-row statements (250 rows per statement).
 4. Computes document metrics and upserts `document_metrics`.
 5. Embeds the document text with the large model (**1024-dim**,
    `intfloat/multilingual-e5-large-instruct`, `passage: ` prefix) and writes
@@ -196,6 +229,30 @@ pass needed). After the loop, any non-dryrun run refreshes
 all transactions; a failed refresh warns on STDERR but does not fail the
 run.
 
+`--force` runs also manage the **derivative search indexes** on
+`laana.sentences`, managed by
+`providers/Postgres/SentenceSearchIndexManager.php`. Drop targets are
+discovered live — every index on the table except constraint-backed ones
+(the primary key) and the keep-list (`idx_sentences_source`, used by the
+import's per-source selects) — so indexes added to the schema later are
+handled without code changes. Before dropping, each index's executable
+definition (`pg_get_indexdef`) is captured to
+`logs/pg-import-index-state.json`; recreation restores exactly what was
+captured, so index changes survive the cycle unchanged. The hard-coded
+fallback DDL in the class (used only when the state file is lost) is pinned
+to the live definitions by a drift-alarm test
+(`tests/Source/SentenceSearchIndexManagerTest.php`). The import never reads
+these indexes, but every sentence rewrite pays for them (each non-HOT
+UPDATE inserts into the ivfflat index — scanning every IVF centroid — and
+both GIN indexes), so they are dropped right after the truncate and
+recreated at the end of the run. Incremental runs do the same when the
+pending data migration is large (≥ 100,000 sentences by the per-source
+signature diff): a bulk backfill is a bulk load. Interruption safety:
+SIGINT/SIGTERM recreate missing indexes before exiting, a shutdown hook
+covers fatal errors, and a non-force run recreates any still missing at
+startup (repairing an uncatchable death such as SIGKILL or power loss). A
+recreate failure is counted as a run error.
+
 ```bash
 php scripts/pg_import.php                    # incremental backfill (writes by default)
 php scripts/pg_import.php --status           # report what a full run would do, then exit
@@ -205,13 +262,14 @@ php scripts/pg_import.php --limit=50         # at most 50 sources (lowest source
 php scripts/pg_import.php --sentences        # only sentence embeddings/metrics
 php scripts/pg_import.php --documents        # only document metrics/vectors
 php scripts/pg_import.php --force            # RESET corpus tables + full rebuild
+php scripts/pg_import.php --recreate         # alias for --force
 ```
 
 | Option | Meaning |
 |---|---|
 | *(no options)* | Backfill only what is missing: missing sources/sentences/contents are copied from MySQL; only rows lacking embeddings/metrics/doc vectors are processed |
 | `--status` | Print what a full run would do (rows to add, rows missing vectors/metrics) and exit before anything is touched. Ignores every other option and does not need the embedding service |
-| `--force` | First truncate the corpus tables (`sources`, `contents`, `sentences`, `documents`, `sentence_metrics`, `document_metrics`, `sentence_patterns` — `searchstats`/`processing_log` are preserved) and refresh `grammar_pattern_counts`, then rebuild everything from scratch. Guarded so `--dryrun` never truncates |
+| `--force` / `--recreate` | First truncate the corpus tables (`sources`, `contents`, `sentences`, `sentence_metrics`, `document_metrics`, `sentence_patterns` — `searchstats`/`processing_log` are preserved) and refresh `grammar_pattern_counts`, then rebuild everything from scratch. Also drops the derivative search indexes for the load and recreates them at the end. Guarded so `--dryrun` never truncates |
 | `--dryrun` | Do everything except write to Postgres (all transactions rolled back). **The default without `--dryrun` is WRITE** |
 | `--sentences` | Only sentence embeddings/metrics (parents still migrated) |
 | `--documents` | Only document metrics/vectors (parents still migrated) |
@@ -366,10 +424,9 @@ See `providers/Neo4j/README.md`.
 | Script | Purpose |
 |---|---|
 | `scripts/deleteSource.php <groupname>` | Delete a group's rows from MySQL `sentences`/`contents`/`sources` |
-| `scripts/savedocument.php` | Single/range document save and delete tool (`--sourceid=`, `--minsourceid=/--maxsourceid=`, `--parser=`, `--delete-existing`, `--force`, `--local`, `--resplit`) — also the place where groupname-scoped Elasticsearch deletes live |
+| `scripts/save.php --delete-existing --parser=KEY` | Delete a group's data from the selected backend (5-second cancel window), then re-save it: MySQL deletes Laana rows; Elasticsearch/OpenSearch delete index entries via `ElasticsearchClient::deleteByGroupname()`; Postgres deletes through the MySQL catalog of record. Replaces the retired `scripts/savedocument.php` |
 | `scripts/cleanup.php` | Remove MySQL `sentences`/`contents` rows whose sourceid has no `sources` row |
 | `scripts/empty.php` | Report `sources` rows with no matching `sentences.hawaiiantext` / `contents.text` data |
-| `scripts/deleteSource.php` + `ElasticsearchClient::deleteByGroupname()` | Elasticsearch group deletion (used via `savedocument.php`) |
 
 ## Related web endpoints (not CLI)
 

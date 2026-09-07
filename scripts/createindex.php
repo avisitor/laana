@@ -9,6 +9,7 @@
  *   php scripts/createindex.php --dryrun
  *   php scripts/createindex.php --recreate --verbose --max-documents 10
  *   php scripts/createindex.php --recreate --verbose
+ *   php scripts/createindex.php --resume --verbose
  *   php scripts/createindex.php --group-name=kauakukalahale --dryrun
  *   php scripts/createindex.php --aliases-only
  */
@@ -72,10 +73,73 @@ function createAliasClient(array $options, string $provider): ElasticsearchClien
 }
 
 // ---------------------------------------------------------------------------
+// Staging resume state (persisted by --recreate, consumed by --resume)
+// ---------------------------------------------------------------------------
+function stagingStatePath(string $projectRoot): string
+{
+    return $projectRoot . '/logs/createindex-staging-state.json';
+}
+
+/**
+ * Persist the staging run configuration so --resume can continue this run
+ * with the same provider/source/collection/split settings. Fails loudly:
+ * a recreate that cannot record its state must not run, because it could
+ * never be resumed.
+ */
+function persistStagingState(string $path, array $state): void
+{
+    $json = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    if ($json === false) {
+        fwrite(STDERR, "Error: could not encode staging resume state: " . json_last_error_msg() . "\n");
+        exit(1);
+    }
+    if (file_put_contents($path, $json) === false) {
+        fwrite(STDERR, "Error: could not write staging resume state to {$path}.\n");
+        exit(1);
+    }
+}
+
+/**
+ * Load the staging state persisted by --recreate. Exits loudly when there is
+ * no state (nothing to resume) or the file is missing required fields.
+ */
+function loadStagingState(string $path): array
+{
+    if (!file_exists($path)) {
+        fwrite(STDERR, "Error: no resume state found at {$path}.\n");
+        fwrite(STDERR, "There is nothing to resume - --resume continues an interrupted --recreate\n");
+        fwrite(STDERR, "run, which persists its state when the staging run starts.\n");
+        exit(1);
+    }
+    $raw = file_get_contents($path);
+    $state = is_string($raw) ? json_decode($raw, true) : null;
+    if (!is_array($state)
+        || !isset($state['provider'], $state['source'], $state['collection_name'], $state['split_indices'])) {
+        fwrite(STDERR, "Error: staging resume state at {$path} is missing required fields.\n");
+        fwrite(STDERR, "Delete the file and re-run --recreate to start a fresh rebuild.\n");
+        exit(1);
+    }
+    return $state;
+}
+
+/**
+ * Remove the staging state file once the staging run has fully completed
+ * (aliases switched) or when the state is stale. Warns without failing the
+ * completed run if the unlink fails.
+ */
+function clearStagingState(string $path): void
+{
+    if (file_exists($path) && !unlink($path)) {
+        fwrite(STDERR, "Warning: could not remove staging resume state {$path} - remove it manually.\n");
+    }
+}
+
+// ---------------------------------------------------------------------------
 // CLI argument parsing
 // ---------------------------------------------------------------------------
 $longOptions = [
     'recreate',                 // Rebuild into *_staging indices, atomic alias switch on completion
+    'resume',                   // Continue an interrupted --recreate: add missing sources to staging, then switch aliases
     'dryrun',                   // Dry run: show what would happen without indexing
     'dry-run',                  // Alias for --dryrun
     'verbose',                  // Verbose output
@@ -129,11 +193,26 @@ $intOption = function (array $names, ?int $default = null) use ($options): ?int 
 
 $dryrun = isset($options['dryrun']) || isset($options['dry-run']);
 $recreate = isset($options['recreate']);
+$resume = isset($options['resume']);
 $verbose = isset($options['verbose']);
 $quiet = isset($options['quiet']);
 $aliasesOnly = isset($options['aliases-only']);
 $noAliases = isset($options['no-aliases']);
 $importRaw = isset($options['import-raw']);
+
+// --resume continues an interrupted --recreate run using the staging state
+// persisted when that run started (provider, source, collection, split
+// indices). Everything is therefore already fixed: reject any option except
+// --verbose so a resume cannot silently diverge from the run it continues.
+if ($resume) {
+    $used = array_values(array_diff(array_keys($options), ['resume', 'verbose', 'help']));
+    if ($used) {
+        fwrite(STDERR, "Error: --resume cannot be combined with --" . implode(', --', $used) . ".\n");
+        fwrite(STDERR, "--resume continues the interrupted --recreate run using the provider, source,\n");
+        fwrite(STDERR, "collection name and split-indices settings persisted when it started.\n");
+        exit(1);
+    }
+}
 
 // --recreate rebuilds the entire corpus and switches it in atomically on
 // completion; the scoped/limited options only make sense for incremental
@@ -155,25 +234,41 @@ if ($recreate) {
 // Staging runs: on --recreate, ingest into temporary *_staging indices and
 // switch the production aliases over atomically when the run completes, so
 // the live indices are never wiped mid-run. (Dry runs never enable staging.)
-$stagingRun = $recreate && !$dryrun;
+// --resume is always a staging run (it continues one; --dryrun was rejected
+// with it above).
+$stagingRun = ($recreate && !$dryrun) || $resume;
 
-// Search provider: --provider flag, falling back to the PROVIDER env var,
-// then to the default Elasticsearch.
-$provider = $options['provider'] ?? $_ENV['PROVIDER'] ?? 'Elasticsearch';
+// Staging resume state: --recreate persists the run configuration when the
+// staging run starts; --resume reads it back so the continuation targets the
+// same provider, source, collection, and split-indices setting.
+$statePath = stagingStatePath($projectRoot);
+$stagingState = $resume ? loadStagingState($statePath) : [];
+
+// Search provider: --resume reads it from the persisted staging state; other
+// runs take the --provider flag, falling back to the PROVIDER env var, then
+// to the default Elasticsearch.
+$provider = $resume
+    ? (string)$stagingState['provider']
+    : ($options['provider'] ?? $_ENV['PROVIDER'] ?? 'Elasticsearch');
 $isOpenSearch = in_array(strtolower($provider), ['opensearch', 'os'], true);
 
 // Source: --source selects where documents, sentences, and vectors come from.
 // 'api' (default) reads from the MySQL HTTP API and embeds live; 'postgres'
 // reads text, sentences, and stored vectors from the laana Postgres schema.
-$source = $options['source'] ?? 'api';
+// --resume reads it from the persisted staging state.
+$source = $resume ? (string)$stagingState['source'] : ($options['source'] ?? 'api');
 if (!in_array($source, ['api', 'postgres'], true)) {
     fwrite(STDERR, "Error: --source expects 'api' or 'postgres', got '{$source}'.\n");
     exit(1);
 }
 
 $config = [
-    'COLLECTION_NAME' => $options['collection-name'] ?? 'hawaiian',
-    'SPLIT_INDICES' => isset($options['no-split-indices']) ? false : true,
+    'COLLECTION_NAME' => $resume
+        ? (string)$stagingState['collection_name']
+        : ($options['collection-name'] ?? 'hawaiian'),
+    'SPLIT_INDICES' => $resume
+        ? (bool)$stagingState['split_indices']
+        : (isset($options['no-split-indices']) ? false : true),
     'BATCH_SIZE' => $intOption(['batch-size'], 1),
     'SENTENCE_BATCH_SIZE' => $intOption(['sentence-batch-size'], 100),
     'CHECKPOINT_INTERVAL' => $intOption(['checkpoint-interval'], 50),
@@ -210,6 +305,9 @@ if (!$quiet) {
     echo "Verbose:              " . ($config['verbose'] ? 'yes' : 'no') . "\n";
     echo "Quiet:                " . ($config['quiet'] ? 'yes' : 'no') . "\n";
     echo "Recreate index:       " . ($recreate ? ($stagingRun ? 'yes (staging indices, atomic switch on completion)' : 'yes') : 'no') . "\n";
+    echo "Resume:               " . ($resume
+        ? 'yes (continuing --recreate started ' . ($stagingState['started_at'] ?? 'at unknown time') . ')'
+        : 'no') . "\n";
     echo "Dry run:              " . ($dryrun ? 'yes' : 'no') . "\n";
     echo "Aliases only:         " . ($aliasesOnly ? 'yes' : 'no') . "\n";
     echo "Skip aliases:         " . ($noAliases ? 'yes' : 'no') . "\n";
@@ -282,7 +380,9 @@ if ($isIndexingMode) {
 
     if (!$schemaValid) {
         fwrite(STDERR, "Pre-flight validation failed. Aborting.\n");
-        fwrite(STDERR, "Use --recreate to recreate indices, or fix the schema issues above.\n");
+        fwrite(STDERR, $resume
+            ? "Fix the schema issues above, or re-run --recreate to rebuild from scratch.\n"
+            : "Use --recreate to recreate indices, or fix the schema issues above.\n");
         exit(1);
     }
 } elseif (!$quiet) {
@@ -295,8 +395,42 @@ if ($isIndexingMode) {
 // live corpus until switchStagingToProduction() runs below.
 if ($stagingRun) {
     $esClient->setStagingMode(true);
-    if (!$quiet) {
-        echo "🔁 Staging mode: indices will be rebuilt as *_staging and switched into production on completion.\n";
+    if ($resume) {
+        // Resume pre-flight: staging indices ARE the persisted state of the
+        // interrupted run. No staging indices means there is nothing to
+        // continue; staging indices already holding their aliases means the
+        // rebuild completed (only the state file was left behind).
+        $existingStaging = $esClient->existingStagingIndices();
+        if (empty($existingStaging)) {
+            echo "No staging indices found for collection '{$config['COLLECTION_NAME']}' - there is no state to resume.\n";
+            echo "The interrupted --recreate run either never created staging indices or was already cleaned up.\n";
+            clearStagingState($statePath);
+            echo "Removed stale resume state: {$statePath}\n";
+            exit(1);
+        }
+        $pendingSwitches = $esClient->pendingStagingSwitches();
+        if (empty($pendingSwitches)) {
+            echo "Staging indices exist (" . implode(', ', $existingStaging) . ") but the production aliases already point at them.\n";
+            echo "The rebuild appears to have completed already - there is nothing to resume.\n";
+            clearStagingState($statePath);
+            echo "Removed stale resume state: {$statePath}\n";
+            exit(0);
+        }
+        echo "🔁 Resume: found staging indices (" . implode(', ', $existingStaging) . "); "
+            . count($pendingSwitches) . " alias switch(es) pending.\n";
+        echo "Sources already staged will be skipped; missing sources will be added, then the aliases will be switched.\n";
+    } else {
+        persistStagingState($statePath, [
+            'provider'        => $provider,
+            'source'          => $source,
+            'collection_name' => $config['COLLECTION_NAME'],
+            'split_indices'   => $config['SPLIT_INDICES'],
+            'started_at'      => date('c'),
+        ]);
+        if (!$quiet) {
+            echo "🔁 Staging mode: indices will be rebuilt as *_staging and switched into production on completion.\n";
+            echo "Resume state persisted to {$statePath} (use --resume if this run is interrupted).\n";
+        }
     }
 }
 
@@ -360,15 +494,23 @@ try {
     if ($stagingRun) {
         if ($noAliases) {
             fwrite(STDERR, "Warning: --no-aliases given - staging indices were built but NOT switched into production.\n");
-            fwrite(STDERR, "The production indices are unchanged. Re-run without --no-aliases to complete the switch.\n");
+            fwrite(STDERR, "The production indices are unchanged. The resume state was kept - run --resume\n");
+            fwrite(STDERR, "to complete the switch without rebuilding.\n");
         } elseif ($shutdownRequested) {
             fwrite(STDERR, "Shutdown requested - staging indices were built but NOT switched into production.\n");
-            fwrite(STDERR, "The production indices are unchanged. Re-run with --recreate to complete the rebuild.\n");
+            fwrite(STDERR, "The production indices are unchanged. Re-run with "
+                . ($resume ? '--resume' : '--recreate') . " to complete the rebuild.\n");
         } else {
             if (!$quiet) {
                 echo "Switching staging indices into production (atomic alias swap)...\n";
             }
             $esClient->switchStagingToProduction();
+            // The staging run is now fully complete: the interrupted run this
+            // state described (or the one just finished) cannot be resumed.
+            clearStagingState($statePath);
+            if (!$quiet) {
+                echo "Staging resume state cleared: {$statePath}\n";
+            }
         }
     } elseif (!$noAliases && !$config['importRaw']) {
         // Ensure production aliases exist after index creation (unless --no-aliases).
@@ -398,8 +540,10 @@ try {
         fwrite(STDERR, $e->getTraceAsString() . "\n");
     }
     if ($stagingRun) {
-        fwrite(STDERR, "Note: this was a staging (--recreate) run - the production indices are unchanged.\n");
-        fwrite(STDERR, "Staging indices may be left behind; re-run with --recreate to try again.\n");
+        fwrite(STDERR, "Note: this was a staging (" . ($resume ? '--resume' : '--recreate')
+            . ") run - the production indices are unchanged.\n");
+        fwrite(STDERR, "Staging indices may be left behind; re-run with "
+            . ($resume ? '--resume' : '--recreate') . " to try again.\n");
     }
     exit(1);
 }
@@ -421,6 +565,13 @@ Options:
                              indices are never wiped mid-run). Full-corpus only:
                              cannot be combined with --group-name, --source-id or
                              --max-documents
+  --resume                   Continue an interrupted --recreate run: add any sources
+                             missing from the *_staging indices, then switch the
+                             production aliases when done. Takes no options except
+                             --verbose: provider, source, collection name and
+                             split-indices are read from the state persisted when
+                             --recreate started. Exits when there is no staging
+                             state to resume
   --dryrun                   Dry run: show what would happen without indexing
   --dry-run                  Alias for --dryrun
   --verbose                  Verbose output
@@ -446,6 +597,7 @@ Options:
 Examples:
   php scripts/createindex.php --dryrun
   php scripts/createindex.php --recreate --verbose
+  php scripts/createindex.php --resume --verbose
   php scripts/createindex.php --verbose --max-documents 10
   php scripts/createindex.php --group-name=kauakukalahale --dryrun
   php scripts/createindex.php --aliases-only
