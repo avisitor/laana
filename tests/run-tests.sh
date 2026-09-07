@@ -14,6 +14,10 @@ REPORTS_DIR="$REPORT_DIR"
 TEXT_REPORT="$REPORT_DIR/test-report-$TIMESTAMP.txt"
 XML_REPORT="$REPORT_DIR/junit-$TIMESTAMP.xml"
 JSON_REPORT="$REPORT_DIR/test-report-$TIMESTAMP.json"
+SKIP_LOG="$REPORT_DIR/skip-messages-$TIMESTAMP.jsonl"
+# Skip-message sidecar: PHPUnit's JUnit output omits skip messages, so the
+# SkipLogExtension records them at runtime and junit_to_json.py merges them.
+export NOIIOLELO_SKIP_LOG="$SKIP_LOG"
 VIEW_DIR="https://noiiolelo.worldspot.org/tests/"
 PHPUNIT=$SERVER_DIR/vendor/bin/phpunit
 HEARTBEAT_SECONDS=20
@@ -319,6 +323,7 @@ run_tests() {
         python3 "$TEST_DIR/junit_to_json.py" \
             --xml "$XML_REPORT" \
             --json "$JSON_REPORT" \
+            --skip-log "$SKIP_LOG" \
             || echo "⚠️  Python3 not available for JSON conversion"
         verbose_log "✓ JUnit XML -> JSON conversion finished"
 
@@ -327,8 +332,8 @@ run_tests() {
             ln -s "$(basename "$JSON_REPORT")" "$REPORT_DIR/latest.json"
         fi
 
-        # Remove intermediate XML file
-        rm -f "$XML_REPORT"
+        # Remove intermediate XML file and skip-message sidecar
+        rm -f "$XML_REPORT" "$SKIP_LOG"
     else
         echo "⚠️  JUnit XML not generated - JSON report skipped"
     fi

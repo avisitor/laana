@@ -7,6 +7,9 @@
          failOnRisky="false"
          beStrictAboutOutputDuringTests="false"
          stderr="false">
+    <extensions>
+        <bootstrap class="Noiiolelo\Tests\SkipLogExtension"/>
+    </extensions>
     <testsuites>
         <testsuite name="Provider">
             <directory>tests/Provider</directory>

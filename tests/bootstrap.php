@@ -26,14 +26,27 @@ if (!getenv('NOIIOLELO_TEST_BASE_URL')) {
 }
 
 /**
- * Helper function to get test provider
+ * Helper function to get test provider.
+ *
+ * Checks provider availability first: if the provider's backend cannot be
+ * reached, the provider-specific test is skipped with a clear message
+ * (surfaced in tests/reports as "Provider X was not available") instead of
+ * erroring with a raw transport exception.
  */
 function getTestProvider(string $providerName = null)
 {
     if ($providerName !== null) {
         $_REQUEST['provider'] = $providerName;
     }
-    return getProvider($providerName);
+    try {
+        return getProvider($providerName);
+    } catch (\Noiiolelo\ProviderUnavailableException $e) {
+        $name = $providerName ?? $e->getProviderName();
+        $reason = $e->getPrevious()?->getMessage() ?? $e->getMessage();
+        \PHPUnit\Framework\Assert::markTestSkipped(
+            "Provider $name was not available: $reason"
+        );
+    }
 }
 
 /**

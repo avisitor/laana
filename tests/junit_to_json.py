@@ -196,7 +196,35 @@ def infer_skip_reason(file_path: Optional[str], line_str: Optional[str], test_na
     return f'Skipped at {file_path}:{line_number} (reason not captured in JUnit)'
 
 
-def build_summary(xml_report_path: str, summary_only: bool) -> dict:
+def load_skip_log(path: Optional[str]) -> dict:
+    """Load runtime skip messages recorded by SkipLogExtension.
+
+    PHPUnit's JUnit output omits skip messages entirely, so the JSON report
+    otherwise cannot say WHY a test was skipped. Returns {(class, method): message}.
+    """
+    if not path or not os.path.isfile(path):
+        return {}
+    entries = {}
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            entries[(rec.get('class', ''), rec.get('method', ''))] = rec.get('message', '')
+    return entries
+
+
+def base_test_name(name: Optional[str]) -> Optional[str]:
+    if not name:
+        return None
+    return re.split(r'\s+with data set', name, maxsplit=1)[0].strip()
+
+
+def build_summary(xml_report_path: str, summary_only: bool, skip_log_path: Optional[str] = None) -> dict:
     tree = ET.parse(xml_report_path)
     root = tree.getroot()
 
@@ -218,6 +246,7 @@ def build_summary(xml_report_path: str, summary_only: bool) -> dict:
     all_test_cases = []
     suite_names = []
     skipped_tests = []
+    skip_log = load_skip_log(skip_log_path)
 
     for testsuite in testsuites:
         suite_name = testsuite.get('name', 'Unknown')
@@ -266,6 +295,11 @@ def build_summary(xml_report_path: str, summary_only: bool) -> dict:
                 skip_message = skipped.get('message', '')
                 if not skip_message and skipped.text:
                     skip_message = skipped.text.strip()
+                if not skip_message:
+                    skip_message = skip_log.get(
+                        (case_info['class'], base_test_name(case_info['name'])),
+                        skip_log.get((case_info['class'], ''), '')
+                    )
                 if not skip_message:
                     skip_message = infer_skip_reason(
                         testcase.get('file'),
@@ -343,13 +377,14 @@ def main() -> int:
     parser.add_argument('--xml', required=True, help='Path to JUnit XML report')
     parser.add_argument('--json', required=True, help='Path to write JSON summary')
     parser.add_argument('--summary-only', action='store_true', help='Suppress console summary output')
+    parser.add_argument('--skip-log', default=None, help='JSONL of runtime skip messages from SkipLogExtension')
     args = parser.parse_args()
 
     if not os.path.isfile(args.xml):
         print('⚠️  JUnit XML not found', file=sys.stderr)
         return 1
 
-    summary = build_summary(args.xml, args.summary_only)
+    summary = build_summary(args.xml, args.summary_only, args.skip_log)
 
     with open(args.json, 'w') as f:
         json.dump(summary, f, indent=2)
