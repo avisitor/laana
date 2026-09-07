@@ -19,6 +19,7 @@ require_once __DIR__ . '/SourceIterator.php';
 use HawaiianSearch\ElasticsearchScrollIterator;
 use HawaiianSearch\SourceIterator;
 use HawaiianSearch\QueryBuilder;
+use Exception;
 
 class ElasticsearchClient {
     protected $client;
@@ -349,8 +350,11 @@ class ElasticsearchClient {
     
     public function getDocumentRaw(string $id, string $indexName = null): ?string
     {
-        $index = $indexName ?? $this->getIndexName();
-        $index = $this->getContentName( $index );
+        // Active name when no explicit base is given: the production alias
+        // outside a staging run, the staging concrete during one. Deriving
+        // the concrete name from the base here reads the pre-switch physical,
+        // which no longer exists after an atomic staging switch.
+        $index = $this->getContentName( $indexName );
         try {
             $response = $this->client->get([
                 'index' => $index,
@@ -358,8 +362,10 @@ class ElasticsearchClient {
             ])->asArray();
 
             return $response['_source']['html'] ?? null;
-        } catch (ClientResponseException $e) {
-            // Return null if document not found
+        } catch (\Throwable $e) {
+            // Return null if document or index not found. \Throwable so it
+            // holds for both providers' exception hierarchies (the OpenSearch
+            // client throws its own classes, not ClientResponseException).
             return null;
         }
     }
@@ -402,6 +408,7 @@ class ElasticsearchClient {
     public function setStagingMode(bool $staging): void
     {
         $this->stagingMode = $staging;
+        $this->aliasTargetCache = [];
     }
 
     public function isStagingMode(): bool
@@ -414,33 +421,77 @@ class ElasticsearchClient {
         return $this->stagingMode ? '_staging' : '';
     }
 
+    /** Cache of alias name => current physical target (see resolveAliasTarget()). */
+    private array $aliasTargetCache = [];
+
+    /**
+     * The physical index a production alias currently points at, or null when
+     * the alias does not exist (or is ambiguous). After an atomic staging
+     * switch the production physicals keep their *_staging names, so the
+     * current concrete name can only be answered by the alias itself.
+     */
+    protected function resolveAliasTarget(string $aliasName): ?string
+    {
+        if (array_key_exists($aliasName, $this->aliasTargetCache)) {
+            return $this->aliasTargetCache[$aliasName];
+        }
+        $holders = $this->aliasHolders($aliasName);
+        $target = (count($holders) === 1) ? (string)$holders[0] : null;
+        $this->aliasTargetCache[$aliasName] = $target;
+        return $target;
+    }
+
     /**
      * Concrete (physical) index names, staging-aware: during a staging run
      * these resolve to the *_staging variants that the rebuild writes into.
+     * Outside a staging run they resolve to the physical index the production
+     * alias currently points at — after an atomic staging switch that is the
+     * *_staging-named index, not the legacy plain name — falling back to the
+     * legacy plain name when no alias exists yet (fresh install).
      */
     public function getDocumentsConcreteName(): string
     {
-        return $this->getIndexName() . '_documents_new' . $this->stagingSuffix();
+        if ($this->stagingMode) {
+            return $this->getIndexName() . '_documents_new' . $this->stagingSuffix();
+        }
+        return $this->resolveAliasTarget($this->getDocumentsAlias())
+            ?? $this->getIndexName() . '_documents_new';
     }
 
     public function getSentencesConcreteName(): string
     {
-        return $this->getIndexName() . '_sentences_new' . $this->stagingSuffix();
+        if ($this->stagingMode) {
+            return $this->getIndexName() . '_sentences_new' . $this->stagingSuffix();
+        }
+        return $this->resolveAliasTarget($this->getSentencesAlias())
+            ?? $this->getIndexName() . '_sentences_new';
     }
 
     public function getContentConcreteName(): string
     {
-        return $this->getIndexName() . '-content' . $this->stagingSuffix();
+        if ($this->stagingMode) {
+            return $this->getIndexName() . '-content' . $this->stagingSuffix();
+        }
+        return $this->resolveAliasTarget($this->getContentAlias())
+            ?? $this->getIndexName() . '-content';
     }
 
     public function getSourceMetadataConcreteName(): string
     {
-        return $this->getIndexName() . '-source-metadata' . $this->stagingSuffix();
+        if ($this->stagingMode) {
+            return $this->getIndexName() . '-source-metadata' . $this->stagingSuffix();
+        }
+        return $this->resolveAliasTarget($this->getSourceMetadataAlias())
+            ?? $this->getIndexName() . '-source-metadata';
     }
 
     public function getMetadataConcreteName(): string
     {
-        return $this->getIndexName() . '-metadata' . $this->stagingSuffix();
+        if ($this->stagingMode) {
+            return $this->getIndexName() . '-metadata' . $this->stagingSuffix();
+        }
+        return $this->resolveAliasTarget($this->getMetadataAlias())
+            ?? $this->getIndexName() . '-metadata';
     }
 
     public function aliasExists(string $aliasName): bool
@@ -474,6 +525,7 @@ class ElasticsearchClient {
         }
         $actions[] = ['add' => ['index' => $indexName, 'alias' => $aliasName]];
         $this->updateAliasesActions($actions);
+        $this->aliasTargetCache[$aliasName] = $indexName;
         $this->print("Alias '{$aliasName}' now points at '{$indexName}'");
     }
 
@@ -725,19 +777,78 @@ class ElasticsearchClient {
      * must be in staging mode; it is turned off before returning so subsequent
      * operations use the production aliases again.
      */
-    public function switchStagingToProduction(): void
+    /**
+     * The alias/staging/old-production triplets a --recreate run switches over
+     * on completion. The concrete *_staging names resolve correctly only while
+     * staging mode is on (the *_staging suffix comes from stagingMode), so
+     * callers must have set setStagingMode(true) first.
+     */
+    private function stagingPairs(): array
     {
-        if (!$this->stagingMode) {
-            throw new \RuntimeException('switchStagingToProduction() requires staging mode (setStagingMode(true)).');
-        }
-
-        $pairs = [
+        return [
             ['alias' => $this->getDocumentsAlias(),      'new' => $this->getDocumentsConcreteName(),      'old' => $this->getIndexName() . '_documents_new'],
             ['alias' => $this->getSentencesAlias(),      'new' => $this->getSentencesConcreteName(),      'old' => $this->getIndexName() . '_sentences_new'],
             ['alias' => $this->getContentAlias(),        'new' => $this->getContentConcreteName(),        'old' => $this->getIndexName() . '-content'],
             ['alias' => $this->getSourceMetadataAlias(), 'new' => $this->getSourceMetadataConcreteName(), 'old' => $this->getIndexName() . '-source-metadata'],
             ['alias' => $this->getMetadataAlias(),       'new' => $this->getMetadataConcreteName(),       'old' => $this->getIndexName() . '-metadata'],
         ];
+    }
+
+    /**
+     * Staging indices that exist but are not yet serving their production
+     * alias — the signature of an interrupted (or built-but-unswitched)
+     * --recreate run. Empty means there is no staging state to resume.
+     *
+     * Requires staging mode, like switchStagingToProduction(), because the
+     * concrete *_staging index names are staging-mode-dependent.
+     */
+    public function pendingStagingSwitches(): array
+    {
+        if (!$this->stagingMode) {
+            throw new \RuntimeException('pendingStagingSwitches() requires staging mode (setStagingMode(true)).');
+        }
+
+        $pending = [];
+        foreach ($this->stagingPairs() as $pair) {
+            if ($this->indexExists($pair['new'])
+                && !in_array($pair['new'], $this->aliasHolders($pair['alias']), true)) {
+                $pending[] = $pair;
+            }
+        }
+        return $pending;
+    }
+
+    /**
+     * Names of the *_staging indices that currently exist for this collection
+     * (deduplicated, in staging-pair order). Empty when there is no staging
+     * state. Used by --resume to decide whether an interrupted --recreate run
+     * left anything to continue.
+     *
+     * Requires staging mode, like pendingStagingSwitches(), because the
+     * concrete *_staging index names are staging-mode-dependent.
+     */
+    public function existingStagingIndices(): array
+    {
+        if (!$this->stagingMode) {
+            throw new \RuntimeException('existingStagingIndices() requires staging mode (setStagingMode(true)).');
+        }
+
+        $existing = [];
+        foreach ($this->stagingPairs() as $pair) {
+            if ($this->indexExists($pair['new']) && !in_array($pair['new'], $existing, true)) {
+                $existing[] = $pair['new'];
+            }
+        }
+        return $existing;
+    }
+
+    public function switchStagingToProduction(): void
+    {
+        if (!$this->stagingMode) {
+            throw new \RuntimeException('switchStagingToProduction() requires staging mode (setStagingMode(true)).');
+        }
+
+        $pairs = $this->stagingPairs();
 
         // Make every staged document searchable BEFORE the aliases move.
         // Scheduled refreshes can lag minutes behind during heavy indexing
@@ -1244,6 +1355,100 @@ class ElasticsearchClient {
         } catch (\Exception $e) {
             $stats['errors'][] = $e->getMessage();
             $this->print("Error deleting sentences with doc_id '{$docId}': " . $e->getMessage());
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Invalidate a source's indexed content so the save flow re-fetches it
+     * from its (possibly changed) link — the Elasticsearch equivalent of
+     * MySQL's removecontents()/removesentences() pair. Deletes the source's
+     * raw content (content index), document (documents index) and sentences
+     * (sentences index). Per-sentence metadata rows in the hawaiian-metadata
+     * index are not touched here: reprocessing upserts them, matching the
+     * existing --force reprocess behavior.
+     *
+     * @param string $sourceID The source ID to clear
+     * @return array Statistics about the deletions (deleted counts, errors)
+     */
+    public function deleteSourceContent(string $sourceID): array {
+        $stats = [
+            'content' => 0,
+            'documents' => 0,
+            'sentences' => 0,
+            'errors' => []
+        ];
+
+        // Raw content lives in the content index with a sourceid field
+        // (see indexRaw()).
+        $contentIndex = $this->getContentName();
+        if ($this->indexExists($contentIndex)) {
+            try {
+                $response = $this->client->deleteByQuery([
+                    'index' => $contentIndex,
+                    'body' => [
+                        'query' => [
+                            'term' => [
+                                'sourceid' => $sourceID
+                            ]
+                        ]
+                    ],
+                    'refresh' => true  // Force immediate refresh
+                ]);
+                $stats['content'] = $response['deleted'] ?? 0;
+                $this->print("Deleted {$stats['content']} content docs with sourceid '{$sourceID}' from {$contentIndex}");
+            } catch (\Exception $e) {
+                $stats['errors'][] = $e->getMessage();
+                $this->print("Error deleting content for sourceid '{$sourceID}': " . $e->getMessage());
+            }
+        }
+
+        // Documents index: the per-source document carries a sourceid field.
+        $documentsIndex = $this->getDocumentsIndexName();
+        if ($this->indexExists($documentsIndex)) {
+            try {
+                $response = $this->client->deleteByQuery([
+                    'index' => $documentsIndex,
+                    'body' => [
+                        'query' => [
+                            'term' => [
+                                'sourceid' => $sourceID
+                            ]
+                        ]
+                    ],
+                    'refresh' => true  // Force immediate refresh
+                ]);
+                $stats['documents'] = $response['deleted'] ?? 0;
+                $this->print("Deleted {$stats['documents']} documents with sourceid '{$sourceID}' from {$documentsIndex}");
+            } catch (\Exception $e) {
+                $stats['errors'][] = $e->getMessage();
+                $this->print("Error deleting documents for sourceid '{$sourceID}': " . $e->getMessage());
+            }
+        }
+
+        // Sentences index: sentence docs carry a doc_id field (the source id)
+        // — same key deleteByDocId() uses.
+        $sentencesIndex = $this->getSentencesIndexName();
+        if ($this->indexExists($sentencesIndex)) {
+            try {
+                $response = $this->client->deleteByQuery([
+                    'index' => $sentencesIndex,
+                    'body' => [
+                        'query' => [
+                            'term' => [
+                                'doc_id' => $sourceID
+                            ]
+                        ]
+                    ],
+                    'refresh' => true  // Force immediate refresh
+                ]);
+                $stats['sentences'] = $response['deleted'] ?? 0;
+                $this->print("Deleted {$stats['sentences']} sentences with doc_id '{$sourceID}' from {$sentencesIndex}");
+            } catch (\Exception $e) {
+                $stats['errors'][] = $e->getMessage();
+                $this->print("Error deleting sentences for doc_id '{$sourceID}': " . $e->getMessage());
+            }
         }
 
         return $stats;
@@ -2122,10 +2327,10 @@ class ElasticsearchClient {
         ];
     }
 
-    public function getLatestSourceDates( $indexName = null ): array
+    public function getLatestSourceDates(): array
     {
-        $index = $indexName ?? $this->getIndexName();
-        $index = $this->getDocumentsIndexName( $index );
+        // Same alias-following rule as getTotalSourceGroupCounts().
+        $index = $this->getDocumentsIndexName();
         $params = [
             'index' => $index,
             'body' => [
@@ -2173,10 +2378,13 @@ class ElasticsearchClient {
         }
     }
 
-    public function getTotalSourceGroupCounts( $indexName = null ): array
+    public function getTotalSourceGroupCounts(): array
     {
-        $index = $indexName ?? $this->getIndexName();
-        $index = $this->getDocumentsIndexName( $index );
+        // Runtime reads follow the official alias (staging concrete during a
+        // staging run): deriving a concrete *_new name from the base reads
+        // the pre-switch physical index, which misses data after an atomic
+        // staging switch and does not exist on some clusters at all.
+        $index = $this->getDocumentsIndexName();
         $params = [
             'index' => $index,
             'body' => [
@@ -2206,10 +2414,10 @@ class ElasticsearchClient {
         }
     }
 
-    public function getSourceGroupCounts( $indexName = null ): array
+    public function getSourceGroupCounts(): array
     {
-        $index = $indexName ?? $this->getIndexName();
-        $index = $this->getDocumentsIndexName( $index );
+        // Same alias-following rule as getTotalSourceGroupCounts().
+        $index = $this->getDocumentsIndexName();
         $params = [
             'index' => $index,
             'body' => [
@@ -3190,6 +3398,51 @@ private function formatResults(array $response, string $mode,
             return null;
         } catch (\Exception $e) {
             $this->debuglog("Error getting source by link: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get source metadata by sourcename
+     *
+     * Second level of the save-flow dedup (MySQL parity with
+     * Laana::getSourceByName): when a scraped link is unknown, the
+     * sourcename may still belong to an existing source whose link
+     * changed. Results are sorted by sourceid ascending so that when
+     * duplicate metadata documents exist the oldest (original) id wins.
+     *
+     * @param string $sourcename The sourcename to retrieve
+     * @return array|null The source metadata or null if not found
+     */
+    public function getSourceByName(string $sourcename): ?array
+    {
+        try {
+            $params = [
+                'index' => $this->getSourceMetadataName(),
+                'body' => [
+                    'query' => [
+                        'term' => [
+                            'sourcename' => $sourcename
+                        ]
+                    ],
+                    'sort' => [
+                        ['sourceid' => ['order' => 'asc']]
+                    ],
+                    'size' => 1
+                ]
+            ];
+
+            $response = $this->client->search($params);
+            $data = $response->asArray();
+
+            $hits = $data['hits']['hits'] ?? [];
+            if (!empty($hits)) {
+                return $hits[0]['_source'];
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            $this->debuglog("Error getting source by name: " . $e->getMessage());
             return null;
         }
     }
