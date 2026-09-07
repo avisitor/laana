@@ -33,7 +33,7 @@ class MySQLProvider extends AbstractSearchProvider implements SearchProviderInte
     // Direct pass-through methods
     public function getLatestSourceDates() { return $this->laana->getLatestSourceDates(); }
     public function getSources($groupname = '', $properties = [], $sortBy = '', $sortDir = 'asc') { 
-        $sources = $this->laana->getSources($groupname);
+        $sources = $this->laana->getSources($groupname, $properties);
 
         $sources = filterSourcesByBlockedGroups($sources);
         
