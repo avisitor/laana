@@ -10,10 +10,15 @@ if ($providerName === null) {
 }
 
 require_once __DIR__ . '/../lib/provider.php';
+require_once __DIR__ . '/../lib/web_error.php';
 if (!isValidProvider($providerName)) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid provider']);
     exit;
 }
-$modes = getProvider($providerName)->getAvailableSearchModes();
+try {
+    $modes = getProvider($providerName)->getAvailableSearchModes();
+} catch (\Throwable $e) {
+    noiiolelo_render_error('json', $e);  // exits with a clear 503/500 JSON error
+}
 echo json_encode($modes) . "\n";

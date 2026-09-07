@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../lib/provider.php';
+require_once __DIR__ . '/../lib/web_error.php';
 require_once __DIR__ . '/../lib/utils.php';
 require_once __DIR__ . '/../lib/grammar_patterns.php';
 
@@ -18,7 +19,11 @@ if (!$pattern) {
 }
 
 // Get the provider
-$provider = $providerName ? getProvider($providerName) : getProvider();
+try {
+    $provider = $providerName ? getProvider($providerName) : getProvider();
+} catch (\Throwable $e) {
+    noiiolelo_render_error('fragment', $e);  // error box, then exit
+}
 
 // Get regex for the pattern
 $patterns = getGrammarPatterns();

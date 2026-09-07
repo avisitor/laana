@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../lib/provider.php';
+require_once __DIR__ . '/../lib/web_error.php';
 require_once __DIR__ . '/../lib/utils.php';
 
 // Allow invocation over HTTP as well as from the command line
@@ -172,7 +173,11 @@ if( $params ) {
         $valid = implode(', ', array_keys( getKnownProviders() ) );
         echo "Invalid provider name; must be one of $valid\n";
     } else {
-        $provider = getProvider( $providerName );
+        try {
+            $provider = getProvider( $providerName );
+        } catch (\Throwable $e) {
+            noiiolelo_render_error('fragment', $e);  // error box / CLI stderr, then exit
+        }
         if( $_REQUEST && sizeof($_REQUEST) > 0 ) {
             $provider->debuglog( $_REQUEST, '_REQUEST' );
         }

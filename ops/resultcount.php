@@ -1,9 +1,14 @@
 <?php
 header('Content-type: text/plain');
 require_once __DIR__ . '/../lib/provider.php';
+require_once __DIR__ . '/../lib/web_error.php';
 require_once __DIR__ . '/../lib/utils.php';
 
-$provider = getProvider();
+try {
+    $provider = getProvider();
+} catch (\Throwable $e) {
+    noiiolelo_render_error('text', $e);  // plain-text error, then exit
+}
 
 $word = isset($_GET['search']) ? $_GET['search'] : "";
 $pattern = isset($_GET['searchpattern']) ? $_GET['searchpattern'] : "any";

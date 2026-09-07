@@ -2,6 +2,7 @@
 // REST API for sources
 //require_once __DIR__ . '/db/funcs.php';
 require_once __DIR__ . '/lib/provider.php';
+require_once __DIR__ . '/lib/web_error.php';
 
 header('Content-Type: application/json');
 
@@ -26,7 +27,11 @@ $providerName = isset($_REQUEST['provider']) ? $_REQUEST['provider'] : 'MySQL';
 if (!isValidProvider($providerName)) {
     error_response('Invalid provider. Must be one of: ' . implode(', ', array_keys(getKnownProviders())), 400);
 }
-$provider = getProvider($providerName);
+try {
+    $provider = getProvider($providerName);
+} catch (\Throwable $e) {
+    noiiolelo_render_error('json', $e);  // exits with a clear 503/500 JSON error
+}
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Improved path parsing to handle rewrites and subdirectories

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../lib/provider.php';
+require_once __DIR__ . '/../lib/web_error.php';
 
 // Get parameters
 $page = intval($_GET['page'] ?? 1);
@@ -9,7 +10,11 @@ $providerName = $_GET['provider'] ?? '';
 $sortBy = $_GET['sort'] ?? '';
 $sortDir = $_GET['dir'] ?? 'asc';
 
-$provider = getProvider($providerName);
+try {
+    $provider = getProvider($providerName);
+} catch (\Throwable $e) {
+    noiiolelo_render_error('fragment', $e);  // error box, then exit
+}
 
 // Get page size from provider
 $pageSize = 50; // Default page size for sources

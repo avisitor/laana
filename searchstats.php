@@ -5,6 +5,7 @@ header("Pragma: no-cache");
 ?>
 <?php
 require_once __DIR__ . '/lib/provider.php';
+require_once __DIR__ . '/lib/web_error.php';
 function changeTimeZone( $date ) {
     if (!$date) {
         return 'N/A';
@@ -15,7 +16,11 @@ function changeTimeZone( $date ) {
     $date = $datetime->format('Y-m-d H:i:s');
     return $date;
 }
-$provider = getProvider();
+try {
+    $provider = getProvider();
+} catch (\Throwable $e) {
+    noiiolelo_render_error('page', $e);  // exits with a clear 503/500 error page
+}
 $providerName = $provider->getName();
 $rows = $provider->getSearchStats();
 

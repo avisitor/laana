@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../lib/provider.php';
+require_once __DIR__ . '/../lib/web_error.php';
 require_once __DIR__ . '/../lib/utils.php';
 
 $search = $_POST['search'];
@@ -10,7 +11,11 @@ $elapsed = $_POST['elapsed'];
 $providerName = $_POST['provider'] ?? null;
 
 if( $search && $searchpattern && isset($count) ) {
-    $provider = getProvider($providerName);
+    try {
+        $provider = getProvider($providerName);
+    } catch (\Throwable $e) {
+        noiiolelo_render_error('text', $e);  // plain-text error, then exit
+    }
     $provider->logQuery( [
         'searchterm' => $search,
         'pattern' => $searchpattern,

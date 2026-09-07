@@ -1,8 +1,13 @@
 <?php
 require_once __DIR__ . '/lib/provider.php';
+require_once __DIR__ . '/lib/web_error.php';
 require_once __DIR__ . '/lib/utils.php';
 
-$provider = getProvider();
+try {
+    $provider = getProvider();
+} catch (\Throwable $e) {
+    noiiolelo_render_error('page', $e);  // exits with a clear 503/500 error page
+}
 $sourceID = $_GET['id'] ?: '';
 $type = isset($_GET['simplified']) ? 'text' : 'html';
 $text = '';

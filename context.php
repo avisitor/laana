@@ -22,13 +22,20 @@
 
         <?php
         require_once __DIR__ . '/lib/provider.php';
+        require_once __DIR__ . '/lib/web_error.php';
         require_once __DIR__ . '/lib/utils.php';
 
         function debugFile( $filename, $text ) {
             //file_put_contents($ilename, $text);
         }
         
-        $provider = getProvider();
+        try {
+            $provider = getProvider();
+        } catch (\Throwable $e) {
+            // Page head has already been sent; the renderer appends a
+            // visible error box instead of a blank context view.
+            noiiolelo_render_error('fragment', $e);
+        }
         $sentenceID = $_GET['id'] ?: '';
         $parts = explode( "_", $sentenceID );
         if( sizeof($parts) > 1 ) {
