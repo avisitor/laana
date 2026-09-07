@@ -106,6 +106,7 @@ class APIEndpointTest extends BaseTestCase
     #[DataProvider('providerNamesProvider')]
     public function testApiSourcesWithProvider(string $providerName): void
     {
+        $this->skipIfProviderUnavailable($providerName);
         $output = $this->executeApiRequest('sources', [
             'provider' => $providerName
         ]);
@@ -126,6 +127,7 @@ class APIEndpointTest extends BaseTestCase
         if (strtolower($providerName) === 'elasticsearch' && !$this->isValidProvider('Elasticsearch')) {
             $this->markTestSkipped('Elasticsearch provider not in valid provider list');
         }
+        $this->skipIfProviderUnavailable($providerName);
         $searchPattern = ($providerName === 'Elasticsearch') ? 'match' : 'exact';
         
         $output = $this->executeOpsRequest('resultcount.php', [
@@ -145,6 +147,7 @@ class APIEndpointTest extends BaseTestCase
         if (!$this->isValidProvider('Elasticsearch')) {
             $this->markTestSkipped('Elasticsearch provider not in valid provider list');
         }
+        $this->skipIfProviderUnavailable('Elasticsearch');
 
         $output = $this->executeOpsRequest('resultcount.php', [
             'search' => 'aloha',

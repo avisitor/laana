@@ -39,6 +39,11 @@ class RemoteDocumentCatalogingTest extends BaseTestCase
             throw new \RuntimeException('DB_USER must be set in .env for cataloging tests');
         }
 
+        require_once __DIR__ . '/../../lib/provider.php';
+        if (!isProviderAvailable('MySQL')) {
+            \PHPUnit\Framework\Assert::markTestSkipped('Provider MySQL was not available');
+        }
+
         self::$testDbName = 'noiiolelo_test_' . uniqid();
         self::$adminPdo = \Common\DB\DBBase::createConnection([
             'dsn' => "mysql:host={$host};port={$port};charset=utf8mb4",

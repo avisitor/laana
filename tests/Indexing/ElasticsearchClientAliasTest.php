@@ -16,6 +16,7 @@ class ElasticsearchClientAliasTest extends BaseTestCase
         if (!$host || !$port) {
             $this->markTestSkipped('ES_HOST and ES_PORT must be set for ElasticsearchClient tests');
         }
+        $this->skipIfProviderUnavailable('Elasticsearch');
 
         $this->esClient = new ElasticsearchClient([
             'hawaiian_documents_index' => 'hawaiian_documents_new',
@@ -78,12 +79,28 @@ class ElasticsearchClientAliasTest extends BaseTestCase
 
             // Concrete getters expose the same staging names during the run...
             $this->assertSame('hawaiian_documents_new_staging', $this->esClient->getDocumentsConcreteName());
-            // ...and the production physical names outside staging mode.
+            // ...and outside staging mode they must resolve to a physical
+            // index that actually exists. After an atomic staging switch the
+            // production physicals keep their *_staging names (the aliases
+            // were repointed, not renamed), so the legacy plain names no
+            // longer exist and must not be returned.
             $this->esClient->setStagingMode(false);
-            $this->assertSame('hawaiian_documents_new', $this->esClient->getDocumentsConcreteName());
-            $this->assertSame('hawaiian-content', $this->esClient->getContentConcreteName());
-            $this->assertSame('hawaiian-source-metadata', $this->esClient->getSourceMetadataConcreteName());
-            $this->assertSame('hawaiian-metadata', $this->esClient->getMetadataConcreteName());
+            $this->assertTrue(
+                $this->esClient->indexExists($this->esClient->getDocumentsConcreteName()),
+                'getDocumentsConcreteName() must name an existing physical index'
+            );
+            $this->assertTrue(
+                $this->esClient->indexExists($this->esClient->getContentConcreteName()),
+                'getContentConcreteName() must name an existing physical index'
+            );
+            $this->assertTrue(
+                $this->esClient->indexExists($this->esClient->getSourceMetadataConcreteName()),
+                'getSourceMetadataConcreteName() must name an existing physical index'
+            );
+            $this->assertTrue(
+                $this->esClient->indexExists($this->esClient->getMetadataConcreteName()),
+                'getMetadataConcreteName() must name an existing physical index'
+            );
         } finally {
             $this->esClient->setStagingMode(false);
         }

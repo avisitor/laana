@@ -17,6 +17,7 @@ class PgSchema1024Test extends BaseTestCase
         if (!getenv('PG_HOST')) {
             $this->markTestSkipped('No PG_HOST');
         }
+        $this->skipIfProviderUnavailable('Postgres');
 
         $pg = new \PostgresLaana();
 

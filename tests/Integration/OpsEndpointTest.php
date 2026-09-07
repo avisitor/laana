@@ -129,6 +129,7 @@ class OpsEndpointTest extends BaseTestCase
     #[DataProvider('providerNamesProvider')]
     public function testResultCountCommandLine(string $providerName): void
     {
+        $this->skipIfProviderUnavailable($providerName);
         $pattern = ($providerName === 'Elasticsearch') ? 'match' : 'exact';
         
         $output = $this->executeEndpoint('ops/resultcount.php', [
@@ -146,6 +147,7 @@ class OpsEndpointTest extends BaseTestCase
     #[DataProvider('providerNamesProvider')]
     public function testMultipleConsecutiveRequests(string $providerName): void
     {
+        $this->skipIfProviderUnavailable($providerName);
         $pattern = ($providerName === 'Elasticsearch') ? 'match' : 'exact';
         
         $count1 = intval(trim($this->executeEndpoint('ops/resultcount.php', [

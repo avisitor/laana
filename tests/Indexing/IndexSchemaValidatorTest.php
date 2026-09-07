@@ -17,6 +17,7 @@ class IndexSchemaValidatorTest extends BaseTestCase
         if (!$host || !$port) {
             $this->markTestSkipped('ES_HOST and ES_PORT must be set for validator tests');
         }
+        $this->skipIfProviderUnavailable('Elasticsearch');
 
         $this->esClient = new ElasticsearchClient([
             'hawaiian_documents_index' => 'hawaiian_documents_new',

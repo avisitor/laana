@@ -20,6 +20,8 @@ class TriggerTest extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->skipIfProviderUnavailable('MySQL');
+        $this->skipIfProviderUnavailable('Postgres');
         $this->mysql = new Laana();
         $this->postgres = new PostgresLaana();
     }

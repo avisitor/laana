@@ -12,6 +12,8 @@ class PostgresSaveManagerTest extends BaseTestCase
         if (!getenv('DB_HOST') || !getenv('PG_HOST') || !getenv('PG_DATABASE')) {
             $this->markTestSkipped('DB_HOST, PG_HOST and PG_DATABASE must be set for PostgresSaveManager tests');
         }
+        $this->skipIfProviderUnavailable('Postgres');
+        $this->skipIfProviderUnavailable('MySQL');
     }
 
     /**

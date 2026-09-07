@@ -12,6 +12,7 @@ class OpenSearchSaveManagerTest extends BaseTestCase
         if (!getenv('OS_HOST')) {
             $this->markTestSkipped('OS_HOST must be set for OpenSearchSaveManager tests');
         }
+        $this->skipIfProviderUnavailable('OpenSearch');
         $mgr = new \Noiiolelo\Providers\OpenSearch\OpenSearchSaveManager(['verbose' => false]);
         $client = $mgr->getClient();
         $this->assertInstanceOf(OpenSearchClient::class, $client);
@@ -30,6 +31,7 @@ class OpenSearchSaveManagerTest extends BaseTestCase
         if (!getenv('OS_HOST')) {
             $this->markTestSkipped('OS_HOST must be set for OpenSearchSaveManager tests');
         }
+        $this->skipIfProviderUnavailable('OpenSearch');
         $mgr = new \Noiiolelo\Providers\OpenSearch\OpenSearchSaveManager(['verbose' => false]);
         $sid = $this->indexedSourceId($mgr);
         if (!$sid) {
@@ -60,6 +62,7 @@ class OpenSearchSaveManagerTest extends BaseTestCase
         if (!getenv('OS_HOST')) {
             $this->markTestSkipped('OS_HOST must be set for OpenSearchSaveManager tests');
         }
+        $this->skipIfProviderUnavailable('OpenSearch');
         $mgr = new \Noiiolelo\Providers\OpenSearch\OpenSearchSaveManager(['verbose' => false]);
         // The manager echoes the MySQL-parity wording "Error: Source X not
         // found"; capture it so tests/junit_to_json.py's output heuristic
