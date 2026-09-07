@@ -885,11 +885,18 @@ class Laana extends DB {
             'sources' => 0
         ];
         
-        // Count how many records will be affected (for statistics)
+        // Count how many records will be affected (for statistics). Native
+        // prepares (ATTR_EMULATE_PREPARES => false) reject a named
+        // placeholder used more than once, so each subquery gets its own.
         $sql = "SELECT 
-                    (SELECT COUNT(*) FROM sentences WHERE sourceid IN (SELECT sourceid FROM sources WHERE groupname = :groupname)) as sentence_count,
-                    (SELECT COUNT(*) FROM contents WHERE sourceid IN (SELECT sourceid FROM sources WHERE groupname = :groupname)) as content_count,
-                    (SELECT COUNT(*) FROM sources WHERE groupname = :groupname) as source_count";
+                    (SELECT COUNT(*) FROM sentences WHERE sourceid IN (SELECT sourceid FROM sources WHERE groupname = :groupname_s)) as sentence_count,
+                    (SELECT COUNT(*) FROM contents WHERE sourceid IN (SELECT sourceid FROM sources WHERE groupname = :groupname_c)) as content_count,
+                    (SELECT COUNT(*) FROM sources WHERE groupname = :groupname_src) as source_count";
+        $values = [
+            'groupname_s' => $groupname,
+            'groupname_c' => $groupname,
+            'groupname_src' => $groupname,
+        ];
         $row = $this->getOneDBRow($sql, $values);
         
         if ($row['source_count'] == 0) {
@@ -897,7 +904,7 @@ class Laana extends DB {
         }
         
         // Delete sentences using subquery
-        $sql = "DELETE FROM sentences WHERE sourceid IN (SELECT sourceid FROM sources . WHERE groupname = :groupname)";
+        $sql = "DELETE FROM sentences WHERE sourceid IN (SELECT sourceid FROM sources WHERE groupname = :groupname)";
         $this->executePrepared($sql, $values);
         $stats['sentences'] = $row['sentence_count'];
         

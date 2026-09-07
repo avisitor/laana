@@ -688,6 +688,26 @@ class MySQLSaveManager {
         return $this->buildSummary($parserName, $i, $this->updates, $this->sentenceCount);
     }
 
+    /**
+     * Resolve the parser key for a source from its registered groupname and
+     * record it in the run options, so a --sourceid run without --parser
+     * works (ported from scripts/savedocument.php's web-API lookup; this
+     * reads the selected backend instead). Returns the groupname, or null
+     * when the source is unknown or has no groupname.
+     */
+    public function resolveParserForSource($sourceid): ?string {
+        $source = $this->laana->getSource($sourceid);
+        $groupname = $source['groupname'] ?? null;
+        if (!$groupname) {
+            return null;
+        }
+        $this->options['parserkey'] = $groupname;
+        if (!$this->parser) {
+            $this->parser = $this->getParser($groupname);
+        }
+        return $groupname;
+    }
+
     public function deleteByGroupname($groupname) {
         $this->funcName = "deleteByGroupname";
         $this->log("Deleting all records for groupname: $groupname");

@@ -3,6 +3,11 @@ namespace Noiiolelo\Providers\Elasticsearch;
 
 use HawaiianSearch\ElasticsearchClient;
 use Noiiolelo\GrammarScanner;
+// This file is namespaced: without this import every bare
+// `catch (Exception $e)` below resolves to the nonexistent
+// Noiiolelo\Providers\Elasticsearch\Exception and matches nothing,
+// letting real errors escape the save flow's error handling.
+use Exception;
 
 /**
  * ElasticsearchSaveManager - Save documents to Elasticsearch instead of MySQL
@@ -38,6 +43,13 @@ class ElasticsearchSaveManager {
     private $parser = null;
     protected $logName = "ElasticsearchSaveManager";
     protected $funcName = "";
+    /**
+     * Within-run dedup map (MySQL parity): sourcename -> link for sources
+     * already processed in this run. The first occurrence of a sourcename
+     * wins; later scraped documents with the same sourcename are skipped
+     * (MySQLSaveManager::processOneDocument's $processed check).
+     */
+    protected $processed = [];
 
     public function __construct($options = []) {
         $this->funcName = "__construct";
@@ -660,6 +672,60 @@ class ElasticsearchSaveManager {
     /**
      * Process documents from a parser's document list
      */
+    /**
+     * Resolve an existing source for a scraped document — the two-level
+     * dedup from MySQLSaveManager::processOneDocument, ported so the
+     * Elasticsearch/OpenSearch save flow behaves the same:
+     *
+     *   1. exact link lookup (getSourceByLink);
+     *   2. when the link is unknown, sourcename lookup (getSourceByName):
+     *      the same source whose link changed (e.g. staradvertiser.com
+     *      columns moving between /editorial/ and /hawaii-news/ paths).
+     *      The stored link is updated and the source's indexed content is
+     *      invalidated so saveContents() re-fetches from the new link (the
+     *      equivalent of MySQL's updateSourceByID()/removecontents()/
+     *      removesentences()).
+     *
+     * Without the second level, every re-scraped article whose URL changed
+     * was added as a brand-new sourceid, duplicating the source.
+     *
+     * @param string $sourceName The scraped sourcename
+     * @param string $link The scraped link
+     * @return array|null The existing source record (with 'sourceid'), or
+     *                     null when the source is genuinely new
+     */
+    public function resolveExistingSource(string $sourceName, string $link): ?array {
+        $existing = $this->client->getSourceByLink($link);
+        if ($existing && !empty($existing['sourceid'])) {
+            return $existing;
+        }
+
+        // Double-check if it is an updated link for a known sourcename.
+        $byName = $this->client->getSourceByName($sourceName);
+        if (!$byName || empty($byName['sourceid'])) {
+            $this->log("No sourceid registered for $link and no source named $sourceName");
+            return null;
+        }
+
+        $oldLink = (string)($byName['link'] ?? '');
+        $byName['link'] = $link;
+        $this->outputLine("New link for source $sourceName" . ($oldLink !== '' ? " (was: $oldLink)" : ""));
+        $this->client->saveSourceMetadata([$byName]);
+        // Make the updated link searchable immediately: scheduled refreshes
+        // lag minutes behind, and a later lookup in this same run would
+        // otherwise still miss the new link and mint a duplicate sourceid.
+        try {
+            $this->client->refresh($this->client->getSourceMetadataName());
+        } catch (Exception $e) {
+            $this->log("Warning: could not refresh source-metadata after link update: " . $e->getMessage());
+        }
+        // Contents may have changed; drop the indexed content so
+        // saveContents() re-fetches from the new link.
+        $this->client->deleteSourceContent((string)$byName['sourceid']);
+        $this->log("Updated link for source $sourceName ($oldLink -> $link) and invalidated its content");
+        return $byName;
+    }
+
     public function getAllDocuments() {
         $this->funcName = "getAllDocuments";
         $this->log($this->options, "options");
@@ -749,10 +815,21 @@ class ElasticsearchSaveManager {
             }
             
             $source['link'] = $link;
-            
-            // Check if source already exists by link
+
+            // Within-run dedup (MySQL parity): the first occurrence of a
+            // sourcename in this run wins; later documents with the same
+            // sourcename are skipped.
+            if (isset($this->processed[$sourceName])) {
+                $this->outputLine("Skipping already processed $sourceName $link (sticking with {$this->processed[$sourceName]})");
+                $this->log("Skipping already processed $sourceName $link (sticking with {$this->processed[$sourceName]})");
+                $skipped++;
+                continue;
+            }
+
+            // Check if source already exists — two-level dedup (MySQL
+            // parity): exact link first, then sourcename for a changed link.
             if (!isset($source['sourceid'])) {
-                $existingSource = $this->client->getSourceByLink($link);
+                $existingSource = $this->resolveExistingSource($sourceName, $link);
                 if ($existingSource) {
                     $source['sourceid'] = $existingSource['sourceid'];
                 }
@@ -894,6 +971,14 @@ class ElasticsearchSaveManager {
                 $errors++;
             }
 
+            // Within-run dedup bookkeeping (MySQL parity): a known source
+            // processed in this run sticks with its link. Newly created
+            // sources are not recorded, matching MySQLSaveManager, which
+            // only marks the known-source path.
+            if (!$wasCreated) {
+                $this->processed[$sourceName] = $link;
+            }
+
             $i++;
             usleep(100000); // 100ms delay to avoid overwhelming services
         }
@@ -911,6 +996,23 @@ class ElasticsearchSaveManager {
 
         $parserName = $parser->logName ?? ($parserkey ?: null);
         return $this->buildSummary($parserName, $i, $documentsNewOrUpdated, $sentencesNew);
+    }
+
+    /**
+     * Resolve the parser key for a source from its groupname in the
+     * source-metadata index and record it in the run options, so a
+     * --sourceid run without --parser works: the single-source path of
+     * getAllDocuments() requires a parser. Returns the groupname, or null
+     * when the source is unknown or has no groupname.
+     */
+    public function resolveParserForSource($sourceid): ?string {
+        $source = $this->client->getSourceById((int)$sourceid);
+        $groupname = $source['groupname'] ?? null;
+        if (!$groupname) {
+            return null;
+        }
+        $this->options['parserkey'] = $groupname;
+        return $groupname;
     }
 
     /**

@@ -1714,14 +1714,23 @@ class CBHtml extends HtmlParse {
                 $parts = explode( "T", $p->getAttribute( 'content' ) );
                 $this->metadata['date'] = $parts[0];
             }
-            $this->metadata['sourcename'] =
-                $this->basename . ": " . $this->metadata['date'];
             $query = "//h1[@class='page-title']/text()";
             $nodes = $xpath->query($query);
             if ($nodes->length > 0) {
-                $this->metadata['title'] = $nodes->item(0)->nodeValue;
+                // Collapse runs of whitespace: h1 text can carry newlines
+                // and indentation that would otherwise leak into the
+                // sourcename built from it below.
+                $this->metadata['title'] =
+                    trim( preg_replace( '/\s+/', ' ', $nodes->item(0)->nodeValue ) );
             } else {
-                $this->metadata['title'] =  $this->metadata['sourcename'];
+                $this->metadata['title'] = '';
+            }
+            $this->metadata['sourcename'] =
+                $this->buildSourceName( $this->metadata['date'], $this->metadata['title'] );
+            if( $this->metadata['title'] === '' ) {
+                // No article title found: keep the date-only identity
+                // (sourcename and title as before this enhancement).
+                $this->metadata['title'] = $this->metadata['sourcename'];
             }
             $query = "//meta[@property='article:author']/@content";
             $nodes = $xpath->query($query);
@@ -1732,6 +1741,26 @@ class CBHtml extends HtmlParse {
         } else {
             $this->print( "No DOM" );
         }
+    }
+
+    /**
+     * Identity of one article. Same-day articles exist (the series' first
+     * date published several), so the date alone is not a unique identity:
+     * the article title is part of the sourcename, giving one sourcename
+     * per article. Without a title the date-only form is kept.
+     */
+    public function buildSourceName( $date, $title ) {
+        $sourcename = $this->basename . ": " . $date;
+        $title = trim( (string)$title );
+        if( $title !== '' && $title !== $sourcename ) {
+            // Keep the full sourcename within the relational bound
+            // (sources.sourceName varchar(200); the base takes ~29).
+            $title = function_exists('mb_substr')
+                ? mb_substr( $title, 0, 150 )
+                : substr( $title, 0, 150 );
+            $sourcename .= ' ' . $title;
+        }
+        return $sourcename;
     }
     public function getDocumentList() {
         $this->funcName = "getDocumentList";
@@ -1970,8 +1999,9 @@ class KauakukalahaleHTML extends HtmlParse {
             $this->metadata['authors'] =
                 trim(preg_replace('/^(By na |By |Na )\s*/u', '', $authors));
         }
+        $sourcetitle = ($this->metadata['title']) ? ($this->metadata['title'] . " ") : "";
         $this->metadata['sourcename'] =
-            $this->basename . ": " . $this->metadata['date'];
+            $this->basename . ": " . $sourcetitle . $this->metadata['date'];
         $this->metadata['title'] = ($this->metadata['title']) ??
             $this->basename . " " . $this->metadata['date'];
     }
