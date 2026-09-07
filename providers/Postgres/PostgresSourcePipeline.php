@@ -48,10 +48,23 @@ class PostgresSourcePipeline
     private \PDOStatement $docNeedsVector;
     private \PDOStatement $docTextForSource;
 
-    // Sentence embedding write (384-dim) via staging, scoped to current tx.
-    private \PDOStatement $sentenceMetricsUpsert;
+    // Document metric + 1024-dim vector writes (one call per source).
     private \PDOStatement $documentMetricsUpsert;
     private \PDOStatement $docVectorUpdate;
+
+    /**
+     * Rows per batched write statement. Vector literals run several KB each,
+     * so this bounds query size while keeping round trips ~WRITE_BATCH_SIZE×
+     * rarer than per-row statements.
+     */
+    private const WRITE_BATCH_SIZE = 250;
+
+    // Incremental fast-path state (dataAlreadyMirrored), built lazily on the
+    // first source: per-source sentence signatures on both sides plus the
+    // Postgres contents sourceid set.
+    private ?array $pgSentenceSignatures = null;
+    private ?array $mysqlSentenceSignatures = null;
+    private ?array $pgContentSourceIds = null;
 
     public function __construct(array $config = [])
     {
@@ -117,6 +130,7 @@ class PostgresSourcePipeline
             'document_vectors' => 0,
             'patterns'         => 0,
             'has_content'      => false,
+            'skipped_data'     => false,
         ];
 
         $this->sourceByIdStmt->execute([':sourceid' => $sourceId]);
@@ -129,20 +143,29 @@ class PostgresSourcePipeline
 
         $this->pg->beginTransaction();
         try {
-            // --- 1. Migrate parent rows (always) ---
-            $this->sourceUpsert->execute($source);
-
-            $this->contentStmt->execute([':sourceid' => $sourceId]);
-            $content = $this->contentStmt->fetch(\PDO::FETCH_ASSOC);
-            if ($content) {
-                $this->contentUpsert->execute($content);
-            }
-
-            $this->sentenceStmt->execute([':sourceid' => $sourceId]);
+            // --- 1. Migrate parent rows. In incremental mode a source whose
+            // sentence signature already matches on both sides is skipped:
+            // its upserts would only rewrite identical rows, which is the
+            // dominant cost of backfill/cron passes over a built corpus.
+            // The delta scans below still run for skipped sources.
+            $skipData = !$this->force && $this->dataAlreadyMirrored($sourceId);
             $sentenceDataCount = 0;
-            while ($row = $this->sentenceStmt->fetch(\PDO::FETCH_ASSOC)) {
-                $this->sentenceUpsert->execute($row);
-                $sentenceDataCount++;
+            if ($skipData) {
+                $content = true;
+            } else {
+                $this->sourceUpsert->execute($source);
+
+                $this->contentStmt->execute([':sourceid' => $sourceId]);
+                $content = $this->contentStmt->fetch(\PDO::FETCH_ASSOC);
+                if ($content) {
+                    $this->contentUpsert->execute($content);
+                }
+
+                $this->sentenceStmt->execute([':sourceid' => $sourceId]);
+                while ($row = $this->sentenceStmt->fetch(\PDO::FETCH_ASSOC)) {
+                    $this->sentenceUpsert->execute($row);
+                    $sentenceDataCount++;
+                }
             }
 
             $svec = 0; $smet = 0; $dmet = 0; $dvec = 0;
@@ -173,40 +196,55 @@ class PostgresSourcePipeline
                         }
                     }
 
-                    foreach ($work as $i => $w) {
-                        $sentenceId = (int)$w['sentenceid'];
-                        $text = (string)$w['hawaiiantext'];
-
-                        if (!$this->dryrun) {
+                    $vectorLiterals = [];
+                    if (!$this->dryrun) {
+                        // Validate every vector BEFORE any write so a bad
+                        // embedding aborts the source before staging rows land.
+                        foreach ($work as $i => $w) {
                             $vec = $vecs[$i] ?? null;
                             if (!is_array($vec) || count($vec) !== 384) {
-                                throw new \RuntimeException("invalid 384-dim vector for sentence {$sentenceId}");
+                                throw new \RuntimeException(
+                                    'invalid 384-dim vector for sentence ' . (int)$w['sentenceid']
+                                );
                             }
-                            $this->pg->exec(
-                                'CREATE TEMP TABLE IF NOT EXISTS staging_sent384 (sentenceid bigint, embedding vector(384)) ON COMMIT DROP'
-                            );
-                            $stg = $this->pg->prepare('INSERT INTO staging_sent384 VALUES (:sid, (:e)::vector(384))');
-                            $stg->execute([':sid' => $sentenceId, ':e' => self::vecLiteral($vec)]);
-                            $this->pg->exec(
-                                'UPDATE sentences s SET embedding = st.embedding '
-                                . 'FROM staging_sent384 st WHERE s.sentenceid = st.sentenceid'
-                            );
-                            $this->pg->exec('DELETE FROM staging_sent384');
-                            $svec++;
+                            $vectorLiterals[(int)$w['sentenceid']] = self::vecLiteral($vec);
                         }
+                    }
 
-                        $m = $this->metrics->computeSentenceMetrics($text);
-                        if (!$this->dryrun) {
-                            $this->sentenceMetricsUpsert->execute([
-                                ':sid'   => $sentenceId,
-                                ':ratio' => (float)($m['hawaiian_word_ratio'] ?? 0),
-                                ':wc'    => (int)($m['word_count'] ?? 0),
-                                ':len'   => (int)($m['length'] ?? 0),
-                                ':ec'    => (int)($m['entity_count'] ?? 0),
-                                ':freq'  => (float)($m['frequency'] ?? 0),
-                            ]);
-                        }
-                        $smet++;
+                    if (!$this->dryrun) {
+                        // Batched write: stage every vector for the source, then
+                        // ONE update. The old per-sentence loop spent four
+                        // statements (temp create + insert + update + delete)
+                        // per sentence, and each update rewrote the row plus
+                        // all of its indexes — the dominant cost of rebuilds.
+                        $this->pg->exec(
+                            'CREATE TEMP TABLE IF NOT EXISTS staging_sent384 (sentenceid bigint, embedding vector(384)) ON COMMIT DROP'
+                        );
+                        $this->insertStagingVectors($vectorLiterals);
+                        $this->pg->exec(
+                            'UPDATE sentences s SET embedding = st.embedding '
+                            . 'FROM staging_sent384 st WHERE s.sentenceid = st.sentenceid'
+                        );
+                        $svec = count($vectorLiterals);
+                    }
+
+                    // Metrics: computed in PHP for every sentence, written in
+                    // batched multi-row upserts.
+                    $metricRows = [];
+                    foreach ($work as $w) {
+                        $m = $this->metrics->computeSentenceMetrics((string)$w['hawaiiantext']);
+                        $metricRows[] = [
+                            'sid'   => (int)$w['sentenceid'],
+                            'ratio' => (float)($m['hawaiian_word_ratio'] ?? 0),
+                            'wc'    => (int)($m['word_count'] ?? 0),
+                            'len'   => (int)($m['length'] ?? 0),
+                            'ec'    => (int)($m['entity_count'] ?? 0),
+                            'freq'  => (float)($m['frequency'] ?? 0),
+                        ];
+                    }
+                    $smet = count($metricRows);
+                    if (!$this->dryrun && $metricRows !== []) {
+                        $this->upsertSentenceMetricsBatch($metricRows);
                     }
                 }
             }
@@ -276,6 +314,7 @@ class PostgresSourcePipeline
             $out['document_metrics'] = $dmet;
             $out['document_vectors'] = $dvec;
             $out['has_content']      = (bool)$content;
+            $out['skipped_data']     = $skipData;
 
             return $out;
         } catch (\Throwable $e) {
@@ -322,6 +361,151 @@ class PostgresSourcePipeline
             static function ($v) { return is_int($v) ? (string)$v : (string)(float)$v; },
             $vec
         )) . ']';
+    }
+
+    /**
+     * Sum of sentences the incremental path would add: every source whose
+     * signature mismatches or that is absent from Postgres contributes its
+     * full MySQL sentence count (matches countSentencesToAdd()'s fast path).
+     * Run drivers use this to decide whether an incremental load is big
+     * enough to be worth dropping the derivative search indexes. Loads the
+     * signature maps.
+     */
+    public function pendingSentenceMigration(): int
+    {
+        $this->loadSignatureMaps();
+        $pending = 0;
+        foreach ($this->mysqlSentenceSignatures as $sid => $sig) {
+            if (!isset($this->pgSentenceSignatures[$sid])
+                || $this->pgSentenceSignatures[$sid] !== $sig
+            ) {
+                $pending += $sig[0];
+            }
+        }
+        return $pending;
+    }
+
+    /**
+     * True when this source's sentence rows are already mirrored unchanged:
+     * the same per-source (row count, sentenceid checksum) on both sides —
+     * the same signature countSentencesToAdd() uses in pg_import --status —
+     * plus a contents row present in Postgres. Step 1's upserts would then
+     * only rewrite identical rows. Only the data upserts are skipped; the
+     * delta scans (sentence gaps, doc gaps, grammar patterns) still run.
+     */
+    private function dataAlreadyMirrored(int $sourceId): bool
+    {
+        $this->loadSignatureMaps();
+        if (!isset($this->mysqlSentenceSignatures[$sourceId], $this->pgSentenceSignatures[$sourceId])) {
+            return false;
+        }
+        if ($this->mysqlSentenceSignatures[$sourceId] !== $this->pgSentenceSignatures[$sourceId]) {
+            return false;
+        }
+        return isset($this->pgContentSourceIds[$sourceId]);
+    }
+
+    /**
+     * Per-source sentence signatures on both sides plus the Postgres
+     * contents sourceid set, built once per process. Staleness is safe:
+     * a source mirrored after the snapshot looks unmirrored and takes the
+     * full path (identical-row upserts), never the reverse.
+     */
+    private function loadSignatureMaps(): void
+    {
+        if ($this->pgSentenceSignatures !== null) {
+            return;
+        }
+
+        $this->pgSentenceSignatures = [];
+        foreach ($this->pg->query(
+            'SELECT sourceid, COUNT(*) AS n, SUM(sentenceid) AS chk FROM sentences GROUP BY sourceid'
+        ) as $row) {
+            $this->pgSentenceSignatures[(int)$row['sourceid']] = [(int)$row['n'], (int)$row['chk']];
+        }
+
+        $this->mysqlSentenceSignatures = [];
+        foreach ($this->mysql->query(
+            'SELECT sourceID AS sourceid, COUNT(*) AS n, SUM(sentenceID) AS chk FROM sentences GROUP BY sourceID'
+        ) as $row) {
+            $this->mysqlSentenceSignatures[(int)$row['sourceid']] = [(int)$row['n'], (int)$row['chk']];
+        }
+
+        $this->pgContentSourceIds = [];
+        foreach ($this->pg->query('SELECT sourceid FROM contents') as $row) {
+            $this->pgContentSourceIds[(int)$row['sourceid']] = true;
+        }
+    }
+
+    /**
+     * Stage sentence vectors for the current source's transaction: chunked
+     * multi-row INSERTs into the session temp table staging_sent384; the
+     * caller then updates sentences from it in ONE statement.
+     *
+     * @param array<int, string> $literals sentenceid => pgvector literal
+     */
+    private function insertStagingVectors(array $literals): void
+    {
+        $chunk = [];
+        foreach ($literals as $sentenceId => $literal) {
+            $chunk[$sentenceId] = $literal;
+            if (count($chunk) >= self::WRITE_BATCH_SIZE) {
+                $this->flushStagingChunk($chunk);
+                $chunk = [];
+            }
+        }
+        if ($chunk !== []) {
+            $this->flushStagingChunk($chunk);
+        }
+    }
+
+    /**
+     * @param array<int, string> $literals sentenceid => pgvector literal
+     */
+    private function flushStagingChunk(array $literals): void
+    {
+        $values = [];
+        $params = [];
+        $i = 0;
+        foreach ($literals as $sentenceId => $literal) {
+            $values[] = "(:s{$i}, (:e{$i})::vector(384))";
+            $params[":s{$i}"] = $sentenceId;
+            $params[":e{$i}"] = $literal;
+            $i++;
+        }
+        $stmt = $this->pg->prepare(
+            'INSERT INTO staging_sent384 (sentenceid, embedding) VALUES ' . implode(', ', $values)
+        );
+        $stmt->execute($params);
+    }
+
+    /**
+     * Batched multi-row sentence_metrics upsert: one statement per
+     * WRITE_BATCH_SIZE rows instead of one per sentence.
+     *
+     * @param array<int, array{sid:int, ratio:float, wc:int, len:int, ec:int, freq:float}> $rows
+     */
+    private function upsertSentenceMetricsBatch(array $rows): void
+    {
+        foreach (array_chunk($rows, self::WRITE_BATCH_SIZE) as $chunk) {
+            $values = [];
+            $params = [];
+            foreach ($chunk as $i => $row) {
+                $values[] = "(:sid{$i}, :ratio{$i}, :wc{$i}, :len{$i}, :ec{$i}, :freq{$i}, CURRENT_TIMESTAMP)";
+                foreach (['sid', 'ratio', 'wc', 'len', 'ec', 'freq'] as $key) {
+                    $params[":{$key}{$i}"] = $row[$key];
+                }
+            }
+            $stmt = $this->pg->prepare(
+                'INSERT INTO sentence_metrics (sentenceid, hawaiian_word_ratio, word_count, length, entity_count, frequency, updated_at) '
+                . 'VALUES ' . implode(', ', $values) . ' '
+                . 'ON CONFLICT (sentenceid) DO UPDATE SET '
+                . 'hawaiian_word_ratio = EXCLUDED.hawaiian_word_ratio, word_count = EXCLUDED.word_count, '
+                . 'length = EXCLUDED.length, entity_count = EXCLUDED.entity_count, '
+                . 'frequency = EXCLUDED.frequency, updated_at = CURRENT_TIMESTAMP'
+            );
+            $stmt->execute($params);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -435,15 +619,7 @@ class PostgresSourcePipeline
             'SELECT text FROM contents WHERE sourceid = :sourceid AND text IS NOT NULL AND octet_length(text) > 0'
         );
 
-        // Sentence embedding write (384-dim) via staging, scoped to current tx.
-        $this->sentenceMetricsUpsert = $this->pg->prepare(
-            'INSERT INTO sentence_metrics (sentenceid, hawaiian_word_ratio, word_count, length, entity_count, frequency, updated_at) '
-            . 'VALUES (:sid, :ratio, :wc, :len, :ec, :freq, CURRENT_TIMESTAMP) '
-            . 'ON CONFLICT (sentenceid) DO UPDATE SET '
-            . 'hawaiian_word_ratio = EXCLUDED.hawaiian_word_ratio, word_count = EXCLUDED.word_count, '
-            . 'length = EXCLUDED.length, entity_count = EXCLUDED.entity_count, '
-            . 'frequency = EXCLUDED.frequency, updated_at = CURRENT_TIMESTAMP'
-        );
+        // Document metrics + 1024-dim document vector.
         $this->documentMetricsUpsert = $this->pg->prepare(
             'INSERT INTO document_metrics (sourceid, hawaiian_word_ratio, word_count, length, entity_count, updated_at) '
             . 'VALUES (:sid, :ratio, :wc, :len, :ec, CURRENT_TIMESTAMP) '
