@@ -67,6 +67,8 @@
       "vector": {
         "type": "knn_vector",
         "dimension": 384,
+        "mode": "on_disk",
+        "compression_level": "32x",
         "method": {
           "name": "hnsw",
           "space_type": "cosinesimil",
