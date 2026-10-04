@@ -79,7 +79,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
     <body id=fadein onload="changeid()">
         <ul class="nav nav-tabs">
             <?php if (!$doResources) { ?>
-            <li class="nav-item" style="display:flex; align-items:center; gap:0.4em; padding:0.4em 0.8em 0.4em 0; margin-right:auto;">
+            <li class="nav-item<?= ($word && !($doGrammar || $doSources || $doStats)) ? ' clear-help' : '' ?>" style="display:flex; align-items:center; gap:0.4em; padding:0.4em 0.8em 0.4em 0; margin-right:auto;">
                 <label for="provider-select" style="font-size:0.85em; font-weight:600; margin:0;">Provider:</label>
                 <select id="provider-select" class="dd-menu" onchange="switchProvider(this)" style="font-size:0.85em; max-width:12em;">
                     <?php foreach (array_keys(getKnownProviders()) as $provName): ?>
