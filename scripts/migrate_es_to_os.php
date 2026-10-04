@@ -99,7 +99,7 @@ try {
 // 0. Create Search Pipeline in OpenSearch
 echo "\nCreating search pipeline in OpenSearch...\n";
 try {
-    $osClient->createSearchPipeline('norm-pipeline');
+    $osClient->createSearchPipeline();
 } catch (Exception $e) {
     echo "⚠ Warning creating search pipeline: " . $e->getMessage() . "\n";
 }
