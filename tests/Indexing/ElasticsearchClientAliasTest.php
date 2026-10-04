@@ -67,42 +67,42 @@ class ElasticsearchClientAliasTest extends BaseTestCase
         $this->assertSame($_ENV['ES_METADATA_ALIAS'] ?? 'hawaiian_metadata', $this->esClient->getMetadataName());
     }
 
-    public function testStagingModeRoutesActiveNamesToStagingIndices(): void
+    /**
+     * A --recreate staging run must build into the physical name that is NOT
+     * currently serving production. After a completed switch the live indices
+     * are the *_staging ones, so the next run alternates back to the plain
+     * names; always targeting *_staging would rebuild over (and switch away
+     * from nothing but) the live corpus.
+     */
+    public function testStagingModeTargetsTheNonLivePhysicalIndex(): void
     {
+        $pairs = [
+            ['alias' => $this->esClient->getDocumentsAlias(),      'base' => 'hawaiian_documents_new',   'get' => 'getDocumentsConcreteName',      'active' => 'getDocumentsIndexName'],
+            ['alias' => $this->esClient->getSentencesAlias(),      'base' => 'hawaiian_sentences_new',   'get' => 'getSentencesConcreteName',      'active' => 'getSentencesIndexName'],
+            ['alias' => $this->esClient->getContentAlias(),        'base' => 'hawaiian-content',         'get' => 'getContentConcreteName',        'active' => 'getContentName'],
+            ['alias' => $this->esClient->getSourceMetadataAlias(), 'base' => 'hawaiian-source-metadata', 'get' => 'getSourceMetadataConcreteName', 'active' => 'getSourceMetadataName'],
+            ['alias' => $this->esClient->getMetadataAlias(),       'base' => 'hawaiian-metadata',        'get' => 'getMetadataConcreteName',       'active' => 'getMetadataName'],
+        ];
+        $live = [];
+        foreach ($pairs as $p) {
+            $live[$p['alias']] = $this->esClient->{$p['get']}();
+        }
+
         $this->esClient->setStagingMode(true);
         try {
-            $this->assertSame('hawaiian_documents_new_staging', $this->esClient->getDocumentsIndexName());
-            $this->assertSame('hawaiian_sentences_new_staging', $this->esClient->getSentencesIndexName());
-            $this->assertSame('hawaiian-content_staging', $this->esClient->getContentName());
-            $this->assertSame('hawaiian-source-metadata_staging', $this->esClient->getSourceMetadataName());
-            $this->assertSame('hawaiian-metadata_staging', $this->esClient->getMetadataName());
-
-            // Concrete getters expose the same staging names during the run...
-            $this->assertSame('hawaiian_documents_new_staging', $this->esClient->getDocumentsConcreteName());
-            // ...and outside staging mode they must resolve to a physical
-            // index that actually exists. After an atomic staging switch the
-            // production physicals keep their *_staging names (the aliases
-            // were repointed, not renamed), so the legacy plain names no
-            // longer exist and must not be returned.
-            $this->esClient->setStagingMode(false);
-            $this->assertTrue(
-                $this->esClient->indexExists($this->esClient->getDocumentsConcreteName()),
-                'getDocumentsConcreteName() must name an existing physical index'
-            );
-            $this->assertTrue(
-                $this->esClient->indexExists($this->esClient->getContentConcreteName()),
-                'getContentConcreteName() must name an existing physical index'
-            );
-            $this->assertTrue(
-                $this->esClient->indexExists($this->esClient->getSourceMetadataConcreteName()),
-                'getSourceMetadataConcreteName() must name an existing physical index'
-            );
-            $this->assertTrue(
-                $this->esClient->indexExists($this->esClient->getMetadataConcreteName()),
-                'getMetadataConcreteName() must name an existing physical index'
-            );
+            foreach ($pairs as $p) {
+                $staging = $this->esClient->{$p['get']}();
+                $this->assertContains($staging, [$p['base'], $p['base'] . '_staging'], "{$p['alias']}: staging target must be a known physical name");
+                $this->assertNotSame($live[$p['alias']], $staging, "{$p['alias']}: staging target must not be the live index");
+                $this->assertSame($staging, $this->esClient->{$p['active']}(), "{$p['alias']}: writes during staging go to the staging target");
+            }
         } finally {
             $this->esClient->setStagingMode(false);
+        }
+
+        // Outside staging mode the concrete getters resolve to existing physicals.
+        foreach ($pairs as $p) {
+            $this->assertTrue($this->esClient->indexExists($this->esClient->{$p['get']}()), "{$p['get']}() must name an existing physical index");
         }
     }
 }
