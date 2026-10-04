@@ -2,7 +2,9 @@
 
 All scripts run from the project root unless noted. Connection settings come
 from `.env`. The embedding service (`EMBEDDING_SERVICE_URL`, default
-`http://localhost:5000`) must be running for anything that generates vectors.
+`http://localhost:5000`) must be reachable for anything that generates vectors. It is
+socket-activated: the first call after an idle period waits ~11 s while models load
+(see `/var/www/html/embedding_service/README.md`).
 
 ```
 External web sites (Ulukau, Nupepa, Kauakukalahale, Ke Ao Lama, ...)
@@ -106,7 +108,7 @@ Reads the source list, plain text, and raw HTML from the site's HTTP API with
 computes Hawaiian word ratios, generates embeddings, and bulk-indexes.
 
 ```bash
-php scripts/createindex.php --recreate --verbose      # full rebuild into *_staging indices, atomic switch on completion
+php scripts/createindex.php --recreate --verbose      # full rebuild into the non-live staging indices, atomic switch on completion
 php scripts/createindex.php --resume --verbose        # continue an interrupted --recreate (reads its persisted state)
 php scripts/createindex.php                           # incremental: skips already-indexed sources
 php scripts/createindex.php --source-id=52441         # force one source
@@ -168,10 +170,13 @@ Behavior notes:
 - Ctrl+C stops gracefully at the next batch boundary; a second Ctrl+C aborts.
 - `--recreate` is full-corpus only — the script aborts immediately if it is
   combined with `--group-name`, `--source-id` or `--max-documents` (those are
-  for incremental ingestion). The rebuild goes into temporary
-  `*_staging` indices while the current indices keep serving search; when the
-  run completes, the production aliases are atomically switched to the staging
-  indices and the old physical indices are deleted. An interrupted run leaves
+  for incremental ingestion). The rebuild goes into staging indices while
+  the current indices keep serving search; when the run completes, the
+  production aliases are atomically switched to the staging indices and the
+  old physical indices are deleted. Staging names alternate between
+  `<name>_staging` and the plain `<name>`: a run always builds into the one
+  the alias is *not* currently pointing at (after a completed switch the live
+  indices keep their build name). An interrupted run leaves
   production untouched; `--recreate` persists its provider/source/collection
   settings to `logs/createindex-staging-state.json` when it starts, so
   `php scripts/createindex.php --resume` continues the interrupted run — it
