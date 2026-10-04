@@ -35,19 +35,35 @@ $results = $provider->hybridSearch("Kamehameha", ['type' => 'Person']);
 
 ## Entity and Relationship Extraction Model
 
-The extraction follows this model:
+Entities come from the curated name lists in `data/name_lists`, restricted to
+the lists named in `data/entity_sources` (see `NameListEntityExtractor`).
+Matching is diacritic-insensitive (okina and macrons are flattened on both
+the list keys and the text tokens, hyphens read as spaces), alias matches
+resolve to the record's core entity, and precision gates reject lowercase
+usage, sentence-start particles, calendar words, and SSA-only given names
+that lack a capitalized surname run. The legacy `AdvancedEntityExtractor`
+(regex over capitalized words) is retained only for the old stop-list
+workflow and is no longer used by the rebuild or backfill scripts.
 
 ```json
 {
   "entities": [
-    {"name": "Kamehameha", "type": "Person", "id": "KAMEHAMEHA_I"},
-    {"name": "Lahainaluna", "type": "Location", "id": "LAHAINALUNA_SCHOOL"}
+    {"name": "Kamehameha III", "type": "Person", "id": "PERSON_...",
+     "source": "historical_figures.json", "category": "Monarch",
+     "birth_year": 1813, "death_year": 1854},
+    {"name": "Lahainaluna", "type": "Place", "id": "PLACE_..."}
   ],
   "relationships": [
-    {"source": "KAMEHAMEHA_I", "relation": "FOUNDED", "target": "LAHAINALUNA_SCHOOL"}
+    {"source": "PERSON_...", "relation": "CO_OCCURS_WITH", "target": "PLACE_..."}
   ]
 }
 ```
+
+Graph labels: `Person` (given names, SSA names, historical and literary
+figures), `Place` (GNIS and Hawaiian place names), `Wind`, `Rain`,
+`Rainbow`, `Weapon`. Relationships: sentence-level `CO_OCCURS_WITH` plus
+document-level `MENTIONED_IN` and `CO_MENTIONED_WITH` (added by the rebuild
+and backfill scripts).
 
 ## Integration with Existing Providers
 
