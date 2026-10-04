@@ -100,6 +100,9 @@ class PostgresLaana extends Laana {
         $pageSize = intval($options['limit'] ?? $this->pageSize);
         $offset = ($pageNumber >= 0) ? ($pageNumber * $pageSize) : 0;
         $term = trim($term, '"');
+        if ($nodiacriticals) {
+            $term = normalizeString($term);
+        }
         $values = [];
         $searchVector = $nodiacriticals ? 'hawaiian_unaccent_tsv' : 'hawaiian_tsv';
 
