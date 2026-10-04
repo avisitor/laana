@@ -1,0 +1,1057 @@
+[
+    {
+        "name": "Haleakalā Woman",
+        "aliases": [
+            "Haleakalā-nui"
+        ],
+        "category": "Mythic Figure",
+        "context": "Giantess associated with Haleakalā.",
+        "island": "Maui"
+    },
+    {
+        "name": "Haleakalā Woman",
+        "category": "Mythic Figure",
+        "context": "Giantess associated with Haleakalā.",
+        "island": "Maui"
+    },
+    {
+        "name": "Hāloa",
+        "aliases": [
+            "Hāloa-nui"
+        ],
+        "category": "Mythic Ancestor",
+        "context": "First human in Hawaiian genealogy.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Hāloa",
+        "category": "Mythic Ancestor",
+        "context": "First human in Hawaiian genealogy.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Hāloanaka",
+        "aliases": [
+            "Hāloanaka-nui"
+        ],
+        "category": "Mythic Ancestor",
+        "context": "Taro ancestor; elder sibling of Hāloa.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Hāloanaka",
+        "category": "Mythic Ancestor",
+        "context": "Taro ancestor; elder sibling of Hāloa.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Haumea",
+        "aliases": [
+            "Haumea-nui",
+            "Haumea-of-Hawaiʻi"
+        ],
+        "category": "Akua",
+        "context": "Goddess of childbirth, war, and transformation.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Haumea",
+        "aliases": [
+            "Haumea-of-Hawaiʻi"
+        ],
+        "category": "Akua",
+        "context": "Goddess of childbirth and war.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Hiʻiaka",
+        "aliases": [
+            "Hiʻiakaikapoliopele",
+            "Hiʻiaka-the-Healer"
+        ],
+        "category": "Akua / Heroine",
+        "context": "Sister of Pele; healer and voyager.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Hiʻiaka",
+        "aliases": [
+            "Hiʻiakaikapoliopele",
+            "Hiʻiaka-the-Healer",
+            "Hiʻiaka-the-Voyager"
+        ],
+        "category": "Akua / Heroine",
+        "context": "Sister of Pele; healer, voyager, and protector.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Hina",
+        "aliases": [
+            "Hina-of-Hāna",
+            "Hina-of-the-Sea",
+            "Hina-of-the-Moon",
+            "Hina-of-Kāne",
+            "Hina-the-Tapa-Maker"
+        ],
+        "category": "Akua",
+        "context": "Goddess of moon, tapa, freshwater, and navigation.",
+        "island": "Maui"
+    },
+    {
+        "name": "Hina",
+        "aliases": [
+            "Hina-of-Hāna",
+            "Hina-of-the-Sea",
+            "Hina-of-the-Moon",
+            "Hina-of-Kāne",
+            "Hina-the-Tapa-Maker"
+        ],
+        "category": "Akua",
+        "context": "Goddess of moon, tapa, freshwater, navigation.",
+        "island": "Maui"
+    },
+    {
+        "name": "Hopu-ka-lani",
+        "aliases": [
+            "Hopu-ka-lani-nui"
+        ],
+        "category": "Mythic Figure",
+        "context": "Sky-traveling figure in Pele cycles.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAiʻai",
+        "category": "Hero",
+        "context": "Son of Kūʻula; master fisherman.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAiʻai",
+        "aliases": [
+            "ʻAiʻai-nui"
+        ],
+        "category": "Hero",
+        "context": "Son of Kūʻula; master fisherman.",
+        "island": "Maui"
+    },
+    {
+        "name": "Kahiʻukā",
+        "aliases": [
+            "Kahiʻukā-of-Puʻuloa"
+        ],
+        "category": "Kupua",
+        "context": "Shark kupua associated with Kaʻahupahau.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kahiʻukā",
+        "category": "Kupua",
+        "context": "Shark kupua associated with Kaʻahupahau.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kahiʻukā-nui",
+        "aliases": [
+            "Kahiʻukā"
+        ],
+        "category": "Kupua",
+        "context": "Shark kupua associated with Kaʻahupahau.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kaʻahupahau",
+        "aliases": [
+            "Kaʻahupahau-of-Puʻuloa"
+        ],
+        "category": "Kupua",
+        "context": "Shark guardian of Pearl Harbor.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kaʻahupahau-nui",
+        "aliases": [
+            "Kaʻahupahau",
+            "Kaʻahupahau-of-Puʻuloa"
+        ],
+        "category": "Kupua",
+        "context": "Shark guardian with regional manifestations.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kaʻalalā",
+        "aliases": [
+            "Kaʻalalākea",
+            "Kaʻalalāuli",
+            "Kaʻalalā‘ele",
+            "Kaʻalalā‘ena",
+            "Kaʻalalā‘ō",
+            "Kaʻalalā‘ai",
+            "Kaʻalalā‘au",
+            "Kaʻalalā‘eo",
+            "Kaʻalalā‘io",
+            "Kaʻalalā‘ou",
+            "Kaʻalalā‘ū",
+            "Kaʻalalā‘ē",
+            "Kaʻalalā‘ā",
+            "Kaʻalalā‘ī",
+            "Kaʻalalā‘ūlū",
+            "Kaʻalalā‘ōpū",
+            "Kaʻalalā‘ōhi‘a",
+            "Kaʻalalā‘ōhelo",
+            "Kaʻalalā‘ōpala",
+            "Kaʻalalā‘ōpua",
+            "Kaʻalalā‘ōlapa",
+            "Kaʻalalā‘ōlani",
+            "Kaʻalalā‘ōpihi"
+        ],
+        "category": "Kupua",
+        "context": "Fire/lava kupua with many elemental manifestations.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kaʻaluna",
+        "aliases": [
+            "Kaʻaluna-nui"
+        ],
+        "category": "Kupua",
+        "context": "Sky-traveling kupua appearing in Kauaʻi legends.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Kaʻaluna",
+        "category": "Kupua",
+        "context": "Sky-traveling kupua appearing in Kauaʻi legends.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Kaʻaluna-nui",
+        "aliases": [
+            "Kaʻaluna"
+        ],
+        "category": "Kupua",
+        "context": "Sky-traveling kupua appearing in Kauaʻi legends.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Kaʻena Giant",
+        "aliases": [
+            "Kaʻena-Man",
+            "Kaʻena-Woman",
+            "Kaʻena-aliʻi"
+        ],
+        "category": "Mythic Figure",
+        "context": "Giant or giantess of Kaʻena Point.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kaʻena Giant",
+        "aliases": [
+            "Kaʻena-Man",
+            "Kaʻena-Woman"
+        ],
+        "category": "Mythic Figure",
+        "context": "Giant or giantess of Kaʻena Point.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kaʻūhuhu",
+        "aliases": [
+            "Kaʻūhuhu-nui"
+        ],
+        "category": "Kupua",
+        "context": "Ghost-eating kupua.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kaʻūhuhu",
+        "category": "Kupua",
+        "context": "Ghost-eating kupua.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kaʻūhuhu-nui",
+        "aliases": [
+            "Kaʻūhuhu"
+        ],
+        "category": "Kupua",
+        "context": "Ghost-eating kupua with regional variants.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kaʻūpele",
+        "category": "Hero",
+        "context": "Traveler who visited spirit realms.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kaʻūpele",
+        "aliases": [
+            "Kaʻūpele-nui"
+        ],
+        "category": "Hero",
+        "context": "Traveler who visited spirit realms.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kamapuaʻa",
+        "aliases": [
+            "Kamapuaʻa-the-Hog-Child",
+            "Kamapuaʻa-the-Shape-Shifter",
+            "Kamapuaʻa-of-the-Sea",
+            "Kamapuaʻa-of-the-Forest"
+        ],
+        "category": "Kupua",
+        "context": "Hog demigod with many forms.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kamapuaʻa",
+        "aliases": [
+            "Kamapuaʻa-the-Hog-Child",
+            "Kamapuaʻa-the-Shape-Shifter"
+        ],
+        "category": "Kupua",
+        "context": "Hog demigod with many forms.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kamohoaliʻi",
+        "aliases": [
+            "Kamohoaliʻi-the-Shark-God"
+        ],
+        "category": "Akua",
+        "context": "Shark god; brother of Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kamohoaliʻi",
+        "aliases": [
+            "Kamohoaliʻi-the-Shark-God",
+            "Kamohoaliʻi-nui"
+        ],
+        "category": "Akua",
+        "context": "Shark god; brother of Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kamohoaliʻi-nui",
+        "aliases": [
+            "Kamohoaliʻi",
+            "Kamohoaliʻi-the-Shark-God"
+        ],
+        "category": "Akua",
+        "context": "High shark god appearing in extended Pele cycles.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kanaloa",
+        "category": "Akua",
+        "context": "God of ocean and deep knowledge.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kanaloa-kai",
+        "aliases": [
+            "Kanaloa",
+            "Kanaloa-of-the-Deep",
+            "Kanaloa-of-the-Ocean"
+        ],
+        "category": "Akua",
+        "context": "Ocean and deep knowledge deity with multiple manifestations.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kanaloa",
+        "aliases": [
+            "Kanaloa-nui",
+            "Kanaloa-of-the-Deep",
+            "Kanaloa-of-the-Ocean"
+        ],
+        "category": "Akua",
+        "context": "Ocean and deep knowledge deity with multiple manifestations.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kanaloa-nui",
+        "aliases": [
+            "Kanaloa",
+            "Kanaloa-of-the-Deep"
+        ],
+        "category": "Akua",
+        "context": "Ocean and deep knowledge deity with variant forms.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāneapua",
+        "aliases": [
+            "Kāneapua-nui"
+        ],
+        "category": "Kupua",
+        "context": "Companion and helper of Kamapuaʻa.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kāneapua",
+        "category": "Kupua",
+        "context": "Companion of Kamapuaʻa.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kaneikapō",
+        "aliases": [
+            "Kaneikapōlei",
+            "Kaneikapōlena",
+            "Kaneikapōlua",
+            "Kaneikapōhuli",
+            "Kaneikapōhāhā",
+            "Kaneikapōhāweo",
+            "Kaneikapōhākea",
+            "Kaneikapōhāuli",
+            "Kaneikapōhā‘ele",
+            "Kaneikapōhā‘ena",
+            "Kaneikapōhā‘ō",
+            "Kaneikapōhā‘ai",
+            "Kaneikapōhā‘au",
+            "Kaneikapōhā‘eo",
+            "Kaneikapōhā‘io",
+            "Kaneikapōhā‘ou",
+            "Kaneikapōhā‘ū",
+            "Kaneikapōhā‘ē",
+            "Kaneikapōhā‘ā",
+            "Kaneikapōhā‘ī",
+            "Kaneikapōhā‘ūlū",
+            "Kaneikapōhā‘ōpū",
+            "Kaneikapōhā‘ōhi‘a",
+            "Kaneikapōhā‘ōhelo",
+            "Kaneikapōhā‘ōpala",
+            "Kaneikapōhā‘ōpua",
+            "Kaneikapōhā‘ōlapa",
+            "Kaneikapōhā‘ōlani",
+            "Kaneikapōhā‘ōpihi"
+        ],
+        "category": "Akua",
+        "context": "Water/light/wind deity with many manifestations.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāne",
+        "aliases": [
+            "Kāne-milo-hai",
+            "Kāneikawaiola",
+            "Kānehoalani",
+            "Kānehekili"
+        ],
+        "category": "Akua",
+        "context": "Deity of creation, freshwater, sunlight, and thunder.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāne",
+        "aliases": [
+            "Kāne-milo-hai",
+            "Kāneikawaiola",
+            "Kānehoalani",
+            "Kānehekili"
+        ],
+        "category": "Akua",
+        "context": "God of creation, freshwater, sunlight, thunder.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāne-lu-honua",
+        "aliases": [
+            "Kāne",
+            "Kāne-milo-hai",
+            "Kāneikawaiola",
+            "Kānehoalani",
+            "Kānehekili"
+        ],
+        "category": "Akua",
+        "context": "Creator deity with manifestations in freshwater, sunlight, thunder, and life-giving forces.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāne-milo-hai",
+        "aliases": [
+            "Kāne",
+            "Kāneikawaiola",
+            "Kānehoalani",
+            "Kānehekili"
+        ],
+        "category": "Akua",
+        "context": "Freshwater, sunlight, thunder, and creation deity with multiple manifestations.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kapoʻi",
+        "aliases": [
+            "Kapoʻi-the-Priest",
+            "Kapoʻi-nui"
+        ],
+        "category": "Priest",
+        "context": "Priest who defied Kamehameha in legend.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kapoʻi",
+        "aliases": [
+            "Kapoʻi-the-Priest"
+        ],
+        "category": "Priest",
+        "context": "Priest who defied Kamehameha in legend.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Kapo",
+        "aliases": [
+            "Kapoʻulakīnaʻu",
+            "Kapo-of-Hāna"
+        ],
+        "category": "Akua",
+        "context": "Goddess of sorcery and protection.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kapo-nui",
+        "aliases": [
+            "Kapo",
+            "Kapoʻulakīnaʻu",
+            "Kapo-of-Hāna"
+        ],
+        "category": "Akua",
+        "context": "Goddess of sorcery and protection with multiple manifestations.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kaululaʻau",
+        "aliases": [
+            "Kaululaʻau-the-Ghost-Banisher"
+        ],
+        "category": "Hero",
+        "context": "Maui trickster who banished ghosts.",
+        "island": "Maui"
+    },
+    {
+        "name": "Kawelo",
+        "aliases": [
+            "Kawelo-a-Ka‘ehuikekahiali‘i",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-nui",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-iki",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-lua",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-kū",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-moe",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-pae",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-pō",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-lani",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-hō",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ea",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ala",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ele",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ula",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ena",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ō",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ai",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘au",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘eo",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘io",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ou",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ū",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ē",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ā",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ī",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ūlū",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ōpū",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ōhi‘a",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ōhelo",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ōpala",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ōpua",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ōlapa",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ōlani",
+            "Kawelo-a-Ka‘ehuikekahiali‘i-‘ōpihi"
+        ],
+        "category": "Hero",
+        "context": "Hero appearing in many regional variants.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Kawelo-of-Kauaʻi",
+        "aliases": [
+            "Kawelo",
+            "Kawelo-the-Moʻo-Slayer"
+        ],
+        "category": "Hero",
+        "context": "Kauaʻi hero appearing in moʻo‑slaying traditions.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Kawelo-of-Lānaʻi",
+        "aliases": [
+            "Kawelo",
+            "Kawelo-the-Moʻo-Slayer"
+        ],
+        "category": "Hero",
+        "context": "Hero of Lānaʻi appearing in moʻo‑slaying traditions.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "Keaka",
+        "aliases": [
+            "Keaka-of-Oʻahu",
+            "Keaka-the-Warrior-Woman"
+        ],
+        "category": "Heroine",
+        "context": "Woman warrior of Oʻahu legends.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Keaka",
+        "aliases": [
+            "Keaka-of-Oʻahu",
+            "Keaka-the-Warrior-Woman",
+            "Keaka-nui"
+        ],
+        "category": "Heroine",
+        "context": "Woman warrior of Oʻahu legends.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Keʻoloʻewa",
+        "category": "Hero",
+        "context": "Son of Kamapuaʻa; Molokaʻi hero.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Keʻoloʻewa",
+        "aliases": [
+            "Keʻoloʻewa-nui"
+        ],
+        "category": "Hero",
+        "context": "Son of Kamapuaʻa; Molokaʻi hero.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Kihawahine",
+        "aliases": [
+            "Kihawahine-of-Lānaʻi",
+            "Kihawahine-of-Maui"
+        ],
+        "category": "Kupua",
+        "context": "Moʻo goddess with regional manifestations.",
+        "island": "Maui"
+    },
+    {
+        "name": "Kihawahine",
+        "aliases": [
+            "Kihawahine-of-Lānaʻi"
+        ],
+        "category": "Kupua",
+        "context": "Moʻo goddess of Lānaʻi and Maui.",
+        "island": "Maui"
+    },
+    {
+        "name": "Kihawahine-nui",
+        "aliases": [
+            "Kihawahine",
+            "Kihawahine-of-Lānaʻi",
+            "Kihawahine-of-Maui"
+        ],
+        "category": "Kupua",
+        "context": "Moʻo goddess with regional manifestations.",
+        "island": "Maui"
+    },
+    {
+        "name": "Kūʻula",
+        "aliases": [
+            "Kūʻula-Kai",
+            "Kūʻula-of-Hāna",
+            "Kūʻula-nui",
+            "Kūʻula-iki"
+        ],
+        "category": "Kupua",
+        "context": "Fisherman kupua; guardian of fish.",
+        "island": "Maui"
+    },
+    {
+        "name": "Kūʻula",
+        "aliases": [
+            "Kūʻula-Kai",
+            "Kūʻula-of-Hāna"
+        ],
+        "category": "Kupua",
+        "context": "Fisherman kupua; guardian of fish.",
+        "island": "Maui"
+    },
+    {
+        "name": "Kūʻula-nui",
+        "aliases": [
+            "Kūʻula",
+            "Kūʻula-Kai",
+            "Kūʻula-of-Hāna",
+            "Kūʻula-iki"
+        ],
+        "category": "Kupua",
+        "context": "Fisherman kupua with multiple regional forms.",
+        "island": "Maui"
+    },
+    {
+        "name": "Kūkaʻilimoku",
+        "aliases": [
+            "Kū",
+            "Kū-of-War",
+            "Kū-of-Upland",
+            "Kū-of-Forest",
+            "Kū-of-Sea",
+            "Kū-of-Carving"
+        ],
+        "category": "Akua",
+        "context": "War and governance deity with many regional aspects.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kū-ka-ʻōhiʻa",
+        "aliases": [
+            "Kū",
+            "Kūkaʻilimoku",
+            "Kū-of-War",
+            "Kū-of-Forest",
+            "Kū-of-Sea",
+            "Kū-of-Carving"
+        ],
+        "category": "Akua",
+        "context": "War and governance deity with many regional aspects.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kū",
+        "aliases": [
+            "Kūkaʻilimoku"
+        ],
+        "category": "Akua",
+        "context": "God of war, politics, governance.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kūmūhonu",
+        "aliases": [
+            "Kūmūhonu-nui"
+        ],
+        "category": "Kupua",
+        "context": "Turtle kupua with regional variants.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kūmūhonu",
+        "category": "Kupua",
+        "context": "Turtle kupua of Kona.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kūpua",
+        "aliases": [
+            "Kūpua-Kaʻōhelo",
+            "Kūpua-Kaʻōhiʻa",
+            "Kūpua-Kaʻōpua",
+            "Kūpua-Kaʻōlapa",
+            "Kūpua-Kaʻōlani",
+            "Kūpua-Kaʻōpihi",
+            "Kūpua-Kaʻōpū",
+            "Kūpua-Kaʻōpala",
+            "Kūpua-Kaʻōwai",
+            "Kūpua-Kaʻōmā",
+            "Kūpua-Kaʻōkū",
+            "Kūpua-Kaʻōele",
+            "Kūpua-Kaʻōena",
+            "Kūpua-Kaʻōai",
+            "Kūpua-Kaʻōau",
+            "Kūpua-Kaʻōeo",
+            "Kūpua-Kaʻōio",
+            "Kūpua-Kaʻōou",
+            "Kūpua-Kaʻōū",
+            "Kūpua-Kaʻōē",
+            "Kūpua-Kaʻōā",
+            "Kūpua-Kaʻōī",
+            "Kūpua-Kaʻōūlū",
+            "Kūpua-Kaʻōhiʻa-lani",
+            "Kūpua-Kaʻōhelo-lani",
+            "Kūpua-Kaʻōpua-lani",
+            "Kūpua-Kaʻōlapa-lani",
+            "Kūpua-Kaʻōpihi-lani",
+            "Kūpua-Kaʻōpū-lani",
+            "Kūpua-Kaʻōpala-lani",
+            "Kūpua-Kaʻōwai-lani",
+            "Kūpua-Kaʻōmā-lani",
+            "Kūpua-Kaʻōkū-lani",
+            "Kūpua-Kaʻōele-lani",
+            "Kūpua-Kaʻōena-lani",
+            "Kūpua-Kaʻōai-lani",
+            "Kūpua-Kaʻōau-lani",
+            "Kūpua-Kaʻōeo-lani",
+            "Kūpua-Kaʻōio-lani",
+            "Kūpua-Kaʻōou-lani",
+            "Kūpua-Kaʻōū-lani",
+            "Kūpua-Kaʻōē-lani",
+            "Kūpua-Kaʻōā-lani",
+            "Kūpua-Kaʻōī-lani",
+            "Kūpua-Kaʻōūlū-lani"
+        ],
+        "category": "Kupua",
+        "context": "Elemental kupua with many volcanic, atmospheric, and celestial manifestations.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kūwili",
+        "aliases": [
+            "Kūwili-nui"
+        ],
+        "category": "Kupua",
+        "context": "Forest kupua known for shape-shifting.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kūwili-nui",
+        "aliases": [
+            "Kūwili"
+        ],
+        "category": "Kupua",
+        "context": "Forest kupua known for shape-shifting.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Laʻamaomao",
+        "aliases": [
+            "Laʻamaomao-nui"
+        ],
+        "category": "Mythic Figure",
+        "context": "Keeper of the wind gourd.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Laʻamaomao",
+        "category": "Mythic Figure",
+        "context": "Keeper of the wind gourd.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Laka",
+        "category": "Akua",
+        "context": "Goddess of hula and forest growth.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Laka",
+        "aliases": [
+            "Laka-of-the-Forest",
+            "Laka-of-Hula",
+            "Laka-of-Maui"
+        ],
+        "category": "Akua",
+        "context": "Goddess of hula, forest growth, and inspiration.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Lono",
+        "aliases": [
+            "Lono-i-ka-makahiki",
+            "Lono-nui"
+        ],
+        "category": "Akua",
+        "context": "God of peace, agriculture, Makahiki.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Lono",
+        "aliases": [
+            "Lono-i-ka-Makahiki",
+            "Lono-nui",
+            "Lono-of-Rain",
+            "Lono-of-Clouds"
+        ],
+        "category": "Akua",
+        "context": "Agriculture and peace deity with Makahiki associations.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Lono-makahiki",
+        "aliases": [
+            "Lono",
+            "Lono-i-ka-Makahiki",
+            "Lono-nui",
+            "Lono-of-Rain",
+            "Lono-of-Clouds"
+        ],
+        "category": "Akua",
+        "context": "Agriculture and peace deity associated with Makahiki.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Lono-nui",
+        "aliases": [
+            "Lono",
+            "Lono-i-ka-Makahiki",
+            "Lono-i-ka-hua"
+        ],
+        "category": "Akua",
+        "context": "Agriculture, rain, and peace deity with regional forms.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Māui",
+        "aliases": [
+            "Māui-tikitiki",
+            "Māui-the-Sky-Lifter",
+            "Māui-the-Sun-Slower",
+            "Māui-the-Island-Fisher",
+            "Māui-the-Trickster",
+            "Māui-a-Hina",
+            "Māui-a-Kalana",
+            "Māui-waena",
+            "Māui-kiʻi",
+            "Māui-loa"
+        ],
+        "category": "Kupua",
+        "context": "Demigod with many manifestations.",
+        "island": "Maui"
+    },
+    {
+        "name": "Moʻoinanea",
+        "category": "Kupua",
+        "context": "Moʻo goddess of Waipiʻo.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Moʻoinanea",
+        "aliases": [
+            "Moʻoinanea-of-Waipiʻo"
+        ],
+        "category": "Kupua",
+        "context": "Moʻo goddess of Waipiʻo.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Moʻoinanea-nui",
+        "aliases": [
+            "Moʻoinanea",
+            "Moʻoinanea-of-Waipiʻo"
+        ],
+        "category": "Kupua",
+        "context": "Moʻo goddess of Waipiʻo with extended lineage forms.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Niheu",
+        "category": "Hero",
+        "context": "Warrior who rescued his sister from gods.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Niheu",
+        "aliases": [
+            "Niheu-nui"
+        ],
+        "category": "Hero",
+        "context": "Warrior who rescued his sister from gods.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pākaʻa",
+        "category": "Hero",
+        "context": "Master of winds; son of Laʻamaomao.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pākaʻa",
+        "aliases": [
+            "Pākaʻa-nui"
+        ],
+        "category": "Hero",
+        "context": "Master of winds; son of Laʻamaomao.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Papa",
+        "aliases": [
+            "Papahānaumoku"
+        ],
+        "category": "Akua",
+        "context": "Earth mother; partner of Wākea.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Papa",
+        "aliases": [
+            "Papahānaumoku",
+            "Papa-nui"
+        ],
+        "category": "Akua",
+        "context": "Earth mother and partner of Wākea.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pele",
+        "aliases": [
+            "Pelehonuamea",
+            "Kaʻula",
+            "Pele-of-Kīlauea"
+        ],
+        "category": "Akua",
+        "context": "Volcano goddess with many manifestations.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pele",
+        "aliases": [
+            "Pelehonuamea",
+            "Kaʻula",
+            "Pele-of-Kīlauea",
+            "Pele-ai-Honua",
+            "Pele-ai-Hōlua",
+            "Pele-ai-Kaʻū",
+            "Pele-ai-Hāna",
+            "Pele-ai-Hilo",
+            "Pele-ai-Waiākea"
+        ],
+        "category": "Akua",
+        "context": "Volcano goddess with many regional and functional manifestations.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Puapualenalena",
+        "category": "Kupua",
+        "context": "Dog kupua of Waipiʻo Valley.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Puapualenalena-nui",
+        "aliases": [
+            "Puapualenalena"
+        ],
+        "category": "Kupua",
+        "context": "Dog kupua of Waipiʻo Valley with narrative variants.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Puapualenalena",
+        "aliases": [
+            "Puapualenalena-of-Waipiʻo"
+        ],
+        "category": "Kupua",
+        "context": "Dog kupua of Waipiʻo Valley.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Wākea",
+        "category": "Akua",
+        "context": "Sky father; ancestor of chiefs.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Wākea",
+        "aliases": [
+            "Wākea-nui",
+            "Wākea-the-Sky-Father"
+        ],
+        "category": "Akua",
+        "context": "Sky father and ancestor of chiefs.",
+        "island": "Hawaiʻi"
+    }
+]
