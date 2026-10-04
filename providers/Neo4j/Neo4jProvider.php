@@ -150,14 +150,28 @@ class Neo4jProvider extends AbstractSearchProvider implements GraphSearchProvide
                 $label = 'Entity';
             }
 
-            $groupedEntities[$label][] = [
+            $row = [
                 'id' => $entity['id'] ?? md5(($entity['name'] ?? '') . ($entity['type'] ?? '')),
                 'name' => $entity['name'] ?? '',
             ];
+            // Optional provenance/metadata props (name-list driven extraction
+            // supplies these); absent keys stay null and leave stored values.
+            foreach (['source', 'category', 'context', 'island', 'birth_year', 'death_year'] as $prop) {
+                if (isset($entity[$prop]) && $entity[$prop] !== '') {
+                    $row[$prop] = $entity[$prop];
+                }
+            }
+
+            $groupedEntities[$label][] = $row;
         }
 
         foreach ($groupedEntities as $label => $rows) {
-            $query = "UNWIND \$rows AS row MERGE (n:GraphEntity {id: row.id}) SET n.name = row.name SET n:$label RETURN count(n)";
+            $setParts = ['n.name = row.name'];
+            foreach (['source', 'category', 'context', 'island', 'birth_year', 'death_year'] as $prop) {
+                $setParts[] = "n.{$prop} = coalesce(row.{$prop}, n.{$prop})";
+            }
+            $query = "UNWIND \$rows AS row MERGE (n:GraphEntity {id: row.id}) SET " . implode(', ', $setParts)
+                . " SET n:$label RETURN count(n)";
             $this->executeCypher($query, ['rows' => $rows]);
         }
 
