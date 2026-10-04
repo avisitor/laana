@@ -1,7 +1,7 @@
 # Hawaiian Place Names — crawl and assembly pipeline
 
 Maintainer notes for `data/name_lists/hawaiian-place-names.txt` →
-`data/name_lists/hawaiian_place_names.json` (+ `consistent/` mirror).
+`data/name_lists/hawaiian_place_names.json` (canonical record schema).
 
 All pipeline scripts live in this directory (`gnis/`, at the repo root next to
 `data/`) and are executed **from here** (all paths are relative). Paths below
@@ -18,38 +18,41 @@ data/name_lists/hawaiian-place-names.txt   14,988 names, one per line, ASCII
         |    joins the txt against (1) the Ulukau HPN crawl, (2) three GNIS
         |    sources, (3) an ahupuaʻa-name fallback, (4) a suffix heuristic
         v
-data/name_lists/hawaiian_place_names.json  14,859 entries (129 dup keys merged)
+data/name_lists/hawaiian_place_names.json  14,859 records (129 dup keys merged)
         |
-        |  data/make_consistent.php  (transform already registered)
+        |  data/validate_name_lists.php    (schema check, exit 1 on violation)
         v
-data/name_lists/consistent/hawaiian_place_names.json
+validated in place — every name list shares the canonical record schema
 ```
 
-Output schema — same keyed-dict shape as `gnis_hawaii_places.json`, plus
-location fields which are present **only when known** (omit-empty convention):
+Output schema — the canonical name-list record array used by ALL of
+`data/name_lists/*.json` (validated by `data/validate_name_lists.php`; empty
+fields omitted):
 
 ```json
-"A Pohina": {
-    "name": "A Pohina",
-    "feature_class": "boundary point; place",
-    "island": "Hawaiʻi",
-    "moku": "Kaʻū",
-    "ahupuaa": "Kapapala"
-}
+[
+    {
+        "name": "A Pohina",
+        "aliases": ["a pohina"],
+        "category": "boundary point; place",
+        "context": "Ahupuaʻa: Kapapala; Moku: Kaʻū.",
+        "island": "Hawaiʻi"
+    }
+]
 ```
 
-- key — `CorpusScanner::normalizeWord` semantics: strip `ʻ`/`'`/`’`, macrons →
-  plain vowels, lowercase, trim (spaces kept; this is how the lookup side
-  normalizes, so keys must match it exactly).
+- aliases[0] — the normalized lookup key, `CorpusScanner::normalizeWord`
+  semantics: strip `ʻ`/`'`/`’`, macrons → plain vowels, lowercase, trim
+  (spaces kept; this is how the lookup side normalizes, so keys must match it
+  exactly).
 - `name` — the txt line (ASCII; identical to the HPN link text).
-- `feature_class` — see precedence chain below. English GNIS classes
-  (`Valley`, `Summit`, …) when GNIS has the feature; otherwise HPN's own
-  vocabulary (`ʻili ʻaina`, `moʻo`, `ahupuaʻa`, `heiau`, `wahi pana`, …).
-- `island` — canonical display spelling; multiple islands → comma-joined
-  (`"Hawaiʻi, Oʻahu, Kauaʻi"` for names that exist on several islands).
-- `moku` — the district part of HPN's "Mokupuni" value (`Hawaiʻi: Kaʻū` →
-  island `Hawaiʻi`, moku `Kaʻū`). Only from HPN; GNIS has no district.
-- `ahupuaa` — HPN ahupuaʻa values (comma-joined for multi-locale names).
+- `category` — feature class: English GNIS classes (`Valley`, `Summit`, …)
+  when GNIS has the feature; otherwise HPN's own vocabulary (`ʻili ʻaina`,
+  `moʻo`, `ahupuaʻa`, `heiau`, `wahi pana`, …).
+- `context` — "Ahupuaʻa: X; Moku: Y." when either is known.
+- `island` — canonical display spelling; multiple islands → comma-joined in
+  canonical order (`"Hawaiʻi, Oʻahu, Kauaʻi"`) for names that exist on several
+  islands.
 
 **Coverage:** island 96.2% (14,291/14,859), feature_class 96.4%, moku 5,650,
 ahupuaa 14,162. Island distribution: Hawaiʻi 4,703 · Oʻahu 2,992 · Kauaʻi 1,987 ·
@@ -205,7 +208,7 @@ cd /var/www/html/noiiolelo/gnis
 python3 crawl_hpn.py --lang haw                      # ~3 min, 21,373 rows
 python3 crawl_hpn.py --only q                        # 3-row smoke test
 python3 build_final.py                               # writes ../name_lists/hawaiian_place_names.json
-php ../make_consistent.php                           # regenerates consistent/ (all lists)
+php ../data/validate_name_lists.php                  # schema check for all name lists
 
 ./browser_stop.sh
 ```
@@ -228,7 +231,8 @@ Expected: `14859 entries; island 14291 (96.2%); feature_class 14321 (96.4%)`.
 Note: `build_final.py` writes `../name_lists/hawaiian_place_names.json`
 relative to the script location — run it from this directory, not from a copy
 elsewhere. After an intentional txt change, re-run only `build_final.py` +
-`php ../make_consistent.php` (no re-crawl needed unless HPN itself changed).
+`php ../data/validate_name_lists.php` (no re-crawl needed unless HPN itself
+changed).
 
 ## Known limitations
 
@@ -244,3 +248,44 @@ elsewhere. After an intentional txt change, re-run only `build_final.py` +
   Cloudflare may tighten and require re-solving the challenge manually or a
   newer CloakBrowser.
 - `data/` is gitignored — these files are working data, not committed.
+
+---
+
+## Related name-list note: SSA Hawaii list removed (2026-09-06)
+
+`ssa_all_names.json` and `ssa_hawaii_names.json` were byte-identical duplicates:
+`NameListManager::downloadSsaNames()` wrote the same national SSA baby-name
+aggregates to both files (the design doc marked it `// same dataset for now` —
+the planned Hawaii filter was never implemented), and the only consumer,
+`scripts/auto_classify_entities.php`, OR-ed them as membership sets, making the
+Hawaii term a no-op. The duplicate file, its loader (`loadSsaHawaiiNames()`),
+and the consumer's dead OR term were removed; classification behavior is
+unchanged.
+
+If a genuinely Hawaii-specific list is ever wanted: the SSA zip that
+`downloadSsaNames()` fetches from <https://www.ssa.gov/oact/babynames/names.zip>
+contains per-state birth files (`HI.txt` = Hawaii, same `Name,Sex,Count` rows
+per year as the national `yob<year>.txt`). Re-adding it is a ~10-line change in
+`downloadSsaNames()` — parse `HI.txt` into a second record array and write it
+to `ssa_hawaii_names.json` — plus re-adding a loader and the OR term in
+`isName()`. Note ssa.gov 403s this datacenter IP, so refreshes will fail loudly
+until fetched via a proxy/mirror.
+
+## Related name-list note: GNIS cleaning + variant index (2026-09-06)
+
+`NameListManager::downloadGnisPlaces()` now strips GNIS designational
+suffixes that are not part of a name — " Census Designated Place",
+" Hawaiian Home Land" (re-categorized from Civil), "(historical)",
+"(not official)", applied repeatedly for combinations like
+"Honolulu Census Designated Place (historical)" — drops aliases that are just
+case-folded copies of the name, and merges same-normalized-name records with
+Census losing to any real feature class (7,323 raw features → 6,422 records).
+
+`gnis_index.json` (spaceless lookup variants: "haeleeleridge" →
+"Hāʻeleʻele Ridge") had no generator in the repo and contained 1,788 noise
+records whose "variant" equaled the normalized name. Rebuild it from the
+cleaned GNIS list after any GNIS refresh with:
+
+```bash
+php data/build_gnis_index.php
+```
