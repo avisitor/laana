@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../vendor/autoload.php';
 \Avisitor\Env\Loader::load(__DIR__ . '/../.env');
 
 function neo4jRequest(string $query, array $parameters = []): array
