@@ -1,0 +1,2956 @@
+[
+    {
+        "name": "ʻAilana",
+        "aliases": [
+            "ʻailana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Akana",
+        "aliases": [
+            "akana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Akeakamai",
+        "aliases": [
+            "akeakamai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻAkela",
+        "aliases": [
+            "ʻakela"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Akoni",
+        "aliases": [
+            "akoni"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Alakaʻi",
+        "aliases": [
+            "alakaʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Alana",
+        "aliases": [
+            "alana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻAlani",
+        "aliases": [
+            "ʻalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Alapaʻi",
+        "aliases": [
+            "alapaʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Aliʻi",
+        "aliases": [
+            "aliʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Aliʻiloa",
+        "aliases": [
+            "aliʻiloa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻAlika",
+        "aliases": [
+            "ʻalika"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Aloha",
+        "aliases": [
+            "aloha"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻAlohi",
+        "aliases": [
+            "ʻalohi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻAlohilani",
+        "aliases": [
+            "ʻalohilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Amoe",
+        "aliases": [
+            "amoe"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻĀnela",
+        "aliases": [
+            "ʻanela"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Ānuenue",
+        "aliases": [
+            "anuenue"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Anuhea",
+        "aliases": [
+            "anuhea"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻAukai",
+        "aliases": [
+            "ʻaukai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻAulani",
+        "aliases": [
+            "ʻaulani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻAuliʻi",
+        "aliases": [
+            "ʻauliʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻEhukai",
+        "aliases": [
+            "ʻehukai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻEnoka",
+        "aliases": [
+            "ʻenoka"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻEwalani",
+        "aliases": [
+            "ʻewalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Haʻaheo",
+        "aliases": [
+            "haʻaheo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Haleakalā",
+        "aliases": [
+            "haleakala"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Haliʻa",
+        "aliases": [
+            "haliʻa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hanalei",
+        "aliases": [
+            "hanalei"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hanohano",
+        "aliases": [
+            "hanohano"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Haunani",
+        "aliases": [
+            "haunani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hauʻoli",
+        "aliases": [
+            "hauʻoli"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hāwea",
+        "aliases": [
+            "hawea"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Healani",
+        "aliases": [
+            "healani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hekili",
+        "aliases": [
+            "hekili"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hiapo",
+        "aliases": [
+            "hiapo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hiʻiaka",
+        "aliases": [
+            "hiʻiaka"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hiʻilani",
+        "aliases": [
+            "hiʻilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hiʻilei",
+        "aliases": [
+            "hiʻilei"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hilinaʻi",
+        "aliases": [
+            "hilinaʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hina",
+        "aliases": [
+            "hina"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hīnano",
+        "aliases": [
+            "hinano"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hiwahiwa",
+        "aliases": [
+            "hiwahiwa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hōkū",
+        "aliases": [
+            "hoku"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hōkūlani",
+        "aliases": [
+            "hokulani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hoʻokano",
+        "aliases": [
+            "hoʻokano"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hoʻonani",
+        "aliases": [
+            "hoʻonani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hoʻopiʻi",
+        "aliases": [
+            "hoʻopiʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hualani",
+        "aliases": [
+            "hualani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hūʻeu",
+        "aliases": [
+            "huʻeu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻIhilani",
+        "aliases": [
+            "ʻihilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Ikaika",
+        "aliases": [
+            "ikaika"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Imaikalani",
+        "aliases": [
+            "imaikalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻImiʻike",
+        "aliases": [
+            "ʻimiʻike"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Ioane",
+        "aliases": [
+            "ioane"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Iokepa",
+        "aliases": [
+            "iokepa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻIolana",
+        "aliases": [
+            "ʻiolana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻIolani",
+        "aliases": [
+            "ʻiolani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Ipo",
+        "aliases": [
+            "ipo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Ipolani",
+        "aliases": [
+            "ipolani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻIwalani",
+        "aliases": [
+            "ʻiwalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻahumanu",
+        "aliases": [
+            "kaʻahumanu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻaumoana",
+        "aliases": [
+            "kaʻaumoana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻena",
+        "aliases": [
+            "kaʻena"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kāʻeo",
+        "aliases": [
+            "kaʻeo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahaʻi",
+        "aliases": [
+            "kahaʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahalewai",
+        "aliases": [
+            "kahalewai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahanuola",
+        "aliases": [
+            "kahanuola"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahealani",
+        "aliases": [
+            "kahealani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahiau",
+        "aliases": [
+            "kahiau"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahikilani",
+        "aliases": [
+            "kahikilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahula",
+        "aliases": [
+            "kahula"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kai",
+        "aliases": [
+            "kai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaiʻa",
+        "aliases": [
+            "kaiʻa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaihe",
+        "aliases": [
+            "kaihe"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaila",
+        "aliases": [
+            "kaila"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kailani",
+        "aliases": [
+            "kailani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻili",
+        "aliases": [
+            "kaʻili"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻilihiwa",
+        "aliases": [
+            "kaʻilihiwa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻilikea",
+        "aliases": [
+            "kaʻilikea"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaimana",
+        "aliases": [
+            "kaimana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻimi",
+        "aliases": [
+            "kaʻimi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻiminaʻauao",
+        "aliases": [
+            "kaʻiminaʻauao"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻimipono",
+        "aliases": [
+            "kaʻimipono"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaina",
+        "aliases": [
+            "kaina"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kainalu",
+        "aliases": [
+            "kainalu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kainoa",
+        "aliases": [
+            "kainoa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kainoakupuna",
+        "aliases": [
+            "kainoakupuna"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaiolohia",
+        "aliases": [
+            "kaiolohia"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaipo",
+        "aliases": [
+            "kaipo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻiu",
+        "aliases": [
+            "kaʻiu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻiulani",
+        "aliases": [
+            "kaʻiulani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalā",
+        "aliases": [
+            "kala"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalaʻe",
+        "aliases": [
+            "kalaʻe"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalāhikiola",
+        "aliases": [
+            "kalahikiola"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalaʻi",
+        "aliases": [
+            "kalaʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalama",
+        "aliases": [
+            "kalama"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalani",
+        "aliases": [
+            "kalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalanikiʻekiʻe",
+        "aliases": [
+            "kalanikiʻekiʻe"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kale",
+        "aliases": [
+            "kale"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaleʻa",
+        "aliases": [
+            "kaleʻa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalehuawehe",
+        "aliases": [
+            "kalehuawehe"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalei",
+        "aliases": [
+            "kalei"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaleialoha",
+        "aliases": [
+            "kaleialoha"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaleikaumaka",
+        "aliases": [
+            "kaleikaumaka"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaleinani",
+        "aliases": [
+            "kaleinani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaleiokalani",
+        "aliases": [
+            "kaleiokalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaleiwohi",
+        "aliases": [
+            "kaleiwohi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalena",
+        "aliases": [
+            "kalena"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaleo",
+        "aliases": [
+            "kaleo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaleolani",
+        "aliases": [
+            "kaleolani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaleponi",
+        "aliases": [
+            "kaleponi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kali",
+        "aliases": [
+            "kali"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalia",
+        "aliases": [
+            "kalia"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaliko",
+        "aliases": [
+            "kaliko"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalikolehua",
+        "aliases": [
+            "kalikolehua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalili",
+        "aliases": [
+            "kalili"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalua",
+        "aliases": [
+            "kalua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaluhi",
+        "aliases": [
+            "kaluhi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamaile",
+        "aliases": [
+            "kamaile"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamaka",
+        "aliases": [
+            "kamaka"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamakanamaikalani",
+        "aliases": [
+            "kamakanamaikalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamakanamakamaemaikalani",
+        "aliases": [
+            "kamakanamakamaemaikalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamāla",
+        "aliases": [
+            "kamala"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamalani",
+        "aliases": [
+            "kamalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamalei",
+        "aliases": [
+            "kamalei"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamāliʻi",
+        "aliases": [
+            "kamaliʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamalu",
+        "aliases": [
+            "kamalu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kameaʻiʻomakamae",
+        "aliases": [
+            "kameaʻiʻomakamae"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kameāloha",
+        "aliases": [
+            "kamealoha"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamila",
+        "aliases": [
+            "kamila"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamuela",
+        "aliases": [
+            "kamuela"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kanaʻi",
+        "aliases": [
+            "kanaʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kanaʻiaupuni",
+        "aliases": [
+            "kanaʻiaupuni"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kanakanui",
+        "aliases": [
+            "kanakanui"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kanamu",
+        "aliases": [
+            "kanamu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kanani",
+        "aliases": [
+            "kanani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kananiokuʻuhome",
+        "aliases": [
+            "kananiokuʻuhome"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kāne",
+        "aliases": [
+            "kane"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaniela",
+        "aliases": [
+            "kaniela"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kanoa",
+        "aliases": [
+            "kanoa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kanoelani",
+        "aliases": [
+            "kanoelani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kanoelehua",
+        "aliases": [
+            "kanoelehua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻohu",
+        "aliases": [
+            "kaʻohu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻohulani",
+        "aliases": [
+            "kaʻohulani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻōpua",
+        "aliases": [
+            "kaʻopua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kāpena",
+        "aliases": [
+            "kapena"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kāpiʻioho",
+        "aliases": [
+            "kapiʻioho"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kapiʻolani",
+        "aliases": [
+            "kapiʻolani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kapono",
+        "aliases": [
+            "kapono"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kapua",
+        "aliases": [
+            "kapua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kapulani",
+        "aliases": [
+            "kapulani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kapuni",
+        "aliases": [
+            "kapuni"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻuhane",
+        "aliases": [
+            "kaʻuhane"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kauʻi",
+        "aliases": [
+            "kauʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kauʻionālani",
+        "aliases": [
+            "kauʻionalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaulana",
+        "aliases": [
+            "kaulana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaumana",
+        "aliases": [
+            "kaumana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kawai",
+        "aliases": [
+            "kawai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kawailani",
+        "aliases": [
+            "kawailani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kawailehua",
+        "aliases": [
+            "kawailehua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kawehionāpua",
+        "aliases": [
+            "kawehionapua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kawehiwehi",
+        "aliases": [
+            "kawehiwehi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kawelo",
+        "aliases": [
+            "kawelo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kawena",
+        "aliases": [
+            "kawena"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kāwika",
+        "aliases": [
+            "kawika"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kea",
+        "aliases": [
+            "kea"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keahi",
+        "aliases": [
+            "keahi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keaka",
+        "aliases": [
+            "keaka"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keakaokalani",
+        "aliases": [
+            "keakaokalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keala",
+        "aliases": [
+            "keala"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kealani",
+        "aliases": [
+            "kealani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kealiʻi",
+        "aliases": [
+            "kealiʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kealiʻiʻaukai",
+        "aliases": [
+            "kealiʻiʻaukai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kealoha",
+        "aliases": [
+            "kealoha"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kealohalani",
+        "aliases": [
+            "kealohalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kealohapauʻole",
+        "aliases": [
+            "kealohapauʻole"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keʻalohilani",
+        "aliases": [
+            "keʻalohilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keani",
+        "aliases": [
+            "keani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keanu",
+        "aliases": [
+            "keanu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keānuenueokalani",
+        "aliases": [
+            "keanuenueokalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keao",
+        "aliases": [
+            "keao"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keaolani",
+        "aliases": [
+            "keaolani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keawe",
+        "aliases": [
+            "keawe"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kēhau",
+        "aliases": [
+            "kehau"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kēhaulani",
+        "aliases": [
+            "kehaulani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kēhaunani",
+        "aliases": [
+            "kehaunani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keikilani",
+        "aliases": [
+            "keikilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keikiokaʻāina",
+        "aliases": [
+            "keikiokaʻaina"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keilani",
+        "aliases": [
+            "keilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kekaimālie",
+        "aliases": [
+            "kekaimalie"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kekaulike",
+        "aliases": [
+            "kekaulike"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kekoa",
+        "aliases": [
+            "kekoa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kekona",
+        "aliases": [
+            "kekona"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keliʻi",
+        "aliases": [
+            "keliʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keoki",
+        "aliases": [
+            "keoki"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keola",
+        "aliases": [
+            "keola"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keona",
+        "aliases": [
+            "keona"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keonaona",
+        "aliases": [
+            "keonaona"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keone",
+        "aliases": [
+            "keone"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keoni",
+        "aliases": [
+            "keoni"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kepano",
+        "aliases": [
+            "kepano"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kiana",
+        "aliases": [
+            "kiana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kiani",
+        "aliases": [
+            "kiani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kiele",
+        "aliases": [
+            "kiele"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kilohana",
+        "aliases": [
+            "kilohana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kimo",
+        "aliases": [
+            "kimo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kina",
+        "aliases": [
+            "kina"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kini",
+        "aliases": [
+            "kini"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Koa",
+        "aliases": [
+            "koa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kona",
+        "aliases": [
+            "kona"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kōnane",
+        "aliases": [
+            "konane"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Konapiliahi",
+        "aliases": [
+            "konapiliahi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kū",
+        "aliases": [
+            "ku"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kūaliʻi",
+        "aliases": [
+            "kualiʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kukunaokalā",
+        "aliases": [
+            "kukunaokala"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kulamanu",
+        "aliases": [
+            "kulamanu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kūlani",
+        "aliases": [
+            "kulani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kūlia",
+        "aliases": [
+            "kulia"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kunāne",
+        "aliases": [
+            "kunane"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kuʻualoha",
+        "aliases": [
+            "kuʻualoha"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kuʻuʻānelalani",
+        "aliases": [
+            "kuʻuʻanelalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kuʻuipo",
+        "aliases": [
+            "kuʻuipo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kuʻulani",
+        "aliases": [
+            "kuʻulani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kuʻulei",
+        "aliases": [
+            "kuʻulei"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kuʻuleialoha",
+        "aliases": [
+            "kuʻuleialoha"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kuʻuleilani",
+        "aliases": [
+            "kuʻuleilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kuʻuleinani",
+        "aliases": [
+            "kuʻuleinani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kuʻumomimakamae",
+        "aliases": [
+            "kuʻumomimakamae"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Laʻakea",
+        "aliases": [
+            "laʻakea"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lahapa",
+        "aliases": [
+            "lahapa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lāhela",
+        "aliases": [
+            "lahela"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lana",
+        "aliases": [
+            "lana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lanakila",
+        "aliases": [
+            "lanakila"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lani",
+        "aliases": [
+            "lani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lea",
+        "aliases": [
+            "lea"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lehua",
+        "aliases": [
+            "lehua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lehuanani",
+        "aliases": [
+            "lehuanani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lei",
+        "aliases": [
+            "lei"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Leialoha",
+        "aliases": [
+            "leialoha"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Leihua",
+        "aliases": [
+            "leihua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Leiko",
+        "aliases": [
+            "leiko"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Leilani",
+        "aliases": [
+            "leilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Leilehua",
+        "aliases": [
+            "leilehua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Leimamo",
+        "aliases": [
+            "leimamo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Leimomi",
+        "aliases": [
+            "leimomi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Leināʻala",
+        "aliases": [
+            "leinaʻala"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Leinani",
+        "aliases": [
+            "leinani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Leolani",
+        "aliases": [
+            "leolani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lī",
+        "aliases": [
+            "li"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Līhau",
+        "aliases": [
+            "lihau"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Liʻiliʻi",
+        "aliases": [
+            "liʻiliʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Likeke",
+        "aliases": [
+            "likeke"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Līlia",
+        "aliases": [
+            "lilia"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lilinoe",
+        "aliases": [
+            "lilinoe"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Līloa",
+        "aliases": [
+            "liloa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Loke",
+        "aliases": [
+            "loke"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lokelani",
+        "aliases": [
+            "lokelani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lono",
+        "aliases": [
+            "lono"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Lopaka",
+        "aliases": [
+            "lopaka"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Luana",
+        "aliases": [
+            "luana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Luka",
+        "aliases": [
+            "luka"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Luʻukia",
+        "aliases": [
+            "luʻukia"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Māhealani",
+        "aliases": [
+            "mahealani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mahiʻai",
+        "aliases": [
+            "mahiʻai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mahina",
+        "aliases": [
+            "mahina"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Maikaʻi",
+        "aliases": [
+            "maikaʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Maile",
+        "aliases": [
+            "maile"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mailelauliʻi",
+        "aliases": [
+            "mailelauliʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Maka",
+        "aliases": [
+            "maka"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Makai",
+        "aliases": [
+            "makai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Makamae",
+        "aliases": [
+            "makamae"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Makana",
+        "aliases": [
+            "makana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Makani",
+        "aliases": [
+            "makani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Makanui",
+        "aliases": [
+            "makanui"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Makaokalani",
+        "aliases": [
+            "makaokalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Makoa",
+        "aliases": [
+            "makoa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Malama",
+        "aliases": [
+            "malama"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Maleka",
+        "aliases": [
+            "maleka"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Malia",
+        "aliases": [
+            "malia"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mālie",
+        "aliases": [
+            "malie"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Malina",
+        "aliases": [
+            "malina"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Maluhia",
+        "aliases": [
+            "maluhia"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Malulani",
+        "aliases": [
+            "malulani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mamo",
+        "aliases": [
+            "mamo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mana",
+        "aliases": [
+            "mana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Manu",
+        "aliases": [
+            "manu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Manuia",
+        "aliases": [
+            "manuia"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Māpuana",
+        "aliases": [
+            "mapuana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Māui",
+        "aliases": [
+            "maui"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Maunakea",
+        "aliases": [
+            "maunakea"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mealiʻi",
+        "aliases": [
+            "mealiʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mele",
+        "aliases": [
+            "mele"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Melia",
+        "aliases": [
+            "melia"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mikaʻele",
+        "aliases": [
+            "mikaʻele"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mikahala",
+        "aliases": [
+            "mikahala"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mikiʻala",
+        "aliases": [
+            "mikiʻala"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mililani",
+        "aliases": [
+            "mililani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Moana",
+        "aliases": [
+            "moana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Moani",
+        "aliases": [
+            "moani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Moanikeʻala",
+        "aliases": [
+            "moanikeʻala"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mokihana",
+        "aliases": [
+            "mokihana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Momi",
+        "aliases": [
+            "momi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Momilani",
+        "aliases": [
+            "momilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Naʻauao",
+        "aliases": [
+            "naʻauao"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nahenahe",
+        "aliases": [
+            "nahenahe"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Naiʻa",
+        "aliases": [
+            "naiʻa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nāinoa",
+        "aliases": [
+            "nainoa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nālani",
+        "aliases": [
+            "nalani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nanea",
+        "aliases": [
+            "nanea"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nani",
+        "aliases": [
+            "nani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nāpua",
+        "aliases": [
+            "napua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nāpualani",
+        "aliases": [
+            "napualani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Noa",
+        "aliases": [
+            "noa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Noe",
+        "aliases": [
+            "noe"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Noʻeau",
+        "aliases": [
+            "noʻeau"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Noelani",
+        "aliases": [
+            "noelani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nohea",
+        "aliases": [
+            "nohea"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nohealani",
+        "aliases": [
+            "nohealani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nohelani",
+        "aliases": [
+            "nohelani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Onaona",
+        "aliases": [
+            "onaona"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pahukula",
+        "aliases": [
+            "pahukula"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pali",
+        "aliases": [
+            "pali"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Palikapu",
+        "aliases": [
+            "palikapu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pauahi",
+        "aliases": [
+            "pauahi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Paulo",
+        "aliases": [
+            "paulo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Piʻikea",
+        "aliases": [
+            "piʻikea"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Piʻilani",
+        "aliases": [
+            "piʻilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pilialoha",
+        "aliases": [
+            "pilialoha"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pōhaikealoha",
+        "aliases": [
+            "pohaikealoha"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pōhaku",
+        "aliases": [
+            "pohaku"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pōmaikaʻi",
+        "aliases": [
+            "pomaikaʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Poʻokela",
+        "aliases": [
+            "poʻokela"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pua",
+        "aliases": [
+            "pua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pualani",
+        "aliases": [
+            "pualani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Puamana",
+        "aliases": [
+            "puamana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Puanani",
+        "aliases": [
+            "puanani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pumehana",
+        "aliases": [
+            "pumehana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Puna",
+        "aliases": [
+            "puna"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Punahele",
+        "aliases": [
+            "punahele"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pūnohu",
+        "aliases": [
+            "punohu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Uʻilani",
+        "aliases": [
+            "uʻilani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Ululani",
+        "aliases": [
+            "ululani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Uluwehi",
+        "aliases": [
+            "uluwehi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Wailani",
+        "aliases": [
+            "wailani"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Waiola",
+        "aliases": [
+            "waiola"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Waipuna",
+        "aliases": [
+            "waipuna"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Ahia",
+        "aliases": [
+            "ahia"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻEhu",
+        "aliases": [
+            "ʻehu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Hana",
+        "aliases": [
+            "hana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Haole",
+        "aliases": [
+            "haole"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻaeʻa",
+        "aliases": [
+            "kaʻaeʻa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻahanui",
+        "aliases": [
+            "kaʻahanui"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻai",
+        "aliases": [
+            "kaʻai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻaihue",
+        "aliases": [
+            "kaʻaihue"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻanāʻanā",
+        "aliases": [
+            "kaʻanaʻana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻākau",
+        "aliases": [
+            "kaʻakau"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻaua",
+        "aliases": [
+            "kaʻaua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻaukai",
+        "aliases": [
+            "kaʻaukai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻawa",
+        "aliases": [
+            "kaʻawa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahananui",
+        "aliases": [
+            "kahananui"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaheana",
+        "aliases": [
+            "kaheana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahele",
+        "aliases": [
+            "kahele"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahili",
+        "aliases": [
+            "kahili"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahinu",
+        "aliases": [
+            "kahinu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahue",
+        "aliases": [
+            "kahue"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kahuhu",
+        "aliases": [
+            "kahuhu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻilianu",
+        "aliases": [
+            "kaʻilianu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaiwi",
+        "aliases": [
+            "kaiwi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalawaiʻa",
+        "aliases": [
+            "kalawaiʻa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kalehua",
+        "aliases": [
+            "kalehua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaluahine",
+        "aliases": [
+            "kaluahine"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaluna",
+        "aliases": [
+            "kaluna"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kama",
+        "aliases": [
+            "kama"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamahiʻai",
+        "aliases": [
+            "kamahiʻai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kamaʻi",
+        "aliases": [
+            "kamaʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kanakaʻole",
+        "aliases": [
+            "kanakaʻole"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kānealiʻi",
+        "aliases": [
+            "kanealiʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kanui",
+        "aliases": [
+            "kanui"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaʻohimaunu",
+        "aliases": [
+            "kaʻohimaunu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kapela",
+        "aliases": [
+            "kapela"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kapu",
+        "aliases": [
+            "kapu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kapule",
+        "aliases": [
+            "kapule"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kau",
+        "aliases": [
+            "kau"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kaua",
+        "aliases": [
+            "kaua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kauhi",
+        "aliases": [
+            "kauhi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kawaʻa",
+        "aliases": [
+            "kawaʻa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kawaha",
+        "aliases": [
+            "kawaha"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kealakaʻi",
+        "aliases": [
+            "kealakaʻi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keaupuni",
+        "aliases": [
+            "keaupuni"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kekahuna",
+        "aliases": [
+            "kekahuna"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kekai",
+        "aliases": [
+            "kekai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kekāula",
+        "aliases": [
+            "kekaula"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kekipi",
+        "aliases": [
+            "kekipi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kekua",
+        "aliases": [
+            "kekua"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Keō",
+        "aliases": [
+            "keo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kuaʻana",
+        "aliases": [
+            "kuaʻana"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Kūkona",
+        "aliases": [
+            "kukona"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Mahi",
+        "aliases": [
+            "mahi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Māhoe",
+        "aliases": [
+            "mahoe"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Māhu",
+        "aliases": [
+            "mahu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Maria",
+        "aliases": [
+            "maria"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Moʻo",
+        "aliases": [
+            "moʻo"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nāʻai",
+        "aliases": [
+            "naʻai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nāhinu",
+        "aliases": [
+            "nahinu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nāholowaʻa",
+        "aliases": [
+            "naholowaʻa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nākai",
+        "aliases": [
+            "nakai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nāwāhine",
+        "aliases": [
+            "nawahine"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nāwai",
+        "aliases": [
+            "nawai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nika",
+        "aliases": [
+            "nika"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Nuʻuanu",
+        "aliases": [
+            "nuʻuanu"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻŌhule",
+        "aliases": [
+            "ʻohule"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "ʻŌpūnui",
+        "aliases": [
+            "ʻopunui"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Paʻahao",
+        "aliases": [
+            "paʻahao"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pāʻaoʻao",
+        "aliases": [
+            "paʻaoʻao"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pāʻele",
+        "aliases": [
+            "paʻele"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Pālau",
+        "aliases": [
+            "palau"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Papa",
+        "aliases": [
+            "papa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Puhi",
+        "aliases": [
+            "puhi"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Upai",
+        "aliases": [
+            "upai"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Wahineʻaeʻa",
+        "aliases": [
+            "wahineʻaeʻa"
+        ],
+        "category": "Hawaiian Given Name"
+    },
+    {
+        "name": "Waiwaiʻole",
+        "aliases": [
+            "waiwaiʻole"
+        ],
+        "category": "Hawaiian Given Name"
+    }
+]

@@ -29,3 +29,4 @@ docs/plans/2026-08-18-data-integrity-fixes.md
 gnis/browser.log
 gnis/output
 data/wordcounts.json
+docs/tuning-opensearch
