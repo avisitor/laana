@@ -71,6 +71,25 @@ class NameListManager
         return is_array($decoded) ? $decoded : [];
     }
 
+    /**
+     * Load a name list written in the canonical record schema
+     * (see NameListRecords) as a normalized-key membership set.
+     */
+    private function loadRecordsAsSet(string $name): array
+    {
+        $decoded = $this->loadJson($name);
+        if ($decoded === []) {
+            return [];
+        }
+        if (!NameListRecords::isRecordArray($decoded)) {
+            \Avisitor\Monolog\Logger::logError(
+                "Name list {$name} does not use the canonical record schema"
+            );
+            return [];
+        }
+        return NameListRecords::recordsToSet($decoded);
+    }
+
     private function recursiveRemove(string $dir): void
     {
         $realDir = realpath($dir);
@@ -104,15 +123,7 @@ class NameListManager
         if ($this->isStale('ssa_all_names.json')) {
             $this->downloadSsaNames();
         }
-        return $this->loadJson('ssa_all_names.json');
-    }
-
-    public function loadSsaHawaiiNames(): array
-    {
-        if ($this->isStale('ssa_hawaii_names.json')) {
-            $this->downloadSsaNames();
-        }
-        return $this->loadJson('ssa_hawaii_names.json');
+        return $this->loadRecordsAsSet('ssa_all_names.json');
     }
 
     private function downloadSsaNames(): void
@@ -162,8 +173,20 @@ class NameListManager
         $this->recursiveRemove($extractDir);
         @unlink($zipPath);
 
-        $this->saveJson('ssa_all_names.json', $names);
-        $this->saveJson('ssa_hawaii_names.json', $names);
+        $records = [];
+        foreach ($names as $normalized => $count) {
+            $records[] = NameListRecords::make(
+                $normalized,
+                [$normalized],
+                'Personal Name',
+                "SSA total occurrences: {$count}."
+            );
+        }
+        if ($records === []) {
+            throw new \RuntimeException('SSA names download yielded no records');
+        }
+
+        $this->saveJson('ssa_all_names.json', $records);
     }
 
     // ---------------------------------------------------------------
@@ -175,13 +198,15 @@ class NameListManager
         if ($this->isStale('hawaiian_given_names.json')) {
             $this->downloadHawaiianGivenNames();
         }
-        return $this->loadJson('hawaiian_given_names.json');
+        return $this->loadRecordsAsSet('hawaiian_given_names.json');
     }
 
     private function downloadHawaiianGivenNames(): void
     {
         $url = 'https://en.wiktionary.org/wiki/Appendix:Hawaiian_given_names?action=raw';
-        $response = $this->http->get($url);
+        $response = $this->http->get($url, [
+            'headers' => ['User-Agent' => 'Noiiolelo-name-list-fetcher/1.0 (Hawaiian corpus search; +https://github.com/avisitor)'],
+        ]);
         $wikitext = $response->getBody()->getContents();
 
         $names = [];
@@ -197,7 +222,15 @@ class NameListManager
             }
         }
 
-        $this->saveJson('hawaiian_given_names.json', $names);
+        $records = [];
+        foreach ($names as $normalized => $name) {
+            $records[] = NameListRecords::make($name, [$normalized], 'Hawaiian Given Name');
+        }
+        if ($records === []) {
+            throw new \RuntimeException('Hawaiian given names download yielded no records');
+        }
+
+        $this->saveJson('hawaiian_given_names.json', $records);
     }
 
     // ---------------------------------------------------------------
@@ -209,40 +242,83 @@ class NameListManager
         if ($this->isStale('gnis_hawaii_places.json')) {
             $this->downloadGnisPlaces();
         }
-        return $this->loadJson('gnis_hawaii_places.json');
+        return $this->loadRecordsAsSet('gnis_hawaii_places.json');
+    }
+
+    /**
+     * Strip GNIS designational suffixes that are not part of a place's name.
+     * Returns [clean name, adjusted category].
+     */
+    private function cleanGnisName(string $name, string $featureClass): array
+    {
+        $category = $featureClass;
+        for ($i = 0; $i < 4; $i++) {
+            $before = $name;
+            if (preg_match('/\s+Hawaiian Home Land$/i', $name)) {
+                if ($category === 'Civil') {
+                    $category = 'Hawaiian Home Land';
+                }
+                $name = rtrim((string)preg_replace('/\s+Hawaiian Home Land$/i', '', $name));
+            }
+            $name = rtrim((string)preg_replace('/\s+Census Designated Place$/i', '', $name));
+            $name = rtrim((string)preg_replace('/\s*\((historical|not official)\)$/i', '', $name));
+            if ($name === $before) {
+                break;
+            }
+        }
+        return [$name, $category];
     }
 
     private function downloadGnisPlaces(): void
     {
-        $url = 'https://geodata.hawaii.gov/arcgis/rest/services/HistoricCultural/MapServer/2/query'
-            . '?where=1%3D1&outFields=NAME,FEATURE_CLASS&f=json&resultRecordCount=10000';
-        $response = $this->http->get($url);
-        $data = json_decode($response->getBody()->getContents(), true);
-        if (!is_array($data) || !isset($data['features'])) {
-            throw new \RuntimeException('Invalid GNIS API response');
-        }
-        $payload = $data;
+        $base = 'https://geodata.hawaii.gov/arcgis/rest/services/HistoricCultural/MapServer/2/query'
+            . '?where=1%3D1&outFields=feature_name%2Cfeature_class&returnGeometry=false'
+            . '&f=json&resultRecordCount=5000';
 
-        $places = [];
-        if (isset($payload['features']) && is_array($payload['features'])) {
-            foreach ($payload['features'] as $feature) {
+        $byKey = [];
+        $offset = 0;
+        do {
+            $response = $this->http->get($base . '&resultOffset=' . $offset);
+            $data = json_decode($response->getBody()->getContents(), true);
+            if (!is_array($data) || !isset($data['features'])) {
+                throw new \RuntimeException("Invalid GNIS API response at offset {$offset}");
+            }
+            $features = $data['features'];
+            foreach ($features as $feature) {
                 $attrs = $feature['attributes'] ?? [];
-                $name = trim($attrs['NAME'] ?? '');
-                $featureClass = trim($attrs['FEATURE_CLASS'] ?? '');
+                $name = trim($attrs['feature_name'] ?? '');
+                $featureClass = trim($attrs['feature_class'] ?? '');
                 if ($name === '') {
                     continue;
                 }
-                $normalized = CorpusScanner::normalizeWord($name);
-                if ($normalized !== '') {
-                    $places[$normalized] = [
-                        'name' => $name,
-                        'feature_class' => $featureClass,
-                    ];
+                [$cleanName, $category] = $this->cleanGnisName($name, $featureClass);
+                if ($cleanName === '') {
+                    $cleanName = $name;
+                    $category = $featureClass;
                 }
+                $key = CorpusScanner::normalizeWord($cleanName);
+                if ($key === '') {
+                    continue;
+                }
+                if (isset($byKey[$key])) {
+                    // Same normalized name: a Census entry loses to a real
+                    // feature class (e.g. "X Census Designated Place" vs "X
+                    // Populated Place"); otherwise keep the first.
+                    if (($byKey[$key]['category'] ?? '') === 'Census' && $category !== 'Census') {
+                        $byKey[$key] = NameListRecords::make($cleanName, [], $category);
+                    }
+                    continue;
+                }
+                $byKey[$key] = NameListRecords::make($cleanName, [], $category);
             }
+            $offset += count($features);
+        } while (count($features) > 0 && ($data['exceededTransferLimit'] ?? false) === true);
+
+        if ($byKey === []) {
+            throw new \RuntimeException('GNIS places download yielded no records');
         }
 
-        $this->saveJson('gnis_hawaii_places.json', $places);
+        $this->saveJson('gnis_hawaii_places.json', array_values($byKey));
     }
 
     // ---------------------------------------------------------------
@@ -254,7 +330,7 @@ class NameListManager
         if ($this->isStale('hawaiian_wordlist.json')) {
             $this->downloadHawaiianWordList();
         }
-        return $this->loadJson('hawaiian_wordlist.json');
+        return $this->loadRecordsAsSet('hawaiian_wordlist.json');
     }
 
     private function downloadHawaiianWordList(): void
@@ -280,7 +356,15 @@ class NameListManager
             }
         }
 
-        $this->saveJson('hawaiian_wordlist.json', $words);
+        $records = [];
+        foreach ($words as $normalized => $word) {
+            $records[] = NameListRecords::make($word, [$normalized], 'Hawaiian Word');
+        }
+        if ($records === []) {
+            throw new \RuntimeException('Hawaiian word list download yielded no records');
+        }
+
+        $this->saveJson('hawaiian_wordlist.json', $records);
     }
 
     // ---------------------------------------------------------------
@@ -292,7 +376,7 @@ class NameListManager
         if ($this->isStale('english_words.json')) {
             $this->downloadEnglishWords();
         }
-        return $this->loadJson('english_words.json');
+        return $this->loadRecordsAsSet('english_words.json');
     }
 
     private function downloadEnglishWords(): void
@@ -313,6 +397,14 @@ class NameListManager
             }
         }
 
-        $this->saveJson('english_words.json', $words);
+        $records = [];
+        foreach (array_keys($words) as $normalized) {
+            $records[] = NameListRecords::make($normalized, [$normalized], 'English Word');
+        }
+        if ($records === []) {
+            throw new \RuntimeException('English words download yielded no records');
+        }
+
+        $this->saveJson('english_words.json', $records);
     }
 }
