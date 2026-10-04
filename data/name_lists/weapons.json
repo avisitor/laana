@@ -1,0 +1,1392 @@
+[
+    {
+        "name": "ʻAlae-ʻIhe",
+        "aliases": [
+            "ʻAlae-ʻIhe-lani",
+            "ʻAlae-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Spear associated with ʻalae birds.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAlae-Pāhoa",
+        "aliases": [
+            "ʻAlae-Pāhoa-lani",
+            "ʻAlae-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Dagger associated with ʻalae birds.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAlaʻala-ʻIhe",
+        "aliases": [
+            "ʻAlaʻala-ʻIhe-lani",
+            "ʻAlaʻala-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Fragrant spear associated with forest blossoms.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAlaʻala-Koʻokoʻo",
+        "aliases": [
+            "ʻAlaʻala-Koʻokoʻo-lani",
+            "ʻAlaʻala-Koʻokoʻo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Fragrant staff associated with forest blossoms.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAlaʻala-Newa",
+        "aliases": [
+            "ʻAlaʻala-Newa-lani",
+            "ʻAlaʻala-Newa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Fragrant club associated with forest blossoms.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAlaʻala-Pāhoa",
+        "aliases": [
+            "ʻAlaʻala-Pāhoa-lani",
+            "ʻAlaʻala-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Fragrant dagger associated with forest blossoms.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAlaʻala-Pololū",
+        "aliases": [
+            "ʻAlaʻala-Pololū-lani",
+            "ʻAlaʻala-Pololū-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Fragrant long spear associated with forest blossoms.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAlaʻe-Koʻokoʻo",
+        "aliases": [
+            "ʻAlaʻe-Koʻokoʻo-lani",
+            "ʻAlaʻe-Koʻokoʻo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Staff associated with ʻalae birds.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAlaʻe-Leiomano",
+        "aliases": [
+            "ʻAlaʻe-Leiomano-lani",
+            "ʻAlaʻe-Leiomano-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Shark-tooth weapon associated with ʻalae birds.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAla-ʻIhe",
+        "aliases": [
+            "ʻAla-ʻIhe-lani",
+            "ʻAla-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Basalt-tipped spear.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAla-Newa",
+        "aliases": [
+            "ʻAla-Newa-lani",
+            "ʻAla-Newa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Basalt-headed club.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAla-Pāhoa",
+        "aliases": [
+            "ʻAla-Pāhoa-lani",
+            "ʻAla-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Dagger made from basalt.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAla-Pololū",
+        "aliases": [
+            "ʻAla-Pololū-lani",
+            "ʻAla-Pololū-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Basalt-tipped long spear.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAu-Koa",
+        "aliases": [
+            "ʻAu-Koa-lani",
+            "ʻAu-Koa-of-Hawaiʻi",
+            "ʻAu-Koa-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Long fighting staff.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻIhe-Hāweo",
+        "aliases": [
+            "ʻIhe-Hāweo-lani",
+            "ʻIhe-Hāweo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Glowing spear appearing in mele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻIhe",
+        "aliases": [
+            "ʻIhe-lani",
+            "ʻIhe-of-Hawaiʻi",
+            "ʻIhe-of-Maui",
+            "ʻIhe-of-Oʻahu",
+            "ʻIhe-of-Kauaʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Spear used in battle and ceremony.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻIhe-Laumeki",
+        "aliases": [
+            "ʻIhe-Laumeki-lani",
+            "ʻIhe-Laumeki-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Long spear variant.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻIhe-Pāhoa",
+        "aliases": [
+            "ʻIhe-Pāhoa-lani",
+            "ʻIhe-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Short spear-dagger hybrid.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻIhe-Pele",
+        "aliases": [
+            "ʻIhe-Pele-lani",
+            "ʻIhe-Pele-of-Kīlauea",
+            "ʻIhe-Pele-of-Puna"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Volcanic spear associated with Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻIliʻili-Koʻokoʻo",
+        "aliases": [
+            "ʻIliʻili-Koʻokoʻo-lani",
+            "ʻIliʻili-Koʻokoʻo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Staff reinforced with stone pebbles.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻIliʻili-Pāhoa",
+        "aliases": [
+            "ʻIliʻili-Pāhoa-lani",
+            "ʻIliʻili-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Stone dagger made from water-worn pebbles.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOhe-Koʻokoʻo",
+        "aliases": [
+            "ʻOhe-Koʻokoʻo-lani",
+            "ʻOhe-Koʻokoʻo-of-Hawaiʻi",
+            "ʻOhe-Koʻokoʻo-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Bamboo staff.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOhe-Newa",
+        "aliases": [
+            "ʻOhe-Newa-lani",
+            "ʻOhe-Newa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Bamboo-headed club.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOhe-Pāhoa",
+        "aliases": [
+            "ʻOhe-Pāhoa-lani",
+            "ʻOhe-Pāhoa-of-Hawaiʻi",
+            "ʻOhe-Pāhoa-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Bamboo dagger.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOhe-Pololū",
+        "aliases": [
+            "ʻOhe-Pololū-lani",
+            "ʻOhe-Pololū-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Bamboo long spear.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOʻo",
+        "aliases": [
+            "ʻOʻo-lani",
+            "ʻOʻo-of-Hawaiʻi",
+            "ʻOʻo-of-Maui",
+            "ʻOʻo-of-Oʻahu",
+            "ʻOʻo-of-Kauaʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Digging and striking implement used as a weapon.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOʻo-Koa",
+        "aliases": [
+            "ʻOʻo-Koa-lani",
+            "ʻOʻo-Koa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Koa-wood ʻOʻo used in combat.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-ʻIhe",
+        "aliases": [
+            "ʻOlili-ʻIhe-lani",
+            "ʻOlili-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling spear used to entangle and pierce.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-ʻOhe",
+        "aliases": [
+            "ʻOlili-ʻOhe-lani",
+            "ʻOlili-ʻOhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling bamboo weapon.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili",
+        "aliases": [
+            "ʻOlili-lani",
+            "ʻOlili-of-Hawaiʻi",
+            "ʻOlili-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling cord weapon used to entangle.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-ʻUmiʻi",
+        "aliases": [
+            "ʻOlili-ʻUmiʻi-lani",
+            "ʻOlili-ʻUmiʻi-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling hook weapon used to disarm.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-Kāhoa",
+        "aliases": [
+            "ʻOlili-Kāhoa-lani",
+            "ʻOlili-Kāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling hook weapon used to snare.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-Kāwele",
+        "aliases": [
+            "ʻOlili-Kāwele-lani",
+            "ʻOlili-Kāwele-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling throwing-stick hybrid.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-Koʻokoʻo",
+        "aliases": [
+            "ʻOlili-Koʻokoʻo-lani",
+            "ʻOlili-Koʻokoʻo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling staff used to entangle and stun.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-Newa",
+        "aliases": [
+            "ʻOlili-Newa-lani",
+            "ʻOlili-Newa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling club used to entangle and strike.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-Olonā",
+        "aliases": [
+            "ʻOlili-Olonā-lani",
+            "ʻOlili-Olonā-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Olonā-fiber whirling entangling weapon.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-Olonā",
+        "aliases": [
+            "ʻOlili-Olonā-lani",
+            "ʻOlili-Olonā-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling weapon reinforced with olonā fiber.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-Pāhoa",
+        "aliases": [
+            "ʻOlili-Pāhoa-lani",
+            "ʻOlili-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling dagger used to entangle and strike.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlili-Pololū",
+        "aliases": [
+            "ʻOlili-Pololū-lani",
+            "ʻOlili-Pololū-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Whirling long spear used to entangle and thrust.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlonā-ʻIhe",
+        "aliases": [
+            "ʻOlonā-ʻIhe-lani",
+            "ʻOlonā-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Spear reinforced with olonā cordage.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlonā-Pāhoa",
+        "aliases": [
+            "ʻOlonā-Pāhoa-lani",
+            "ʻOlonā-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Dagger with olonā fiber binding.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlopū-ʻAla",
+        "aliases": [
+            "ʻOlopū-ʻAla-lani",
+            "ʻOlopū-ʻAla-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Basalt-headed ʻolopū club.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlopū-ʻIliʻili",
+        "aliases": [
+            "ʻOlopū-ʻIliʻili-lani",
+            "ʻOlopū-ʻIliʻili-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Pebble-headed ʻolopū club.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlopū",
+        "aliases": [
+            "ʻOlopū-lani",
+            "ʻOlopū-of-Hawaiʻi",
+            "ʻOlopū-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Stone club used for crushing blows.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlopū-Kiʻi",
+        "aliases": [
+            "ʻOlopū-Kiʻi-lani",
+            "ʻOlopū-Kiʻi-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Carved-image stone club.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻOlopū-Koa",
+        "aliases": [
+            "ʻOlopū-Koa-lani",
+            "ʻOlopū-Koa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Koa-wood club modeled after stone ʻolopū.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua-ʻIhe",
+        "aliases": [
+            "ʻŌpua-ʻIhe-lani",
+            "ʻŌpua-ʻIhe-of-Hawaiʻi",
+            "ʻŌpua-ʻIhe-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Cloud-associated spear.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua-Koʻokoʻo",
+        "aliases": [
+            "ʻŌpua-Koʻokoʻo-lani",
+            "ʻŌpua-Koʻokoʻo-of-Hawaiʻi",
+            "ʻŌpua-Koʻokoʻo-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Cloud-associated staff.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua-Newa",
+        "aliases": [
+            "ʻŌpua-Newa-lani",
+            "ʻŌpua-Newa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Cloud-associated club.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua-Pāhoa",
+        "aliases": [
+            "ʻŌpua-Pāhoa-lani",
+            "ʻŌpua-Pāhoa-of-Hawaiʻi",
+            "ʻŌpua-Pāhoa-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Cloud-associated dagger.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua-Pololū",
+        "aliases": [
+            "ʻŌpua-Pololū-lani",
+            "ʻŌpua-Pololū-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Cloud-associated long spear.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUhi-ʻIhe",
+        "aliases": [
+            "ʻUhi-ʻIhe-lani",
+            "ʻUhi-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Spear associated with ʻuhi rituals.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUhi-Koʻokoʻo",
+        "aliases": [
+            "ʻUhi-Koʻokoʻo-lani",
+            "ʻUhi-Koʻokoʻo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Staff associated with ʻuhi rituals.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUhi-Newa",
+        "aliases": [
+            "ʻUhi-Newa-lani",
+            "ʻUhi-Newa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Club associated with ʻuhi rituals.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUhi-Pāhoa",
+        "aliases": [
+            "ʻUhi-Pāhoa-lani",
+            "ʻUhi-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Dagger associated with ʻuhi (yam) cultivation rituals.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUhi-Pololū",
+        "aliases": [
+            "ʻUhi-Pololū-lani",
+            "ʻUhi-Pololū-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Long spear associated with ʻuhi rituals.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUluhe-ʻIhe",
+        "aliases": [
+            "ʻUluhe-ʻIhe-lani",
+            "ʻUluhe-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Spear associated with ʻuluhe fern thickets.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUluhe-Koʻokoʻo",
+        "aliases": [
+            "ʻUluhe-Koʻokoʻo-lani",
+            "ʻUluhe-Koʻokoʻo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Staff associated with ʻuluhe fern thickets.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUluhe-Newa",
+        "aliases": [
+            "ʻUluhe-Newa-lani",
+            "ʻUluhe-Newa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Club associated with ʻuluhe fern thickets.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUluhe-Pāhoa",
+        "aliases": [
+            "ʻUluhe-Pāhoa-lani",
+            "ʻUluhe-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Dagger associated with ʻuluhe fern thickets.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUluhe-Pololū",
+        "aliases": [
+            "ʻUluhe-Pololū-lani",
+            "ʻUluhe-Pololū-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Long spear associated with ʻuluhe fern thickets.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUmiʻi-ʻIhe",
+        "aliases": [
+            "ʻUmiʻi-ʻIhe-lani",
+            "ʻUmiʻi-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Hook-spear hybrid.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUmiʻi",
+        "aliases": [
+            "ʻUmiʻi-lani",
+            "ʻUmiʻi-of-Hawaiʻi",
+            "ʻUmiʻi-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Weapon used to hook, pull, or disarm opponents.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUmiʻi-Koa",
+        "aliases": [
+            "ʻUmiʻi-Koa-lani",
+            "ʻUmiʻi-Koa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Koa-wood hook weapon.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUmiʻi-Koʻokoʻo",
+        "aliases": [
+            "ʻUmiʻi-Koʻokoʻo-lani",
+            "ʻUmiʻi-Koʻokoʻo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Hook-staff hybrid.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUmiʻi-Newa",
+        "aliases": [
+            "ʻUmiʻi-Newa-lani",
+            "ʻUmiʻi-Newa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Hook club hybrid.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUmiʻi-Olonā",
+        "aliases": [
+            "ʻUmiʻi-Olonā-lani",
+            "ʻUmiʻi-Olonā-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Hook weapon reinforced with olonā cordage.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUmiʻi-Pāhoa",
+        "aliases": [
+            "ʻUmiʻi-Pāhoa-lani",
+            "ʻUmiʻi-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Hybrid hook-dagger weapon.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUmiʻi-Pololū",
+        "aliases": [
+            "ʻUmiʻi-Pololū-lani",
+            "ʻUmiʻi-Pololū-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Hook long-spear hybrid.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāheka",
+        "aliases": [
+            "Kāheka-lani",
+            "Kāheka-of-Hawaiʻi",
+            "Kāheka-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Hooked striking weapon used to catch limbs.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāheka-Olonā",
+        "aliases": [
+            "Kāheka-Olonā-lani",
+            "Kāheka-Olonā-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Hooked weapon reinforced with olonā cordage.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāhili-ʻIhe",
+        "aliases": [
+            "Kāhili-ʻIhe-lani",
+            "Kāhili-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Ceremonial spear associated with chiefly kāhili.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāhili-ʻIhe",
+        "aliases": [
+            "Kāhili-ʻIhe-lani",
+            "Kāhili-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Ceremonial spear associated with chiefly lines.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāhili-Koʻokoʻo",
+        "aliases": [
+            "Kāhili-Koʻokoʻo-lani",
+            "Kāhili-Koʻokoʻo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Ceremonial staff associated with chiefly kāhili.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāhili-Newa",
+        "aliases": [
+            "Kāhili-Newa-lani",
+            "Kāhili-Newa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Ceremonial club associated with chiefly kāhili.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāhili-Pāhoa",
+        "aliases": [
+            "Kāhili-Pāhoa-lani",
+            "Kāhili-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Ceremonial dagger associated with chiefly kāhili.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāhili-Pālua",
+        "aliases": [
+            "Kāhili-Pālua-lani",
+            "Kāhili-Pālua-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Ceremonial double-ended weapon.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāhili-Pololū",
+        "aliases": [
+            "Kāhili-Pololū-lani",
+            "Kāhili-Pololū-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Ceremonial long spear associated with chiefly kāhili.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāhoa",
+        "aliases": [
+            "Kāhoa-lani",
+            "Kāhoa-of-Hawaiʻi",
+            "Kāhoa-of-Maui",
+            "Kāhoa-of-Oʻahu"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Looped cord weapon used for snaring limbs.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāhoa-Olonā",
+        "aliases": [
+            "Kāhoa-Olonā-lani",
+            "Kāhoa-Olonā-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Cord weapon made with strong olonā fiber.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kālaʻau",
+        "aliases": [
+            "Kālaʻau-lani",
+            "Kālaʻau-of-Hawaiʻi",
+            "Kālaʻau-of-Maui",
+            "Kālaʻau-of-Oʻahu",
+            "Kālaʻau-of-Kauaʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Short striking stick used in combat and dance.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kālaʻau-Koa",
+        "aliases": [
+            "Kālaʻau-Koa-lani",
+            "Kālaʻau-Koa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Koa-wood striking stick.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāne-ʻIhe",
+        "aliases": [
+            "Kāne-ʻIhe-lani",
+            "Kāne-ʻIhe-of-Hawaiʻi",
+            "Kāne-ʻIhe-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Spear associated with Kāne.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāne-Koʻokoʻo",
+        "aliases": [
+            "Kāne-Koʻokoʻo-lani",
+            "Kāne-Koʻokoʻo-of-Hawaiʻi",
+            "Kāne-Koʻokoʻo-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Staff associated with Kāne.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāne-Pāhoa",
+        "aliases": [
+            "Kāne-Pāhoa-lani",
+            "Kāne-Pāhoa-of-Hawaiʻi",
+            "Kāne-Pāhoa-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Dagger associated with Kāne.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāwele-ʻIhe",
+        "aliases": [
+            "Kāwele-ʻIhe-lani",
+            "Kāwele-ʻIhe-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Throwing spear used for stunning prey or opponents.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāwele",
+        "aliases": [
+            "Kāwele-lani",
+            "Kāwele-of-Hawaiʻi",
+            "Kāwele-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Throwing stick used for stunning.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāwele-Koa",
+        "aliases": [
+            "Kāwele-Koa-lani",
+            "Kāwele-Koa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Koa-wood throwing stick.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāwele-Koʻokoʻo",
+        "aliases": [
+            "Kāwele-Koʻokoʻo-lani",
+            "Kāwele-Koʻokoʻo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Throwing staff used for stunning.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāwele-Newa",
+        "aliases": [
+            "Kāwele-Newa-lani",
+            "Kāwele-Newa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Throwing club.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāwele-Pāhoa",
+        "aliases": [
+            "Kāwele-Pāhoa-lani",
+            "Kāwele-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Throwing dagger used for disabling.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kāwele-Pololū",
+        "aliases": [
+            "Kāwele-Pololū-lani",
+            "Kāwele-Pololū-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Throwing long spear.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kīpuʻupuʻu-ʻIhe",
+        "aliases": [
+            "Kīpuʻupuʻu-ʻIhe-lani",
+            "Kīpuʻupuʻu-ʻIhe-of-Waimea"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Spear associated with Kīpuʻupuʻu rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kīpuʻupuʻu-Koʻokoʻo",
+        "aliases": [
+            "Kīpuʻupuʻu-Koʻokoʻo-lani",
+            "Kīpuʻupuʻu-Koʻokoʻo-of-Waimea"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Staff associated with Kīpuʻupuʻu rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kīpuʻupuʻu-Newa",
+        "aliases": [
+            "Kīpuʻupuʻu-Newa-lani",
+            "Kīpuʻupuʻu-Newa-of-Waimea"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Club associated with Kīpuʻupuʻu rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kīpuʻupuʻu-Pāhoa",
+        "aliases": [
+            "Kīpuʻupuʻu-Pāhoa-lani",
+            "Kīpuʻupuʻu-Pāhoa-of-Waimea"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Dagger associated with Kīpuʻupuʻu rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kīpuʻupuʻu-Pololū",
+        "aliases": [
+            "Kīpuʻupuʻu-Pololū-lani",
+            "Kīpuʻupuʻu-Pololū-of-Waimea"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Long spear associated with Kīpuʻupuʻu rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Koʻokoʻo-Hāweo",
+        "aliases": [
+            "Koʻokoʻo-Hāweo-lani",
+            "Koʻokoʻo-Hāweo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Glowing combat staff appearing in mele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Koʻokoʻo-Koa",
+        "aliases": [
+            "Koʻokoʻo-Koa-lani",
+            "Koʻokoʻo-Koa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Koa-wood combat staff.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Koʻokoʻo",
+        "aliases": [
+            "Koʻokoʻo-lani",
+            "Koʻokoʻo-of-Hawaiʻi",
+            "Koʻokoʻo-of-Maui",
+            "Koʻokoʻo-of-Oʻahu",
+            "Koʻokoʻo-of-Kauaʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Staff used for combat and authority.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kū-ʻIhe",
+        "aliases": [
+            "Kū-ʻIhe-lani",
+            "Kū-ʻIhe-of-Hawaiʻi",
+            "Kū-ʻIhe-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Spear associated with Kū.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kū-Koʻokoʻo",
+        "aliases": [
+            "Kū-Koʻokoʻo-lani",
+            "Kū-Koʻokoʻo-of-Hawaiʻi",
+            "Kū-Koʻokoʻo-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Staff associated with Kū.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kū-Pāhoa",
+        "aliases": [
+            "Kū-Pāhoa-lani",
+            "Kū-Pāhoa-of-Hawaiʻi",
+            "Kū-Pāhoa-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Dagger associated with Kū.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Laʻau-Pāhoa",
+        "aliases": [
+            "Laʻau-Pāhoa-lani",
+            "Laʻau-Pāhoa-of-Hawaiʻi",
+            "Laʻau-Pāhoa-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Wooden dagger.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Leiomanō-Kiʻi",
+        "aliases": [
+            "Leiomanō-Kiʻi-lani",
+            "Leiomanō-Kiʻi-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Shark-tooth weapon with carved figure.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Leiomano",
+        "aliases": [
+            "Leiomano-lani",
+            "Leiomano-of-Hawaiʻi",
+            "Leiomano-of-Maui",
+            "Leiomano-of-Oʻahu",
+            "Leiomano-of-Kauaʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Shark-tooth weapon used in close combat.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Leiomanō-Pāhoa",
+        "aliases": [
+            "Leiomanō-Pāhoa-lani",
+            "Leiomanō-Pāhoa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Hybrid shark-tooth dagger.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Līhau-ʻIhe",
+        "aliases": [
+            "Līhau-ʻIhe-lani",
+            "Līhau-ʻIhe-of-Hawaiʻi",
+            "Līhau-ʻIhe-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Spear associated with Līhau rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Līhau-Koʻokoʻo",
+        "aliases": [
+            "Līhau-Koʻokoʻo-lani",
+            "Līhau-Koʻokoʻo-of-Hawaiʻi",
+            "Līhau-Koʻokoʻo-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Staff associated with Līhau rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Līhau-Newa",
+        "aliases": [
+            "Līhau-Newa-lani",
+            "Līhau-Newa-of-Hawaiʻi",
+            "Līhau-Newa-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Club associated with Līhau rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Līhau-Pāhoa",
+        "aliases": [
+            "Līhau-Pāhoa-lani",
+            "Līhau-Pāhoa-of-Hawaiʻi",
+            "Līhau-Pāhoa-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Dagger associated with Līhau rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Līhau-Pololū",
+        "aliases": [
+            "Līhau-Pololū-lani",
+            "Līhau-Pololū-of-Hawaiʻi",
+            "Līhau-Pololū-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Long spear associated with Līhau rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Lono-ʻIhe",
+        "aliases": [
+            "Lono-ʻIhe-lani",
+            "Lono-ʻIhe-of-Hawaiʻi",
+            "Lono-ʻIhe-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Spear associated with Lono.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Lono-Koʻokoʻo",
+        "aliases": [
+            "Lono-Koʻokoʻo-lani",
+            "Lono-Koʻokoʻo-of-Hawaiʻi",
+            "Lono-Koʻokoʻo-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Staff associated with Lono.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Lono-Pāhoa",
+        "aliases": [
+            "Lono-Pāhoa-lani",
+            "Lono-Pāhoa-of-Hawaiʻi",
+            "Lono-Pāhoa-of-Maui"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Dagger associated with Lono.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Newa-Kiʻi",
+        "aliases": [
+            "Newa-Kiʻi-lani",
+            "Newa-Kiʻi-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Carved-image club variant.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Newa",
+        "aliases": [
+            "Newa-lani",
+            "Newa-of-Hawaiʻi",
+            "Newa-of-Maui",
+            "Newa-of-Oʻahu",
+            "Newa-of-Kauaʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Stone-headed club.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pāhoa-Hāweo",
+        "aliases": [
+            "Pāhoa-Hāweo-lani",
+            "Pāhoa-Hāweo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Glowing dagger appearing in mele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pāhoa-ʻAlaea",
+        "aliases": [
+            "Pāhoa-ʻAlaea-lani",
+            "Pāhoa-ʻAlaea-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Red-earth hardened dagger.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pāhoa-ʻIliʻili",
+        "aliases": [
+            "Pāhoa-ʻIliʻili-lani",
+            "Pāhoa-ʻIliʻili-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Stone-bladed dagger.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pāhoa-ʻOʻo",
+        "aliases": [
+            "Pāhoa-ʻOʻo-lani",
+            "Pāhoa-ʻOʻo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Hybrid dagger-digging tool used in battle.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pāhoa-Koa",
+        "aliases": [
+            "Pāhoa-Koa-lani",
+            "Pāhoa-Koa-of-Hawaiʻi",
+            "Pāhoa-Koa-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Koa-wood dagger variant.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pāhoa",
+        "aliases": [
+            "Pāhoa-lani",
+            "Pāhoa-of-Hawaiʻi",
+            "Pāhoa-of-Maui",
+            "Pāhoa-of-Oʻahu",
+            "Pāhoa-of-Kauaʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Short dagger made of hardwood or bone.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pāhoa-Pele",
+        "aliases": [
+            "Pāhoa-Pele-lani",
+            "Pāhoa-Pele-of-Kīlauea",
+            "Pāhoa-Pele-of-Puna"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Volcanic dagger associated with Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pālua-Koa",
+        "aliases": [
+            "Pālua-Koa-lani",
+            "Pālua-Koa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Koa-wood double-ended weapon.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pālua",
+        "aliases": [
+            "Pālua-lani",
+            "Pālua-of-Hawaiʻi",
+            "Pālua-of-Maui"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Double-ended striking weapon.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pele-ʻIhe",
+        "aliases": [
+            "Pele-ʻIhe-lani",
+            "Pele-ʻIhe-of-Kīlauea",
+            "Pele-ʻIhe-of-Puna"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Volcanic spear associated with Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pele-Pāhoa",
+        "aliases": [
+            "Pele-Pāhoa-lani",
+            "Pele-Pāhoa-of-Kīlauea",
+            "Pele-Pāhoa-of-Puna"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Volcanic dagger associated with Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pele-Pololū",
+        "aliases": [
+            "Pele-Pololū-lani",
+            "Pele-Pololū-of-Kīlauea",
+            "Pele-Pololū-of-Puna"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Volcanic long spear associated with Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pololū-Hāweo",
+        "aliases": [
+            "Pololū-Hāweo-lani",
+            "Pololū-Hāweo-of-Hawaiʻi"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Glowing long spear appearing in mele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pololū-Koa",
+        "aliases": [
+            "Pololū-Koa-lani",
+            "Pololū-Koa-of-Hawaiʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Koa-wood long spear.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pololū-Pele",
+        "aliases": [
+            "Pololū-Pele-lani",
+            "Pololū-Pele-of-Kīlauea",
+            "Pololū-Pele-of-Puna"
+        ],
+        "category": "Weapon (personified)",
+        "context": "Volcanic long spear associated with Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Pololū",
+        "aliases": [
+            "Pololū-lani",
+            "Pololū-of-Hawaiʻi",
+            "Pololū-of-Maui",
+            "Pololū-of-Oʻahu",
+            "Pololū-of-Kauaʻi"
+        ],
+        "category": "Weapon (non-personified)",
+        "context": "Long thrusting spear.",
+        "island": "Hawaiʻi"
+    }
+]
