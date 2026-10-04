@@ -117,7 +117,6 @@ echo "Loading name lists...\n";
 $manager = new NameListManager();
 
 $ssaAll = $manager->loadSsaAllNames();
-$ssaHawaii = $manager->loadSsaHawaiiNames();
 $hawaiianNames = $manager->loadHawaiianGivenNames();
 $gnisPlaces = $manager->loadGnisPlaceNames();
 $hawaiianWords = $manager->loadHawaiianWordList();
@@ -125,7 +124,6 @@ $englishWords = $manager->loadEnglishWords();
 
 echo "\nLoaded:\n";
 echo "  SSA all names: " . count($ssaAll) . "\n";
-echo "  SSA Hawaii: " . count($ssaHawaii) . "\n";
 echo "  Hawaiian given names: " . count($hawaiianNames) . "\n";
 echo "  GNIS places: " . count($gnisPlaces) . "\n";
 echo "  Hawaiian words: " . count($hawaiianWords) . "\n";
@@ -140,10 +138,9 @@ foreach ($existingOverrides as $entry) {
 echo "Existing overrides: " . count($existingKeys) . "\n\n";
 
 // Classification helpers
-function isName(string $normalized, array $ssaAll, array $ssaHawaii, array $hawaiianNames): bool
+function isName(string $normalized, array $ssaAll, array $hawaiianNames): bool
 {
     return isset($ssaAll[$normalized])
-        || isset($ssaHawaii[$normalized])
         || isset($hawaiianNames[$normalized]);
 }
 
@@ -191,7 +188,7 @@ foreach ($entities as $entity) {
     }
 
     // Include if in any name list
-    if (isName($normalized, $ssaAll, $ssaHawaii, $hawaiianNames)) {
+    if (isName($normalized, $ssaAll, $hawaiianNames)) {
         $newOverrides[] = [
             'word' => $name,
             'normalized' => $normalized,
