@@ -1,0 +1,745 @@
+[
+    {
+        "name": "Aʻala",
+        "aliases": [
+            "Aʻala-rain",
+            "Aʻala-mist"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Fragrant rain associated with ʻAʻala winds.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ao-Kūpaoa",
+        "aliases": [
+            "Ao-Kūpaoa-rain",
+            "Ao-Kūpaoa-of-Hanalei",
+            "Ao-Kūpaoa-of-Kalalau"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Fragrant rain of Kauaʻi.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Ao-Lehua",
+        "aliases": [
+            "Ao-Lehua-rain",
+            "Ao-Lehua-of-Waipiʻo",
+            "Ao-Lehua-of-Waimanu"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Rain associated with lehua forests.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ao-Pili",
+        "aliases": [
+            "Ao-Pili-rain",
+            "Ao-Pili-of-Kohala",
+            "Ao-Pili-of-Kaʻū"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Rain associated with pili grass.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Awa",
+        "aliases": [
+            "Awa-lani",
+            "Awa-of-Hilo",
+            "Awa-of-Waipiʻo",
+            "Awa-of-Waimanu"
+        ],
+        "category": "Rain (personified)",
+        "context": "ʻAwa-scented rain with regional variants.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Awaʻawa",
+        "aliases": [
+            "Awaʻawa-lani",
+            "Awaʻawa-of-Puna",
+            "Awaʻawa-of-Waipiʻo",
+            "Awaʻawa-of-Waimanu"
+        ],
+        "category": "Rain (personified)",
+        "context": "Bitter ʻawaʻawa rain with regional variants.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ehu",
+        "aliases": [
+            "Ehu-lani",
+            "Ehu-of-Maui",
+            "Ehu-of-Kauaʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Light spray-like rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kīpuʻupuʻu",
+        "aliases": [
+            "Kīpuʻupuʻu-lani",
+            "Kīpuʻupuʻu-of-Waimea"
+        ],
+        "category": "Rain (personified)",
+        "context": "Cold driving rain of Waimea.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Līlīlehua",
+        "aliases": [
+            "Līlīlehua-lani",
+            "Līlīlehua-of-Honolulu",
+            "Līlīlehua-of-Nuʻuanu"
+        ],
+        "category": "Rain (personified)",
+        "context": "Fine misty rain of Nuʻuanu and Honolulu.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Uaeho",
+        "aliases": [
+            "Uaeho-lani",
+            "Uaeho-of-Maui",
+            "Uaeho-of-Kauaʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Rain falling in sudden bursts.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Hāʻena",
+        "aliases": [
+            "Ua-Hāʻena-lani",
+            "Ua-Hāʻena-of-Kauaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Hāʻena.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Ua-Hāʻupu",
+        "aliases": [
+            "Ua-Hāʻupu-lani",
+            "Ua-Hāʻupu-of-Kauaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Hāʻupu ridge.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Ua-Hālawa-Ridge",
+        "aliases": [
+            "Ua-Hālawa-ridge",
+            "Ua-Hālawa-ridge-of-Molokaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Ridge rain of Hālawa.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Ua-Hālawa",
+        "aliases": [
+            "Ua-Hālawa-lani",
+            "Ua-Hālawa-of-Molokaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Hālawa Valley.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Ua-Hanalei",
+        "aliases": [
+            "Ua-Hanalei-lani",
+            "Ua-Hanalei-of-Kauaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Hanalei.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Ua-Hanapēpē",
+        "aliases": [
+            "Ua-Hanapēpē-lani",
+            "Ua-Hanapēpē-of-Kauaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Hanapēpē.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Uahā",
+        "aliases": [
+            "Uahā-lani",
+            "Uahā-of-Hawaiʻi",
+            "Uahā-of-Maui",
+            "Uahā-of-Kauaʻi",
+            "Uahā-of-Oʻahu",
+            "Uahā-of-Hāmākua",
+            "Uahā-of-Kaʻū",
+            "Uahā-of-Puna",
+            "Uahā-of-Kohala",
+            "Uahā-of-Kona",
+            "Uahā-of-Hilo",
+            "Uahā-of-Waimea",
+            "Uahā-of-Niʻihau",
+            "Uahā-of-Kahoʻolawe"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Sheet-like rain with widespread regional variants.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Hema",
+        "aliases": [
+            "Ua-Hema-lani",
+            "Ua-Hema-of-Hawaiʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "South-direction rain used in voyaging.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Hikina",
+        "aliases": [
+            "Ua-Hikina-lani",
+            "Ua-Hikina-of-Hawaiʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "East-direction rain used in voyaging.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Hina",
+        "aliases": [
+            "Ua-Hina-lani",
+            "Ua-Hina-of-Maui",
+            "Ua-Hina-of-Hilo",
+            "Ua-Hina-of-Puna",
+            "Ua-Hina-of-Kaʻū",
+            "Ua-Hina-of-Hāmākua",
+            "Ua-Hina-of-Kohala",
+            "Ua-Hina-of-Kona",
+            "Ua-Hina-of-Waimea",
+            "Ua-Hina-of-Molokaʻi",
+            "Ua-Hina-of-Lānaʻi",
+            "Ua-Hina-of-Kahoʻolawe",
+            "Ua-Hina-of-Niʻihau"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain associated with goddess Hina.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Hōkūleʻa",
+        "aliases": [
+            "Ua-Hōkūleʻa-lani",
+            "Ua-Hōkūleʻa-of-Hawaiʻi",
+            "Ua-Hōkūleʻa-of-Maui"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Voyaging rain associated with Hōkūleʻa.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Hoku",
+        "aliases": [
+            "Ua-Hoku-lani",
+            "Ua-Hoku-of-Hilo",
+            "Ua-Hoku-of-Kona",
+            "Ua-Hoku-of-Kohala",
+            "Ua-Hoku-of-Maui",
+            "Ua-Hoku-of-Kauaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Star-associated rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-ʻAhiu-Kahoʻolawe",
+        "aliases": [
+            "Ua-ʻAhiu-of-Kahoʻolawe"
+        ],
+        "category": "Rain (personified)",
+        "context": "Kahoʻolawe variant of ʻAhiu rain.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "Ua-ʻAhiu",
+        "aliases": [
+            "Ua-ʻAhiu-lani",
+            "Ua-ʻAhiu-of-Hawaiʻi",
+            "Ua-ʻAhiu-of-Maui",
+            "Ua-ʻAhiu-of-Kauaʻi",
+            "Ua-ʻAhiu-of-Oʻahu",
+            "Ua-ʻAhiu-of-Molokaʻi",
+            "Ua-ʻAhiu-of-Lānaʻi",
+            "Ua-ʻAhiu-of-Niʻihau"
+        ],
+        "category": "Rain (personified)",
+        "context": "Wild rain appearing in mele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-ʻĀkau",
+        "aliases": [
+            "Ua-ʻĀkau-lani",
+            "Ua-ʻĀkau-of-Hawaiʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "North-direction rain used in voyaging.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-ʻŌahi",
+        "aliases": [
+            "Ua-ʻŌahi-lani",
+            "Ua-ʻŌahi-of-Kīlauea",
+            "Ua-ʻŌahi-of-Puna"
+        ],
+        "category": "Rain (personified)",
+        "context": "Fire-associated volcanic rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-ʻŌlaʻi",
+        "aliases": [
+            "Ua-ʻŌlaʻi-lani",
+            "Ua-ʻŌlaʻi-of-Hilo",
+            "Ua-ʻŌlaʻi-of-Kaʻū"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Earthquake-associated rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-ʻŌlapa",
+        "aliases": [
+            "Ua-ʻŌlapa-lani",
+            "Ua-ʻŌlapa-of-Hilo",
+            "Ua-ʻŌlapa-of-Maui"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Lightning-associated rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-ʻŌpua",
+        "aliases": [
+            "Ua-ʻŌpua-lani",
+            "Ua-ʻŌpua-of-Hilo",
+            "Ua-ʻŌpua-of-Maui",
+            "Ua-ʻŌpua-of-Kauaʻi",
+            "Ua-ʻŌpua-of-Oʻahu"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Cloud-forming rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Kahiko",
+        "aliases": [
+            "Ua-Kahiko-lani",
+            "Ua-Kahiko-of-Hilo",
+            "Ua-Kahiko-of-Kaʻū",
+            "Ua-Kahiko-of-Puna",
+            "Ua-Kahiko-of-Maui"
+        ],
+        "category": "Rain (personified)",
+        "context": "Ancient rain appearing in genealogical chants.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Kāhili",
+        "aliases": [
+            "Ua-Kāhili-lani",
+            "Ua-Kāhili-of-Hilo",
+            "Ua-Kāhili-of-Kona",
+            "Ua-Kāhili-of-Kohala",
+            "Ua-Kāhili-of-Maui"
+        ],
+        "category": "Rain (personified)",
+        "context": "Ceremonial rain appearing in mele inoa.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Kahoʻolawe",
+        "aliases": [
+            "Ua-Kahoʻolawe-lani"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Kahoʻolawe.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "Ua-Kahoʻolawe",
+        "aliases": [
+            "Ua-Kahoʻolawe-lani",
+            "Ua-Kahoʻolawe-of-Kahoʻolawe"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Kahoʻolawe.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "Ua-Kahuli",
+        "aliases": [
+            "Ua-Kahuli-lani",
+            "Ua-Kahuli-of-Hawaiʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain associated with kahuli (tree snails).",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Kai",
+        "aliases": [
+            "Ua-Kai-lani"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Coastal sea rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Kalalau",
+        "aliases": [
+            "Ua-Kalalau-lani",
+            "Ua-Kalalau-of-Kauaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Kalalau Valley.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Ua-Kāne",
+        "aliases": [
+            "Ua-Kāne-lani",
+            "Ua-Kāne-of-Hawaiʻi",
+            "Ua-Kāne-of-Maui",
+            "Ua-Kāne-of-Kauaʻi",
+            "Ua-Kāne-of-Oʻahu"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain associated with Kāne, god of freshwater.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Kaumalapau",
+        "aliases": [
+            "Ua-Kaumalapau-lani",
+            "Ua-Kaumalapau-of-Lānaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Kaumalapau.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "Ua-Keōmuku",
+        "aliases": [
+            "Ua-Keōmuku-lani"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Keōmuku.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "Ua-Kīlauea-Kauaʻi",
+        "aliases": [
+            "Ua-Kīlauea-of-Kauaʻi",
+            "Ua-Kīlauea-lani"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Kīlauea (Kauaʻi).",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Ua-Kōkeʻe",
+        "aliases": [
+            "Ua-Kōkeʻe-lani",
+            "Ua-Kōkeʻe-of-Kauaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Kōkeʻe uplands.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Uakoko",
+        "aliases": [
+            "Uakoko-lani",
+            "Uakoko-of-Hilo",
+            "Uakoko-of-Puna",
+            "Uakoko-of-Kaʻū",
+            "Uakoko-of-Kohala",
+            "Uakoko-of-Kona"
+        ],
+        "category": "Rain (personified)",
+        "context": "Blood-red tinted rain appearing in Pele narratives.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Komohana",
+        "aliases": [
+            "Ua-Komohana-lani",
+            "Ua-Komohana-of-Hawaiʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "West-direction rain used in voyaging.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Kūpaoa-Rain-Kauaʻi",
+        "aliases": [
+            "Ua-Kūpaoa-rain-of-Kauaʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Fragrant rain of Kauaʻi.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Ua-Lama",
+        "aliases": [
+            "Ua-Lama-lani",
+            "Ua-Lama-of-Hawaiʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Rain associated with lama forests.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Lauhala",
+        "aliases": [
+            "Ua-Lauhala-lani",
+            "Ua-Lauhala-of-Hawaiʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Rain associated with hala groves.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Lauʻī",
+        "aliases": [
+            "Ua-Lauʻī-lani",
+            "Ua-Lauʻī-of-Kona",
+            "Ua-Lauʻī-of-Kohala",
+            "Ua-Lauʻī-of-Hāmākua",
+            "Ua-Lauʻī-of-Maui"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Rain associated with ti leaves.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Laukoa",
+        "aliases": [
+            "Ua-Laukoa-lani",
+            "Ua-Laukoa-of-Hawaiʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Rain associated with koa forests.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Lehua",
+        "aliases": [
+            "Ua-Lehua-lani",
+            "Ua-Lehua-of-Hilo",
+            "Ua-Lehua-of-Maui",
+            "Ua-Lehua-of-Kona",
+            "Ua-Lehua-of-Kohala",
+            "Ua-Lehua-of-Hāmākua",
+            "Ua-Lehua-of-Puna",
+            "Ua-Lehua-of-Kaʻū",
+            "Ua-Lehua-of-Waimea",
+            "Ua-Lehua-of-Molokaʻi",
+            "Ua-Lehua-of-Lānaʻi",
+            "Ua-Lehua-of-Kahoʻolawe",
+            "Ua-Lehua-of-Niʻihau"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Lehua-associated rain with regional variants.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Līhau",
+        "aliases": [
+            "Ua-Līhau-lani",
+            "Ua-Līhau-of-Waipiʻo",
+            "Ua-Līhau-of-Waimanu",
+            "Ua-Līhau-of-Haleakalā",
+            "Ua-Līhau-of-Hāna",
+            "Ua-Līhau-of-Honolulu",
+            "Ua-Līhau-of-Waikīkī",
+            "Ua-Līhau-of-Hanalei",
+            "Ua-Līhau-of-Kalalau",
+            "Ua-Līhau-of-Pelekunu",
+            "Ua-Līhau-of-Waikolu",
+            "Ua-Līhau-of-Kaumalapau",
+            "Ua-Līhau-of-Keōmuku",
+            "Ua-Līhau-of-Kahoʻolawe"
+        ],
+        "category": "Rain (personified)",
+        "context": "Cold upland rain with widespread regional variants.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Loko",
+        "aliases": [
+            "Ua-Loko-lani"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Inland upland rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Nāpali",
+        "aliases": [
+            "Ua-Nāpali-lani",
+            "Ua-Nāpali-of-Kauaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Nā Pali coast.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Ua-Noe",
+        "aliases": [
+            "Ua-Noe-lani",
+            "Ua-Noe-of-Hilo",
+            "Ua-Noe-of-Maui",
+            "Ua-Noe-of-Oʻahu",
+            "Ua-Noe-of-Waipiʻo",
+            "Ua-Noe-of-Waimanu",
+            "Ua-Noe-of-Haleakalā",
+            "Ua-Noe-of-Hāna",
+            "Ua-Noe-of-Honolulu",
+            "Ua-Noe-of-Waikīkī",
+            "Ua-Noe-of-Hanalei",
+            "Ua-Noe-of-Kalalau",
+            "Ua-Noe-of-Pelekunu",
+            "Ua-Noe-of-Waikolu",
+            "Ua-Noe-of-Kaumalapau",
+            "Ua-Noe-of-Keōmuku",
+            "Ua-Noe-of-Kahoʻolawe"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Mist rain with extensive regional variants.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Paliuli",
+        "aliases": [
+            "Ua-Paliuli-lani",
+            "Ua-Paliuli-of-Hawaiʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Mythic rain of Paliuli.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Pelekunu",
+        "aliases": [
+            "Ua-Pelekunu-lani",
+            "Ua-Pelekunu-Ridge"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Pelekunu Valley.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Ua-Pele",
+        "aliases": [
+            "Ua-Pele-lani",
+            "Ua-Pele-of-Kīlauea",
+            "Ua-Pele-of-Puna",
+            "Ua-Pele-of-Kaʻū",
+            "Ua-Pele-of-Hilo"
+        ],
+        "category": "Rain (personified)",
+        "context": "Volcanic rain associated with Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Uapēpē",
+        "aliases": [
+            "Uapēpē-lani",
+            "Uapēpē-of-Hilo",
+            "Uapēpē-of-Maui"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Side-blown drifting rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Uapōhaku",
+        "aliases": [
+            "Uapōhaku-lani",
+            "Uapōhaku-of-Maui",
+            "Uapōhaku-of-Kauaʻi"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Stone-hard driving rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Puhi",
+        "aliases": [
+            "Ua-Puhi-lani"
+        ],
+        "category": "Rain (non-personified)",
+        "context": "Wind-driven rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Waikolu",
+        "aliases": [
+            "Ua-Waikolu-lani",
+            "Ua-Waikolu-Ridge",
+            "Ua-Waikolu-of-Molokaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Waikolu Valley.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Ua-Waimanu",
+        "aliases": [
+            "Ua-Waimanu-lani",
+            "Ua-Waimanu-of-Hawaiʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Waimanu Valley.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ua-Wainiha",
+        "aliases": [
+            "Ua-Wainiha-lani",
+            "Ua-Wainiha-of-Kauaʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Wainiha Valley.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Ua-Waipiʻo",
+        "aliases": [
+            "Ua-Waipiʻo-lani",
+            "Ua-Waipiʻo-of-Hawaiʻi"
+        ],
+        "category": "Rain (personified)",
+        "context": "Rain of Waipiʻo Valley.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Ulalena",
+        "aliases": [
+            "Ulalena-lani",
+            "Ulalena-of-Hāna"
+        ],
+        "category": "Rain (personified)",
+        "context": "Red-gold misty rain of Hāna.",
+        "island": "Maui"
+    }
+]
