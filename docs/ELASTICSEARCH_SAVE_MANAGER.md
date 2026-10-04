@@ -135,6 +135,6 @@ switching.
 
 ## Troubleshooting
 
-- **"Embedding service not available"** — start the embedding service; see `providers/Elasticsearch/docs/embedding_service_requirements.txt`
+- **"Embedding service not available"** — check `/var/www/html/embedding_service/service_control.sh status` (the socket must be active; models load on demand); see `/var/www/html/embedding_service/README.md`
 - **"No parser specified/found"** — `--parser` must match a key in `scripts/parsers.php`
 - **Slow runs** — reduce `--maxrows`; the manager throttles requests between documents
