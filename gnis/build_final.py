@@ -11,21 +11,19 @@ Inputs (paths relative to this script's directory):
 Output:
   ../data/name_lists/hawaiian_place_names.json
 
-Schema (per gnis_hawaii_places.json, plus location fields where known):
-    { "<normalized-key>": {"name": ..., "feature_class": ..., "island": ...,
-                           "moku": ..., "ahupuaa": ...}, ... }
-- key           = CorpusScanner::normalizeWord semantics (strip okina/apostrophes,
-                  macrons -> plain vowels, lowercase, trim; spaces kept)
-- name          = txt line (ASCII, matches the HPN title)
-- feature_class = GNIS English class when matched, else HPN fc verbatim,
-                  else "ahupuaʻa" when the name matched an HPN ahupuaʻa value,
-                  else trailing-word heuristic, else omitted
-- island        = HPN mokupuni (island part), else the island of HPN entries
-                  citing it as an ahupuaʻa, else coordinate-derived from GNIS,
-                  else omitted; multiple -> comma-joined (canonical order)
-- moku          = HPN mokupuni district part (comma-joined), omitted if unknown
-- ahupuaa       = HPN ahupuaʻa values (comma-joined; the name itself when
-                  matched via the ahupuaʻa fallback), omitted if unknown
+Schema (canonical name-list record array, see data/validate_name_lists.php):
+    [ {"name": ..., "aliases": [...], "category": ..., "context": ...,
+       "island": ...}, ... ]
+- normalized key = CorpusScanner::normalizeWord semantics (strip okina/apostrophes,
+  macrons -> plain vowels, lowercase, trim; spaces kept); kept as aliases[0]
+- name           = txt line (ASCII, matches the HPN title)
+- category       = feature class: GNIS English class when matched, else HPN fc
+                   verbatim, else "ahupuaʻa" when the name matched an HPN
+                   ahupuaʻa value, else trailing-word heuristic, else omitted
+- context        = "Ahupuaʻa: X; Moku: Y." when either is known
+- island         = HPN mokupuni (island part), else the island of HPN entries
+                   citing it as an ahupuaʻa, else coordinate-derived from GNIS,
+                   else omitted; multiple -> comma-joined (canonical order)
 """
 import json
 import math
@@ -204,37 +202,32 @@ def main():
             return None
         return ', '.join(sorted(uniq, key=lambda i: (ISLAND_RANK.get(i, 50), i)))
 
+    class_source = {}
     for line in txt_lines:
         key = norm(line)
         if key in out:
             stats['dup-key'] += 1
-            prev = out[key]
-            for field, src_map in (('island', hpn_islands), ('moku', hpn_mokus),
-                                   ('ahupuaa', hpn_ah)):
-                extra = src_map.get(key) or set()
-                if not extra:
-                    continue
-                merged = set((prev.get(field) or '').split(', ')) | extra
-                merged.discard('')
-                if merged:
-                    prev[field] = ', '.join(sorted(merged))
+            merged = out[key]
+            merged['islands'] |= (hpn_islands.get(key) or set())
+            merged['mokus'] |= (hpn_mokus.get(key) or set())
+            merged['ahs'] |= (hpn_ah.get(key) or set())
             continue
-        entry = {'name': line}
+        entry = {'name': line, 'islands': set(), 'mokus': set(), 'ahs': set()}
         via_ah = False
         if key in gnis_class:
-            entry['feature_class'] = gnis_class[key].most_common(1)[0][0]
+            entry['category'] = gnis_class[key].most_common(1)[0][0]
             stats['class: GNIS'] += 1
         elif key in hpn_fc_values:
-            entry['feature_class'] = hpn_fc_values[key].most_common(1)[0][0]
+            entry['category'] = hpn_fc_values[key].most_common(1)[0][0]
             stats['class: HPN'] += 1
         elif key in ah_islands:
-            entry['feature_class'] = 'ahupua\u02bba'
+            entry['category'] = 'ahupua\u02bba'
             via_ah = True
             stats['class: ahupuaa'] += 1
         else:
             hc = heuristic_class(line)
             if hc:
-                entry['feature_class'] = hc
+                entry['category'] = hc
                 stats['class: suffix'] += 1
             else:
                 stats['class: none'] += 1
@@ -251,19 +244,16 @@ def main():
         if not islands:
             islands = gnis_island.get(key) or set()
             src = 'coords'
-        isl = fmt_islands(islands)
-        if isl:
-            entry['island'] = isl
+        entry['islands'] |= islands
+        entry['mokus'] |= mokus
+        entry['ahs'] |= ahs
+        if entry['islands']:
             stats[f'island: {src}'] += 1
         else:
             stats['island: none'] += 1
-        mok = ', '.join(sorted(mokus)) if mokus else None
-        if mok:
-            entry['moku'] = mok
+        if entry['mokus']:
             stats['moku: set'] += 1
-        ahs_join = ', '.join(sorted(ahs)) if ahs else None
-        if ahs_join:
-            entry['ahupuaa'] = ahs_join
+        if entry['ahs']:
             stats['ahupuaa: set'] += 1
         if key in hpn_islands or key in hpn_fc_values:
             stats['matched HPN'] += 1
@@ -275,12 +265,29 @@ def main():
             stats['matched neither'] += 1
         out[key] = entry
 
+    records = []
+    for key, entry in out.items():
+        record = {'name': entry['name'], 'aliases': [key]}
+        if 'category' in entry:
+            record['category'] = entry['category']
+        ctx_parts = []
+        if entry['ahs']:
+            ctx_parts.append('Ahupua\u02bba: ' + ', '.join(sorted(entry['ahs'])))
+        if entry['mokus']:
+            ctx_parts.append('Moku: ' + ', '.join(sorted(entry['mokus'])))
+        if ctx_parts:
+            record['context'] = '; '.join(ctx_parts) + '.'
+        isl = fmt_islands(entry['islands'])
+        if isl:
+            record['island'] = isl
+        records.append(record)
+
     with open(OUT, 'w', encoding='utf-8') as fh:
-        json.dump(out, fh, ensure_ascii=False, indent=4)
+        json.dump(records, fh, ensure_ascii=False, indent=4)
         fh.write('\n')
 
     print(f'HPN rows: {hpn_rows}')
-    print(f'wrote {OUT}: {len(out)} entries from {len(txt_lines)} txt lines')
+    print(f'wrote {OUT}: {len(records)} records from {len(txt_lines)} txt lines')
     for k, v in stats.most_common():
         print(f'  {v:6d}  {k}')
 
