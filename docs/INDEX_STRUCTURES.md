@@ -18,6 +18,14 @@ Both engines have identical structures (OpenSearch config in
 
 Base name comes from `--collection-name` / `indexName` (default `hawaiian`).
 
+On OpenSearch the vector fields are `knn_vector` (Lucene HNSW, cosine) with
+`mode: on_disk` and `compression_level: 32x`: the HNSW graph searches 1-bit
+quantized vectors (the counterpart of Elasticsearch's `bbq_hnsw`), and the
+full-precision vectors are kept on disk to rescore the top candidates.
+Vectors are excluded from `_source`, so they cannot be copied with
+`_reindex`. A mapping change needs a rebuild from stored vectors instead
+(`createindex.php --recreate --provider=opensearch --source=postgres`).
+
 ### `hawaiian_documents_new` (documents; `config/documents_mapping.json`)
 
 | Field | Type | Notes |
