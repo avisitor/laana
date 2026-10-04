@@ -1,0 +1,3181 @@
+[
+    {
+        "name": "Haʻena",
+        "aliases": [
+            "Haʻena-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Haʻena, Kauaʻi.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Haʻena-Kauaʻi",
+        "aliases": [
+            "Haʻena-wind",
+            "Haʻena-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Haʻena.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Haʻikū",
+        "aliases": [
+            "Haʻikū-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Haʻikū, Maui.",
+        "island": "Maui"
+    },
+    {
+        "name": "Hālawa",
+        "aliases": [
+            "Hālawa-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Hālawa Valley.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Hālawa-Molokaʻi",
+        "aliases": [
+            "Hālawa-wind",
+            "Hālawa-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Hālawa Valley.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Haleakalā",
+        "aliases": [
+            "Haleakalā-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "High mountain wind of Haleakalā.",
+        "island": "Maui"
+    },
+    {
+        "name": "Hanalei",
+        "aliases": [
+            "Hanalei-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Hanalei.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Hanalei-Kauaʻi",
+        "aliases": [
+            "Hanalei-wind",
+            "Hanalei-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Hanalei.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Hāna-Ridge",
+        "aliases": [
+            "Hāna-ridge-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind associated with Hāna ridge systems.",
+        "island": "Maui"
+    },
+    {
+        "name": "Hema",
+        "aliases": [
+            "Hema-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "South wind used in voyaging directions.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Hikina",
+        "aliases": [
+            "Hikina-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "East wind used in voyaging directions.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Hōkūleʻa",
+        "aliases": [
+            "Hōkūleʻa-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Voyaging wind associated with Hōkūleʻa.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Honokōhau",
+        "aliases": [
+            "Honokōhau-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Honokōhau Valley.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAhiu",
+        "aliases": [
+            "ʻAhiu-lani",
+            "ʻAhiu-of-Maui",
+            "ʻAhiu-of-Kauaʻi",
+            "ʻAhiu-of-Oʻahu",
+            "ʻAhiu-of-Hāmākua",
+            "ʻAhiu-of-Kaʻū",
+            "ʻAhiu-of-Puna",
+            "ʻAhiu-of-Kohala",
+            "ʻAhiu-of-Kona",
+            "ʻAhiu-of-Hilo",
+            "ʻAhiu-of-Waimea",
+            "ʻAhiu-of-Lānaʻi",
+            "ʻAhiu-of-Molokaʻi",
+            "ʻAhiu-of-Niʻihau",
+            "ʻAhiu-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wild wind appearing across mele and moʻolelo.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-Hāʻena",
+        "aliases": [
+            "ʻAʻala-of-Hāʻena"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāʻena variant of the ʻAʻala wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻala-Hālawa",
+        "aliases": [
+            "ʻAʻala-of-Hālawa"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hālawa Valley variant of the ʻAʻala wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻala-Haleakalā",
+        "aliases": [
+            "ʻAʻala-of-Haleakalā"
+        ],
+        "category": "Wind (personified)",
+        "context": "Haleakalā variant of the ʻAʻala wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻala-Hāmākua",
+        "aliases": [
+            "ʻAʻala-of-Hāmākua"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāmākua variant of the ʻAʻala wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-Hanalei",
+        "aliases": [
+            "ʻAʻala-of-Hanalei"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hanalei variant of the ʻAʻala wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻala-Hilo-Bay",
+        "aliases": [
+            "ʻAʻala-of-Hilo-Bay"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hilo Bay variant of the ʻAʻala wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-Hilo",
+        "aliases": [
+            "ʻAʻala-of-Hilo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hilo variant of the ʻAʻala wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala",
+        "aliases": [
+            "ʻAʻala-of-Kohala",
+            "ʻAʻala-mālie"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named fragrant wind of Kohala.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-Kahoʻolawe",
+        "aliases": [
+            "ʻAʻala-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahoʻolawe variant of the ʻAʻala wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "ʻAʻala-Kaʻū",
+        "aliases": [
+            "ʻAʻala-of-Kaʻū"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaʻū variant of the ʻAʻala wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-Kalalau",
+        "aliases": [
+            "ʻAʻala-of-Kalalau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kalalau variant of the ʻAʻala wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻala-Kauaʻi",
+        "aliases": [
+            "ʻAʻala-of-Kauaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kauaʻi variant of the ʻAʻala wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻala-Kaumalapau",
+        "aliases": [
+            "ʻAʻala-of-Kaumalapau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaumalapau variant of the ʻAʻala wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻAʻala-Keōmuku",
+        "aliases": [
+            "ʻAʻala-of-Keōmuku"
+        ],
+        "category": "Wind (personified)",
+        "context": "Keōmuku variant of the ʻAʻala wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻAʻala-Kohala",
+        "aliases": [
+            "ʻAʻala",
+            "ʻAʻala-lani",
+            "ʻAʻala-mālie"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Kohala fragrant wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-Kohala",
+        "aliases": [
+            "ʻAʻala",
+            "ʻAʻala-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Kohala wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-Kona",
+        "aliases": [
+            "ʻAʻala-of-Kona"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kona variant of the ʻAʻala wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-lani",
+        "aliases": [
+            "ʻAʻala-lani-of-Kohala"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly form of the Kohala wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-Maui",
+        "aliases": [
+            "ʻAʻala-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Maui variant of the ʻAʻala wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻala-Pelekunu",
+        "aliases": [
+            "ʻAʻala-of-Pelekunu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Pelekunu Valley variant of the ʻAʻala wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻala-Puna",
+        "aliases": [
+            "ʻAʻala-of-Puna"
+        ],
+        "category": "Wind (personified)",
+        "context": "Puna variant of the ʻAʻala wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-Waikolu",
+        "aliases": [
+            "ʻAʻala-of-Waikolu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waikolu Valley variant of the ʻAʻala wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻala-Waimanu",
+        "aliases": [
+            "ʻAʻala-of-Waimanu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimanu Valley variant of the ʻAʻala wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻala-Waipiʻo",
+        "aliases": [
+            "ʻAʻala-of-Waipiʻo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waipiʻo Valley variant of the ʻAʻala wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Hāʻena",
+        "aliases": [
+            "ʻAʻaliʻi-of-Hāʻena"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāʻena variant of the ʻAʻaliʻi wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Hālawa",
+        "aliases": [
+            "ʻAʻaliʻi-of-Hālawa"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hālawa Valley variant of the ʻAʻaliʻi wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Haleakalā",
+        "aliases": [
+            "ʻAʻaliʻi-of-Haleakalā"
+        ],
+        "category": "Wind (personified)",
+        "context": "Haleakalā variant of the ʻAʻaliʻi wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻaliʻi-Hāmākua",
+        "aliases": [
+            "ʻAʻaliʻi-of-Hāmākua"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāmākua variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Hanalei",
+        "aliases": [
+            "ʻAʻaliʻi-of-Hanalei"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hanalei variant of the ʻAʻaliʻi wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Hilo",
+        "aliases": [
+            "ʻAʻaliʻi-of-Hilo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hilo variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Hualālai",
+        "aliases": [
+            "ʻAʻaliʻi-of-Hualālai"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hualālai variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi",
+        "aliases": [
+            "ʻAʻaliʻi-lani",
+            "ʻAʻaliʻi-mālie",
+            "ʻAʻaliʻi-ʻino"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind associated with the ʻAʻaliʻi shrub and mele hula.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Kahoʻolawe",
+        "aliases": [
+            "ʻAʻaliʻi-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahoʻolawe variant of the ʻAʻaliʻi wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "ʻAʻaliʻi-Kaʻū",
+        "aliases": [
+            "ʻAʻaliʻi-of-Kaʻū"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaʻū variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Kailua",
+        "aliases": [
+            "ʻAʻaliʻi-of-Kailua"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kailua variant of the ʻAʻaliʻi wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻaliʻi-Kalalau",
+        "aliases": [
+            "ʻAʻaliʻi-of-Kalalau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kalalau variant of the ʻAʻaliʻi wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Kāneʻohe",
+        "aliases": [
+            "ʻAʻaliʻi-of-Kāneʻohe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kāneʻohe variant of the ʻAʻaliʻi wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻaliʻi-Kauaʻi",
+        "aliases": [
+            "ʻAʻaliʻi-of-Kauaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kauaʻi variant of the ʻAʻaliʻi wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Kaumalapau",
+        "aliases": [
+            "ʻAʻaliʻi-of-Kaumalapau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaumalapau variant of the ʻAʻaliʻi wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Keōmuku",
+        "aliases": [
+            "ʻAʻaliʻi-of-Keōmuku"
+        ],
+        "category": "Wind (personified)",
+        "context": "Keōmuku variant of the ʻAʻaliʻi wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Kīlauea-Hawaiʻi",
+        "aliases": [
+            "ʻAʻaliʻi-of-Kīlauea-Hawaiʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kīlauea (Hawaiʻi Island) variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Kohala",
+        "aliases": [
+            "ʻAʻaliʻi-of-Kohala"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kohala variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Kona",
+        "aliases": [
+            "ʻAʻaliʻi-of-Kona"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kona variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Lānaʻi",
+        "aliases": [
+            "ʻAʻaliʻi-of-Lānaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Lānaʻi variant of the ʻAʻaliʻi wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Maui",
+        "aliases": [
+            "ʻAʻaliʻi-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Maui variant of the ʻAʻaliʻi wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻaliʻi-Mauna-Kea",
+        "aliases": [
+            "ʻAʻaliʻi-of-Mauna-Kea"
+        ],
+        "category": "Wind (personified)",
+        "context": "Mauna Kea variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Mauna-Loa",
+        "aliases": [
+            "ʻAʻaliʻi-of-Mauna-Loa"
+        ],
+        "category": "Wind (personified)",
+        "context": "Mauna Loa variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Molokaʻi",
+        "aliases": [
+            "ʻAʻaliʻi-of-Molokaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Molokaʻi variant of the ʻAʻaliʻi wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Niʻihau",
+        "aliases": [
+            "ʻAʻaliʻi-of-Niʻihau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Niʻihau variant of the ʻAʻaliʻi wind.",
+        "island": "Niʻihau"
+    },
+    {
+        "name": "ʻAʻaliʻi-Oʻahu",
+        "aliases": [
+            "ʻAʻaliʻi-of-Oʻahu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Oʻahu variant of the ʻAʻaliʻi wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻaliʻi-Pelekunu",
+        "aliases": [
+            "ʻAʻaliʻi-of-Pelekunu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Pelekunu Valley variant of the ʻAʻaliʻi wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Puna",
+        "aliases": [
+            "ʻAʻaliʻi-of-Puna"
+        ],
+        "category": "Wind (personified)",
+        "context": "Puna variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Waikolu",
+        "aliases": [
+            "ʻAʻaliʻi-of-Waikolu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waikolu Valley variant of the ʻAʻaliʻi wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻaliʻi-Waimānalo",
+        "aliases": [
+            "ʻAʻaliʻi-of-Waimānalo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimānalo variant of the ʻAʻaliʻi wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻaliʻi-Waimea",
+        "aliases": [
+            "ʻAʻaliʻi-of-Waimea"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimea variant of the ʻAʻaliʻi wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Hāʻena",
+        "aliases": [
+            "ʻAʻelo-of-Hāʻena"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāʻena variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Hālawa",
+        "aliases": [
+            "ʻAʻelo-of-Hālawa"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hālawa Valley variant of the ʻAʻelo wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Haleakalā",
+        "aliases": [
+            "ʻAʻelo-of-Haleakalā"
+        ],
+        "category": "Wind (personified)",
+        "context": "High mountain variant of the ʻAʻelo wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-Haleakalā-lani",
+        "aliases": [
+            "ʻAʻelo-lani-of-Haleakalā"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Haleakalā variant of the ʻAʻelo wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-Haleʻiwa",
+        "aliases": [
+            "ʻAʻelo-of-Haleʻiwa"
+        ],
+        "category": "Wind (personified)",
+        "context": "Haleʻiwa variant of the ʻAʻelo wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻelo-Hāmākua",
+        "aliases": [
+            "ʻAʻelo-of-Hāmākua"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāmākua variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Hāna",
+        "aliases": [
+            "ʻAʻelo-of-Hāna"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāna variant of the ʻAʻelo wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-Hanalei",
+        "aliases": [
+            "ʻAʻelo-of-Hanalei"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hanalei variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Hawaiʻi-lani",
+        "aliases": [
+            "ʻAʻelo-lani-of-Hawaiʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Hawaiʻi Island variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Hilo",
+        "aliases": [
+            "ʻAʻelo-of-Hilo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hilo variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Honolulu",
+        "aliases": [
+            "ʻAʻelo-of-Honolulu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Honolulu variant of the ʻAʻelo wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻelo-Hualālai",
+        "aliases": [
+            "ʻAʻelo-of-Hualālai"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hualālai variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo",
+        "aliases": [
+            "ʻAʻelo-of-Maui",
+            "ʻAʻelo-lani",
+            "ʻAʻelo-mālie",
+            "ʻAʻelo-ʻino"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named swift wind of Maui.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-ʻino",
+        "aliases": [
+            "ʻAʻelo-ʻino-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Stormy variant of the ʻAʻelo wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-Kahikinui",
+        "aliases": [
+            "ʻAʻelo-of-Kahikinui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahikinui variant of the ʻAʻelo wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-Kahoʻolawe",
+        "aliases": [
+            "ʻAʻelo-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahoʻolawe variant of the ʻAʻelo wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "ʻAʻelo-Kahoʻolawe-lani",
+        "aliases": [
+            "ʻAʻelo-lani-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Kahoʻolawe variant of the ʻAʻelo wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "ʻAʻelo-Kahuku",
+        "aliases": [
+            "ʻAʻelo-of-Kahuku"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahuku variant of the ʻAʻelo wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻelo-Kaʻū",
+        "aliases": [
+            "ʻAʻelo-of-Kaʻū"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaʻū variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kalalau",
+        "aliases": [
+            "ʻAʻelo-of-Kalalau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kalalau variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kāneʻohe",
+        "aliases": [
+            "ʻAʻelo-of-Kāneʻohe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kāneʻohe variant of the ʻAʻelo wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻelo-Kapaʻa",
+        "aliases": [
+            "ʻAʻelo-of-Kapaʻa"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kapaʻa variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kauaʻi",
+        "aliases": [
+            "ʻAʻelo-of-Kauaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kauaʻi variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kauaʻi-lani",
+        "aliases": [
+            "ʻAʻelo-lani-of-Kauaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Kauaʻi variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kaumalapau",
+        "aliases": [
+            "ʻAʻelo-of-Kaumalapau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaumalapau variant of the ʻAʻelo wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kekaha",
+        "aliases": [
+            "ʻAʻelo-of-Kekaha"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kekaha variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Keōmuku",
+        "aliases": [
+            "ʻAʻelo-of-Keōmuku"
+        ],
+        "category": "Wind (personified)",
+        "context": "Keōmuku variant of the ʻAʻelo wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kīlauea-Hawaiʻi",
+        "aliases": [
+            "ʻAʻelo-of-Kīlauea-Hawaiʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kīlauea (Hawaiʻi Island) variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kīlauea",
+        "aliases": [
+            "ʻAʻelo-of-Kīlauea"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kīlauea (Kauaʻi) variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kohala",
+        "aliases": [
+            "ʻAʻelo-of-Kohala"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kohala variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kona",
+        "aliases": [
+            "ʻAʻelo-of-Kona"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kona district variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Kona",
+        "aliases": [
+            "ʻAʻelo-of-Kona"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kona variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-kū",
+        "aliases": [
+            "ʻAʻelo-kū-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Standing wind of Maui.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-Lānaʻi",
+        "aliases": [
+            "ʻAʻelo-of-Lānaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Lānaʻi variant of the ʻAʻelo wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Lānaʻi-lani",
+        "aliases": [
+            "ʻAʻelo-lani-of-Lānaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Lānaʻi variant of the ʻAʻelo wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻAʻelo-lani",
+        "aliases": [
+            "ʻAʻelo-lani-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly variant of the ʻAʻelo wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-Līhuʻe",
+        "aliases": [
+            "ʻAʻelo-of-Līhuʻe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Līhuʻe variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻelo-mālie",
+        "aliases": [
+            "ʻAʻelo-mālie-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Gentle variant of the ʻAʻelo wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-Maui",
+        "aliases": [
+            "ʻAʻelo",
+            "ʻAʻelo-lani",
+            "ʻAʻelo-mālie",
+            "ʻAʻelo-ʻino",
+            "ʻAʻelo-kū"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary swift wind of Maui.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-Maui-lani",
+        "aliases": [
+            "ʻAʻelo-lani-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Maui variant of the ʻAʻelo wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻAʻelo-Mauna-Kea",
+        "aliases": [
+            "ʻAʻelo-of-Mauna-Kea"
+        ],
+        "category": "Wind (personified)",
+        "context": "Mauna Kea variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Mauna-Loa",
+        "aliases": [
+            "ʻAʻelo-of-Mauna-Loa"
+        ],
+        "category": "Wind (personified)",
+        "context": "Mauna Loa variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Molokaʻi",
+        "aliases": [
+            "ʻAʻelo-of-Molokaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Molokaʻi variant of the ʻAʻelo wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Molokaʻi-lani",
+        "aliases": [
+            "ʻAʻelo-lani-of-Molokaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Molokaʻi variant of the ʻAʻelo wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Nāpali",
+        "aliases": [
+            "ʻAʻelo-of-Nāpali"
+        ],
+        "category": "Wind (personified)",
+        "context": "Nāpali variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Niʻihau",
+        "aliases": [
+            "ʻAʻelo-of-Niʻihau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Niʻihau variant of the ʻAʻelo wind.",
+        "island": "Niʻihau"
+    },
+    {
+        "name": "ʻAʻelo-Niʻihau-lani",
+        "aliases": [
+            "ʻAʻelo-lani-of-Niʻihau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Niʻihau variant of the ʻAʻelo wind.",
+        "island": "Niʻihau"
+    },
+    {
+        "name": "ʻAʻelo-Oʻahu",
+        "aliases": [
+            "ʻAʻelo-of-Oʻahu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Oʻahu variant of the ʻAʻelo wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻelo-Oʻahu-lani",
+        "aliases": [
+            "ʻAʻelo-lani-of-Oʻahu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Oʻahu variant of the ʻAʻelo wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻelo-Pelekunu",
+        "aliases": [
+            "ʻAʻelo-of-Pelekunu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Pelekunu Valley variant of the ʻAʻelo wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Puna",
+        "aliases": [
+            "ʻAʻelo-of-Puna"
+        ],
+        "category": "Wind (personified)",
+        "context": "Puna variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Wahiawā",
+        "aliases": [
+            "ʻAʻelo-of-Wahiawā"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wahiawā variant of the ʻAʻelo wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻelo-Waikīkī",
+        "aliases": [
+            "ʻAʻelo-of-Waikīkī"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waikīkī variant of the ʻAʻelo wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻelo-Waikolu",
+        "aliases": [
+            "ʻAʻelo-of-Waikolu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waikolu Valley variant of the ʻAʻelo wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻAʻelo-Waimānalo",
+        "aliases": [
+            "ʻAʻelo-of-Waimānalo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimānalo variant of the ʻAʻelo wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻAʻelo-Waimea",
+        "aliases": [
+            "ʻAʻelo-of-Waimea"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimea variant of the ʻAʻelo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAʻelo-Waimea-Kauaʻi",
+        "aliases": [
+            "ʻAʻelo-of-Waimea-Kauaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimea (Kauaʻi) variant of the ʻAʻelo wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻĀkau",
+        "aliases": [
+            "ʻĀkau-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "North wind used in voyaging directions.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀnuenue",
+        "aliases": [
+            "ʻĀnuenue-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Rainbow‑associated wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀnuenue-Kahoʻolawe",
+        "aliases": [
+            "ʻĀnuenue-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahoʻolawe variant of the ʻĀnuenue wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "ʻĀnuenue-Kauaʻi",
+        "aliases": [
+            "ʻĀnuenue-of-Kauaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kauaʻi variant of the ʻĀnuenue wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻĀnuenue-Maui",
+        "aliases": [
+            "ʻĀnuenue-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Maui variant of the ʻĀnuenue wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻĀnuenue-Oʻahu",
+        "aliases": [
+            "ʻĀnuenue-of-Oʻahu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Oʻahu variant of the ʻĀnuenue wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻĀnuenue-Waimanu",
+        "aliases": [
+            "ʻĀnuenue-of-Waimanu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimanu Valley variant of the ʻĀnuenue wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀnuenue-Waipiʻo",
+        "aliases": [
+            "ʻĀnuenue-of-Waipiʻo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waipiʻo Valley variant of the ʻĀnuenue wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Kūpaoa-Hanalei",
+        "aliases": [
+            "ʻAo-Kūpaoa-of-Hanalei"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Hanalei variant of the ʻAo-Kūpaoa wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAo-Kūpaoa",
+        "aliases": [
+            "ʻAo-Kūpaoa-wind"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Cloud‑paired wind associated with fragrant Kūpaoa.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAo-Kūpaoa-Kalalau",
+        "aliases": [
+            "ʻAo-Kūpaoa-of-Kalalau"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Kalalau variant of the ʻAo-Kūpaoa wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻAo-Kūpaoa-Waimanu",
+        "aliases": [
+            "ʻAo-Kūpaoa-of-Waimanu"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Waimanu Valley variant of the ʻAo-Kūpaoa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Kūpaoa-Waipiʻo",
+        "aliases": [
+            "ʻAo-Kūpaoa-of-Waipiʻo"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Waipiʻo Valley variant of the ʻAo-Kūpaoa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Lehua-Hilo",
+        "aliases": [
+            "ʻAo-Lehua-of-Hilo"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Hilo variant of the ʻAo-Lehua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Lehua",
+        "aliases": [
+            "ʻAo-Lehua-wind"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Cloud‑paired wind associated with lehua forests.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Lehua-Kona",
+        "aliases": [
+            "ʻAo-Lehua-of-Kona"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Kona variant of the ʻAo-Lehua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Lehua-Waimanu",
+        "aliases": [
+            "ʻAo-Lehua-of-Waimanu"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Waimanu Valley variant of the ʻAo-Lehua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Lehua-Waipiʻo",
+        "aliases": [
+            "ʻAo-Lehua-of-Waipiʻo"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Waipiʻo Valley variant of the ʻAo-Lehua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Pili",
+        "aliases": [
+            "ʻAo-Pili-wind"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Cloud‑paired wind associated with pili grass.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Pili-Kaʻū",
+        "aliases": [
+            "ʻAo-Pili-of-Kaʻū"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Kaʻū variant of the ʻAo-Pili wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Pili-Kohala",
+        "aliases": [
+            "ʻAo-Pili-of-Kohala"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Kohala variant of the ʻAo-Pili wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Pili-Waimanu",
+        "aliases": [
+            "ʻAo-Pili-of-Waimanu"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Waimanu Valley variant of the ʻAo-Pili wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAo-Pili-Waipiʻo",
+        "aliases": [
+            "ʻAo-Pili-of-Waipiʻo"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Waipiʻo Valley variant of the ʻAo-Pili wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa-Haleakalā",
+        "aliases": [
+            "ʻĀpaʻapaʻa-of-Haleakalā"
+        ],
+        "category": "Wind (personified)",
+        "context": "Haleakalā variant of the ʻĀpaʻapaʻa wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa-Hāmākua",
+        "aliases": [
+            "ʻĀpaʻapaʻa",
+            "ʻĀpaʻapaʻa-lani",
+            "ʻĀpaʻapaʻa-kū",
+            "ʻĀpaʻapaʻa-ʻino"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Hāmākua wind, controlled by Laʻamaomao.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa-Hāmākua",
+        "aliases": [
+            "ʻĀpaʻapaʻa",
+            "ʻĀpaʻapaʻa-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Hāmākua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa",
+        "aliases": [
+            "ʻĀpaʻapaʻa-of-Hāmākua",
+            "ʻĀpaʻapaʻa-kū",
+            "ʻĀpaʻapaʻa-ʻino"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Hāmākua, controlled by Laʻamaomao.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa-Kaʻū",
+        "aliases": [
+            "ʻĀpaʻapaʻa-of-Kaʻū"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaʻū variant of the ʻĀpaʻapaʻa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa-Kohala",
+        "aliases": [
+            "ʻĀpaʻapaʻa-of-Kohala"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kohala variant of the ʻĀpaʻapaʻa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa-Kona",
+        "aliases": [
+            "ʻĀpaʻapaʻa-of-Kona"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kona variant of the ʻĀpaʻapaʻa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa-lani",
+        "aliases": [
+            "ʻĀpaʻapaʻa-lani-of-Hāmākua"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly form of the Hāmākua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa-Puna",
+        "aliases": [
+            "ʻĀpaʻapaʻa-of-Puna"
+        ],
+        "category": "Wind (personified)",
+        "context": "Puna variant of the ʻĀpaʻapaʻa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa-Waimanu",
+        "aliases": [
+            "ʻĀpaʻapaʻa-of-Waimanu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimanu Valley variant of the ʻĀpaʻapaʻa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĀpaʻapaʻa-Waipiʻo",
+        "aliases": [
+            "ʻĀpaʻapaʻa-of-Waipiʻo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waipiʻo Valley variant of the ʻĀpaʻapaʻa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAwa-Hāmākua",
+        "aliases": [
+            "ʻAwa-of-Hāmākua"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāmākua variant of the ʻAwa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAwaʻawa",
+        "aliases": [
+            "ʻAwaʻawa-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind paired with bitter ʻawaʻawa rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAwaʻawa-Kahoʻolawe",
+        "aliases": [
+            "ʻAwaʻawa-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahoʻolawe variant of the ʻAwaʻawa wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "ʻAwa",
+        "aliases": [
+            "ʻAwa-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind paired with ʻawa rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAwaʻawa-Waimanu",
+        "aliases": [
+            "ʻAwaʻawa-of-Waimanu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimanu Valley variant of the ʻAwaʻawa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAwaʻawa-Waipiʻo",
+        "aliases": [
+            "ʻAwaʻawa-of-Waipiʻo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waipiʻo Valley variant of the ʻAwaʻawa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAwa-Kahoʻolawe",
+        "aliases": [
+            "ʻAwa-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahoʻolawe variant of the ʻAwa wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "ʻAwa-Kaʻū",
+        "aliases": [
+            "ʻAwa-of-Kaʻū"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaʻū variant of the ʻAwa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAwa-Kohala",
+        "aliases": [
+            "ʻAwa-of-Kohala"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kohala variant of the ʻAwa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAwa-Waimanu",
+        "aliases": [
+            "ʻAwa-of-Waimanu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimanu Valley variant of the ʻAwa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻAwa-Waipiʻo",
+        "aliases": [
+            "ʻAwa-of-Waipiʻo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waipiʻo Valley variant of the ʻAwa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEheu-Hāʻena",
+        "aliases": [
+            "ʻEheu-of-Hāʻena"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāʻena variant of the ʻEheu wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻEheu-Hālawa",
+        "aliases": [
+            "ʻEheu-of-Hālawa"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hālawa Valley variant of the ʻEheu wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻEheu-Haleʻiwa",
+        "aliases": [
+            "ʻEheu-of-Haleʻiwa"
+        ],
+        "category": "Wind (personified)",
+        "context": "Haleʻiwa variant of the ʻEheu wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻEheu-Hāna",
+        "aliases": [
+            "ʻEheu-of-Hāna"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāna variant of the ʻEheu wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻEheu-Hanalei",
+        "aliases": [
+            "ʻEheu-of-Hanalei"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hanalei variant of the ʻEheu wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻEheu-Honolulu",
+        "aliases": [
+            "ʻEheu-of-Honolulu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Honolulu variant of the ʻEheu wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻEheu",
+        "aliases": [
+            "ʻEheu-of-Oʻahu",
+            "ʻEheu-mālie"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wing‑like wind of Oʻahu.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻEheu-Kahikinui",
+        "aliases": [
+            "ʻEheu-of-Kahikinui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahikinui variant of the ʻEheu wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻEheu-Kahoʻolawe",
+        "aliases": [
+            "ʻEheu-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahoʻolawe variant of the ʻEheu wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "ʻEheu-Kailua",
+        "aliases": [
+            "ʻEheu-of-Kailua"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kailua variant of the ʻEheu wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻEheu-Kalalau",
+        "aliases": [
+            "ʻEheu-of-Kalalau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kalalau variant of the ʻEheu wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "ʻEheu-Kāneʻohe",
+        "aliases": [
+            "ʻEheu-of-Kāneʻohe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kāneʻohe variant of the ʻEheu wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻEheu-Kaumalapau",
+        "aliases": [
+            "ʻEheu-of-Kaumalapau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaumalapau variant of the ʻEheu wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻEheu-Keōmuku",
+        "aliases": [
+            "ʻEheu-of-Keōmuku"
+        ],
+        "category": "Wind (personified)",
+        "context": "Keōmuku variant of the ʻEheu wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻEheu-Lānaʻi",
+        "aliases": [
+            "ʻEheu-of-Lānaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Lānaʻi variant of the ʻEheu wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "ʻEheu-Molokaʻi",
+        "aliases": [
+            "ʻEheu-of-Molokaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Molokaʻi variant of the ʻEheu wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻEheu-Oʻahu",
+        "aliases": [
+            "ʻEheu",
+            "ʻEheu-mālie"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Oʻahu wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻEheu-Oʻahu",
+        "aliases": [
+            "ʻEheu",
+            "ʻEheu-mālie"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Oʻahu wing-like wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻEheu-Pelekunu",
+        "aliases": [
+            "ʻEheu-of-Pelekunu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Pelekunu Valley variant of the ʻEheu wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻEheu-Waikīkī",
+        "aliases": [
+            "ʻEheu-of-Waikīkī"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waikīkī variant of the ʻEheu wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻEheu-Waikolu",
+        "aliases": [
+            "ʻEheu-of-Waikolu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waikolu Valley variant of the ʻEheu wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "ʻEheu-Waimānalo",
+        "aliases": [
+            "ʻEheu-of-Waimānalo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimānalo variant of the ʻEheu wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻEka-Haleakalā",
+        "aliases": [
+            "ʻEka-of-Haleakalā"
+        ],
+        "category": "Wind (personified)",
+        "context": "Haleakalā variant of the ʻEka wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻEka-Hāmākua",
+        "aliases": [
+            "ʻEka-of-Hāmākua"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāmākua variant of the ʻEka wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka-Hilo",
+        "aliases": [
+            "ʻEka-of-Hilo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hilo variant of the ʻEka wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka",
+        "aliases": [
+            "ʻEka-of-Kaʻū",
+            "ʻEka-ʻino"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named gusty wind of Kaʻū.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka-Kaʻū",
+        "aliases": [
+            "ʻEka",
+            "ʻEka-lani",
+            "ʻEka-ʻino"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Kaʻū wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka-Kaʻū",
+        "aliases": [
+            "ʻEka",
+            "ʻEka-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Kaʻū wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka-Kohala",
+        "aliases": [
+            "ʻEka-of-Kohala"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kohala variant of the ʻEka wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka-Kona",
+        "aliases": [
+            "ʻEka-of-Kona"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kona variant of the ʻEka wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka-lani",
+        "aliases": [
+            "ʻEka-lani-of-Kaʻū"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly form of the Kaʻū wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka-Puna",
+        "aliases": [
+            "ʻEka-of-Puna",
+            "ʻEka-lani-of-Puna"
+        ],
+        "category": "Wind (personified)",
+        "context": "Puna variant of the ʻEka wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka-Puna",
+        "aliases": [
+            "ʻEka-of-Puna"
+        ],
+        "category": "Wind (personified)",
+        "context": "Puna variant of the ʻEka wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka-Waimanu",
+        "aliases": [
+            "ʻEka-of-Waimanu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimanu Valley variant of the ʻEka wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻEka-Waipiʻo",
+        "aliases": [
+            "ʻEka-of-Waipiʻo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waipiʻo Valley variant of the ʻEka wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻĪao",
+        "aliases": [
+            "ʻĪao-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of ʻĪao Valley.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻInuwai-Haleakalā",
+        "aliases": [
+            "ʻInuwai-of-Haleakalā"
+        ],
+        "category": "Wind (personified)",
+        "context": "Haleakalā variant of the ʻInuwai wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻInuwai-Hāmākua",
+        "aliases": [
+            "ʻInuwai-of-Hāmākua"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāmākua variant of the ʻInuwai wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻInuwai-Hilo",
+        "aliases": [
+            "ʻInuwai",
+            "ʻInuwai-lani",
+            "ʻInuwai-mālie"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Hilo rain-bearing wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻInuwai-Hilo",
+        "aliases": [
+            "ʻInuwai",
+            "ʻInuwai-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Hilo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻInuwai",
+        "aliases": [
+            "ʻInuwai-of-Hilo",
+            "ʻInuwai-mālie"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named gentle rain‑bearing wind of Hilo.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻInuwai-Kaʻū",
+        "aliases": [
+            "ʻInuwai-of-Kaʻū"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaʻū variant of the ʻInuwai wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻInuwai-Kohala",
+        "aliases": [
+            "ʻInuwai-of-Kohala"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kohala variant of the ʻInuwai wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻInuwai-Kona",
+        "aliases": [
+            "ʻInuwai-of-Kona"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kona variant of the ʻInuwai wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻInuwai-lani",
+        "aliases": [
+            "ʻInuwai-lani-of-Hilo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly form of the Hilo wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻInuwai-Puna",
+        "aliases": [
+            "ʻInuwai-of-Puna"
+        ],
+        "category": "Wind (personified)",
+        "context": "Puna variant of the ʻInuwai wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻInuwai-Waimanu",
+        "aliases": [
+            "ʻInuwai-of-Waimanu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimanu Valley variant of the ʻInuwai wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻInuwai-Waipiʻo",
+        "aliases": [
+            "ʻInuwai-of-Waipiʻo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waipiʻo Valley variant of the ʻInuwai wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌahi",
+        "aliases": [
+            "ʻŌahi-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind associated with volcanic fire.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌlaʻi",
+        "aliases": [
+            "ʻŌlaʻi-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Earthquake‑associated wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌlapa",
+        "aliases": [
+            "ʻŌlapa-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Lightning‑movement wind appearing in mele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua-Hilo",
+        "aliases": [
+            "ʻŌpua-of-Hilo"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Hilo variant of the ʻŌpua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua",
+        "aliases": [
+            "ʻŌpua-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Cloud‑forming wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua-Kahoʻolawe",
+        "aliases": [
+            "ʻŌpua-of-Kahoʻolawe"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Kahoʻolawe variant of the ʻŌpua wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "ʻŌpua-Kohala",
+        "aliases": [
+            "ʻŌpua-of-Kohala"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Kohala variant of the ʻŌpua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua-Kona",
+        "aliases": [
+            "ʻŌpua-of-Kona"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Kona variant of the ʻŌpua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua-Waimanu",
+        "aliases": [
+            "ʻŌpua-of-Waimanu"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Waimanu Valley variant of the ʻŌpua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻŌpua-Waipiʻo",
+        "aliases": [
+            "ʻŌpua-of-Waipiʻo"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Waipiʻo Valley variant of the ʻŌpua wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUa-ʻUlalena",
+        "aliases": [
+            "ʻUa-ʻUlalena-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind paired with ʻUlalena rain.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻUa-Kīpuʻupuʻu",
+        "aliases": [
+            "ʻUa-Kīpuʻupuʻu-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind paired with Kīpuʻupuʻu rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUa-Līlīlehua",
+        "aliases": [
+            "ʻUa-Līlīlehua-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind paired with Līlīlehua rain.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "ʻUlalena",
+        "aliases": [
+            "ʻUlalena-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Mist‑bearing wind of Maui, associated with rain and mele.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻUlalena-Rain",
+        "aliases": [
+            "ʻUlalena-rain-wind",
+            "ʻUlalena-rain-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind paired with ʻUlalena rain.",
+        "island": "Maui"
+    },
+    {
+        "name": "ʻUlalena-Waimanu",
+        "aliases": [
+            "ʻUlalena-of-Waimanu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimanu Valley variant of the ʻUlalena wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "ʻUlalena-Waipiʻo",
+        "aliases": [
+            "ʻUlalena-of-Waipiʻo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waipiʻo Valley variant of the ʻUlalena wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kahoʻolawe",
+        "aliases": [
+            "Kahoʻolawe-wind",
+            "Kahoʻolawe-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Kahoʻolawe.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "Kalalau",
+        "aliases": [
+            "Kalalau-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Kalalau Valley.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Kalalau-Kauaʻi",
+        "aliases": [
+            "Kalalau-wind",
+            "Kalalau-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Kalalau Valley.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Kaluakoʻi",
+        "aliases": [
+            "Kaluakoʻi-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Kaluakoʻi, Molokaʻi.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Kapaʻa-Kauaʻi",
+        "aliases": [
+            "Kapaʻa-wind",
+            "Kapaʻa-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Kapaʻa.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Kaumalapau",
+        "aliases": [
+            "Kaumalapau-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Kaumalapau, Lānaʻi.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "Kaumalapau-Lānaʻi",
+        "aliases": [
+            "Kaumalapau-wind",
+            "Kaumalapau-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Kaumalapau.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "Kekaha-Kauaʻi",
+        "aliases": [
+            "Kekaha-wind",
+            "Kekaha-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Kekaha.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Keōmuku",
+        "aliases": [
+            "Keōmuku-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Keōmuku, Lānaʻi.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "Keōmuku-Lānaʻi",
+        "aliases": [
+            "Keōmuku-wind",
+            "Keōmuku-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Keōmuku.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "Kīlauea-Kauaʻi",
+        "aliases": [
+            "Kīlauea-wind",
+            "Kīlauea-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Kīlauea (Kauaʻi).",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Kīpahulu",
+        "aliases": [
+            "Kīpahulu-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Kīpahulu.",
+        "island": "Maui"
+    },
+    {
+        "name": "Kīpuʻupuʻu",
+        "aliases": [
+            "Kīpuʻupuʻu-wind",
+            "Kīpuʻupuʻu-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind paired with Kīpuʻupuʻu rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Koʻolau-Hawaiʻi",
+        "aliases": [
+            "Koʻolau-of-Hawaiʻi"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Hawaiʻi Island variant of the Koʻolau trade wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Koʻolau",
+        "aliases": [
+            "Koʻolau-of-Oʻahu",
+            "Koʻolau-of-Maui",
+            "Koʻolau-of-Hawaiʻi"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Windward trade wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Koʻolau-Maui",
+        "aliases": [
+            "Koʻolau-of-Maui"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Maui variant of the Koʻolau trade wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "Koʻolau-Oʻahu",
+        "aliases": [
+            "Koʻolau",
+            "Koʻolau-mālie"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Primary windward trade wind of Oʻahu.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Koʻolau-Ridge",
+        "aliases": [
+            "Koʻolau-ridge-wind"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Wind associated with Koʻolau ridge systems.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Komohana",
+        "aliases": [
+            "Komohana-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "West wind used in voyaging directions.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kona-Hawaiʻi",
+        "aliases": [
+            "Kona",
+            "Kona-of-Hawaiʻi"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Leeward wind of Hawaiʻi Island.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kona",
+        "aliases": [
+            "Kona-of-Hawaiʻi",
+            "Kona-of-Maui",
+            "Kona-of-Oʻahu"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Leeward wind common across islands.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Kona-Maui",
+        "aliases": [
+            "Kona-of-Maui"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Leeward wind of Maui.",
+        "island": "Maui"
+    },
+    {
+        "name": "Kona-Oʻahu",
+        "aliases": [
+            "Kona-of-Oʻahu"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Leeward wind of Oʻahu.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Līhau-Kauaʻi",
+        "aliases": [
+            "Līhau-of-Kauaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kauaʻi variant of the Līhau wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Līhau",
+        "aliases": [
+            "Līhau-lani",
+            "Līhau-mālie",
+            "Līhau-ʻino"
+        ],
+        "category": "Wind (personified)",
+        "context": "Cold upland wind appearing in mele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Līhau-Maui",
+        "aliases": [
+            "Līhau-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Maui variant of the Līhau wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "Līhuʻe-Kauaʻi",
+        "aliases": [
+            "Līhuʻe-wind",
+            "Līhuʻe-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Līhuʻe.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Līlīlehua",
+        "aliases": [
+            "Līlīlehua-wind",
+            "Līlīlehua-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind paired with Līlīlehua rain.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Makani Haʻena",
+        "aliases": [
+            "Makani-Haʻena",
+            "Haʻena-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Haʻena, Kauaʻi.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Makani Haʻikū",
+        "aliases": [
+            "Makani-Haʻikū",
+            "Haʻikū-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Haʻikū, Maui.",
+        "island": "Maui"
+    },
+    {
+        "name": "Makani Haleakalā",
+        "aliases": [
+            "Makani-Haleakalā",
+            "Haleakalā-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "High mountain wind of Haleakalā.",
+        "island": "Maui"
+    },
+    {
+        "name": "Makani Hōkūleʻa-lani",
+        "aliases": [
+            "Makani-Hōkūleʻa-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Heavenly voyaging wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani Hōkūleʻa",
+        "aliases": [
+            "Makani-Hōkūleʻa",
+            "Hōkūleʻa-wind"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Voyaging wind associated with Hōkūleʻa.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani Honokōhau",
+        "aliases": [
+            "Makani-Honokōhau",
+            "Honokōhau-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Honokōhau Valley.",
+        "island": "Maui"
+    },
+    {
+        "name": "Makani ʻAhiu-Hāmākua",
+        "aliases": [
+            "Makani-ʻAhiu-of-Hāmākua"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hāmākua variant of the ʻAhiu wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Hawaiʻi-lani",
+        "aliases": [
+            "Makani-ʻAhiu-lani-of-Hawaiʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Hawaiʻi Island variant of the ʻAhiu wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Hilo",
+        "aliases": [
+            "Makani-ʻAhiu-of-Hilo"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hilo variant of the ʻAhiu wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Kahoʻolawe-lani",
+        "aliases": [
+            "Makani-ʻAhiu-lani-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Kahoʻolawe variant of the ʻAhiu wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "Makani ʻAhiu-Kahoʻolawe",
+        "aliases": [
+            "Makani-ʻAhiu-of-Kahoʻolawe"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kahoʻolawe variant of the ʻAhiu wind.",
+        "island": "Kahoʻolawe"
+    },
+    {
+        "name": "Makani ʻAhiu-Kaʻū",
+        "aliases": [
+            "Makani-ʻAhiu-of-Kaʻū"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kaʻū variant of the ʻAhiu wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Kauaʻi-lani",
+        "aliases": [
+            "Makani-ʻAhiu-lani-of-Kauaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Kauaʻi variant of the ʻAhiu wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Kauaʻi",
+        "aliases": [
+            "Makani-ʻAhiu-of-Kauaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kauaʻi variant of the ʻAhiu wind.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Kohala",
+        "aliases": [
+            "Makani-ʻAhiu-of-Kohala"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kohala variant of the ʻAhiu wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Kona",
+        "aliases": [
+            "Makani-ʻAhiu-of-Kona"
+        ],
+        "category": "Wind (personified)",
+        "context": "Kona variant of the ʻAhiu wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Lānaʻi-lani",
+        "aliases": [
+            "Makani-ʻAhiu-lani-of-Lānaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Lānaʻi variant of the ʻAhiu wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Lānaʻi",
+        "aliases": [
+            "Makani-ʻAhiu-of-Lānaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Lānaʻi variant of the ʻAhiu wind.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-lani",
+        "aliases": [
+            "Makani-ʻAhiu-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly wild wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAhiu",
+        "aliases": [
+            "Makani-ʻAhiu",
+            "ʻAhiu-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wild wind appearing in mele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Maui-lani",
+        "aliases": [
+            "Makani-ʻAhiu-lani-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Maui variant of the ʻAhiu wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "Makani ʻAhiu-Maui",
+        "aliases": [
+            "Makani-ʻAhiu-of-Maui"
+        ],
+        "category": "Wind (personified)",
+        "context": "Maui variant of the ʻAhiu wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "Makani ʻAhiu-Molokaʻi-lani",
+        "aliases": [
+            "Makani-ʻAhiu-lani-of-Molokaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Molokaʻi variant of the ʻAhiu wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Molokaʻi",
+        "aliases": [
+            "Makani-ʻAhiu-of-Molokaʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Molokaʻi variant of the ʻAhiu wind.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Niʻihau-lani",
+        "aliases": [
+            "Makani-ʻAhiu-lani-of-Niʻihau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Niʻihau variant of the ʻAhiu wind.",
+        "island": "Niʻihau"
+    },
+    {
+        "name": "Makani ʻAhiu-Niʻihau",
+        "aliases": [
+            "Makani-ʻAhiu-of-Niʻihau"
+        ],
+        "category": "Wind (personified)",
+        "context": "Niʻihau variant of the ʻAhiu wind.",
+        "island": "Niʻihau"
+    },
+    {
+        "name": "Makani ʻAhiu-Oʻahu-lani",
+        "aliases": [
+            "Makani-ʻAhiu-lani-of-Oʻahu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly Oʻahu variant of the ʻAhiu wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Makani ʻAhiu-Oʻahu",
+        "aliases": [
+            "Makani-ʻAhiu-of-Oʻahu"
+        ],
+        "category": "Wind (personified)",
+        "context": "Oʻahu variant of the ʻAhiu wind.",
+        "island": "Oʻahu"
+    },
+    {
+        "name": "Makani ʻAhiu-Puna",
+        "aliases": [
+            "Makani-ʻAhiu-of-Puna"
+        ],
+        "category": "Wind (personified)",
+        "context": "Puna variant of the ʻAhiu wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAhiu-Waimea",
+        "aliases": [
+            "Makani-ʻAhiu-of-Waimea"
+        ],
+        "category": "Wind (personified)",
+        "context": "Waimea variant of the ʻAhiu wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻĀnuenue-lani",
+        "aliases": [
+            "Makani-ʻĀnuenue-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly rainbow wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻĀnuenue",
+        "aliases": [
+            "Makani-ʻĀnuenue",
+            "ʻĀnuenue-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Rainbow-associated wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAwaʻawa-lani",
+        "aliases": [
+            "Makani-ʻAwaʻawa-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly form of the ʻAwaʻawa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAwaʻawa",
+        "aliases": [
+            "Makani-ʻAwaʻawa",
+            "ʻAwaʻawa-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind associated with bitter rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAwa-lani",
+        "aliases": [
+            "Makani-ʻAwa-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly form of the ʻAwa wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻAwa",
+        "aliases": [
+            "Makani-ʻAwa",
+            "ʻAwa-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind associated with ʻawa rain.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻĪao",
+        "aliases": [
+            "Makani-ʻĪao",
+            "ʻĪao-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of ʻĪao Valley.",
+        "island": "Maui"
+    },
+    {
+        "name": "Makani ʻŌahi-lani",
+        "aliases": [
+            "Makani-ʻŌahi-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly volcanic fire wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻŌahi",
+        "aliases": [
+            "Makani-ʻŌahi",
+            "ʻŌahi-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind associated with volcanic fire.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻŌlaʻi-lani",
+        "aliases": [
+            "Makani-ʻŌlaʻi-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Heavenly earthquake-associated wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻŌlaʻi",
+        "aliases": [
+            "Makani-ʻŌlaʻi",
+            "ʻŌlaʻi-wind"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Earthquake-associated wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻŌpua-lani",
+        "aliases": [
+            "Makani-ʻŌpua-lani"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Heavenly cloud-forming wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻŌpua",
+        "aliases": [
+            "Makani-ʻŌpua",
+            "ʻŌpua-wind"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Cloud-forming wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani ʻUlalena-lani",
+        "aliases": [
+            "Makani-ʻUlalena-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly form of the ʻUlalena wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "Makani ʻUlalena",
+        "aliases": [
+            "Makani-ʻUlalena",
+            "ʻUlalena-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind associated with mist and rain in Maui traditions.",
+        "island": "Maui"
+    },
+    {
+        "name": "Makani Kaluakoʻi",
+        "aliases": [
+            "Makani-Kaluakoʻi",
+            "Kaluakoʻi-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Kaluakoʻi, Molokaʻi.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Makani Kaumalapau",
+        "aliases": [
+            "Makani-Kaumalapau",
+            "Kaumalapau-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Kaumalapau, Lānaʻi.",
+        "island": "Lānaʻi"
+    },
+    {
+        "name": "Makani Kīpahulu",
+        "aliases": [
+            "Makani-Kīpahulu",
+            "Kīpahulu-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Kīpahulu.",
+        "island": "Maui"
+    },
+    {
+        "name": "Makani Mauna Kea",
+        "aliases": [
+            "Makani-Mauna-Kea",
+            "Mauna-Kea-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "High mountain wind of Mauna Kea.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani Mauna Loa",
+        "aliases": [
+            "Makani-Mauna-Loa",
+            "Mauna-Loa-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "High mountain wind of Mauna Loa.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani Niʻihau",
+        "aliases": [
+            "Makani-Niʻihau",
+            "Niʻihau-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Rare named wind of Niʻihau.",
+        "island": "Niʻihau"
+    },
+    {
+        "name": "Makani Pālāʻau",
+        "aliases": [
+            "Makani-Pālāʻau",
+            "Pālāʻau-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Pālāʻau, Molokaʻi.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Makani Pele-lani",
+        "aliases": [
+            "Makani-Pele-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Heavenly volcanic wind associated with Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani Pele",
+        "aliases": [
+            "Makani-Pele",
+            "Pele-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Volcanic wind associated with Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani Polipoli",
+        "aliases": [
+            "Makani-Polipoli",
+            "Polipoli-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Polipoli region.",
+        "island": "Maui"
+    },
+    {
+        "name": "Makani Waimanu",
+        "aliases": [
+            "Makani-Waimanu",
+            "Waimanu-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Waimanu Valley.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Makani Waipiʻo",
+        "aliases": [
+            "Makani-Waipiʻo",
+            "Waipiʻo-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Waipiʻo Valley.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Mauna Kea",
+        "aliases": [
+            "Mauna-Kea-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "High mountain wind of Mauna Kea.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Mauna Loa",
+        "aliases": [
+            "Mauna-Loa-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "High mountain wind of Mauna Loa.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Moaʻe-Hawaiʻi",
+        "aliases": [
+            "Moaʻe",
+            "Moaʻe-mālie"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Northeast trade wind of Hawaiʻi Island.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Moaʻe-Maui",
+        "aliases": [
+            "Moaʻe-of-Maui"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Maui variant of the Moaʻe trade wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "Moaʻe",
+        "aliases": [
+            "Moaʻe-of-Hawaiʻi",
+            "Moaʻe-of-Maui"
+        ],
+        "category": "Wind (non-personified)",
+        "context": "Trade wind blowing from the northeast.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Nāpali-Kauaʻi",
+        "aliases": [
+            "Nāpali-wind",
+            "Nāpali-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Nā Pali coast.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Nā Pali",
+        "aliases": [
+            "Nā-Pali-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Nā Pali coast.",
+        "island": "Kauaʻi"
+    },
+    {
+        "name": "Naulu-Hawaiʻi",
+        "aliases": [
+            "Naulu-of-Hawaiʻi"
+        ],
+        "category": "Wind (personified)",
+        "context": "Hawaiʻi Island variant of the Naulu wind.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Naulu-Maui",
+        "aliases": [
+            "Naulu",
+            "Naulu-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Naulu squall wind.",
+        "island": "Maui"
+    },
+    {
+        "name": "Naulu-Maui",
+        "aliases": [
+            "Naulu",
+            "Naulu-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Primary Naulu squall wind of Maui.",
+        "island": "Maui"
+    },
+    {
+        "name": "Naulu",
+        "aliases": [
+            "Naulu-of-Maui",
+            "Naulu-of-Hawaiʻi",
+            "Naulu-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named squall wind appearing between Maui and Hawaiʻi.",
+        "island": "Maui"
+    },
+    {
+        "name": "Niʻihau",
+        "aliases": [
+            "Niʻihau-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Rare named wind of Niʻihau.",
+        "island": "Niʻihau"
+    },
+    {
+        "name": "Pālāʻau",
+        "aliases": [
+            "Pālāʻau-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Pālāʻau, Molokaʻi.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Pelekunu-Molokaʻi",
+        "aliases": [
+            "Pelekunu-wind",
+            "Pelekunu-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Pelekunu Valley.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Pelekunu",
+        "aliases": [
+            "Pelekunu-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Pelekunu Valley.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Pele",
+        "aliases": [
+            "Pele-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Volcanic wind associated with Pele.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Polipoli",
+        "aliases": [
+            "Polipoli-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Polipoli region.",
+        "island": "Maui"
+    },
+    {
+        "name": "Waikolu-Molokaʻi",
+        "aliases": [
+            "Waikolu-wind",
+            "Waikolu-lani"
+        ],
+        "category": "Wind (personified)",
+        "context": "Wind of Waikolu Valley.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Waikolu",
+        "aliases": [
+            "Waikolu-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Waikolu Valley.",
+        "island": "Molokaʻi"
+    },
+    {
+        "name": "Waimanu",
+        "aliases": [
+            "Waimanu-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Waimanu Valley.",
+        "island": "Hawaiʻi"
+    },
+    {
+        "name": "Waipiʻo",
+        "aliases": [
+            "Waipiʻo-wind"
+        ],
+        "category": "Wind (personified)",
+        "context": "Named wind of Waipiʻo Valley.",
+        "island": "Hawaiʻi"
+    }
+]
