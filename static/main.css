@@ -471,6 +471,11 @@ head {
   z-index: 1000;
 }
 
+/* Keep the top-left provider selector clear of the fixed Help button */
+.nav-tabs .clear-help {
+  padding-left: calc(80px + 1em) !important;
+}
+
 .linkbutton:hover, .slide:hover {
   color: #ff7f50 !important;
   text-decoration: none;
