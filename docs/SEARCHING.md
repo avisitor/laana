@@ -37,6 +37,16 @@ sentences index (both resolved through the production aliases
 kNN vector search (384-dim sentence vectors / 1024-dim document vectors);
 documents longer than ~32K chars are searched via `text_chunks` chunk vectors.
 
+On OpenSearch, hybrid modes use the neural-search `hybrid` query with the
+search pipeline defined in `providers/OpenSearch/config/search_pipeline.json`
+(currently `norm-pipeline`: min-max normalization, weights 0.3 keyword /
+0.7 vector). `OpenSearchClient::createSearchPipeline()` installs that file;
+a test fails if the cluster's copy drifts from it. OpenSearch is very slow to highlight a `hybrid` query (~6.5 s for
+5 hits on 3.9.0), so `OpenSearchClient::searchHybridThenHighlight()` runs the
+hybrid query without highlighting, then highlights the returned ids with a
+separate plain request using the keyword sub-queries. A hit matched only by
+the vector side has no keyword highlight.
+
 ## Ordering
 
 `order` (a.k.a. `orderby`) values used by both the word-search results and the
@@ -93,3 +103,35 @@ JSON. Routing works via `path` query param or path-rewrite:
 These endpoints are also what the ingestion pipeline consumes
 (`SourceIterator`/`SourceRetriever` call `sources?details&provider=MySQL` and
 `source/{id}/plain&provider=MySQL`) — see [INGESTION.md](INGESTION.md).
+
+## Tuning OpenSearch hybrid search (Search Relevance Workbench)
+
+`scripts/os_relevance.php` tunes the `hybriddoc` score combination against
+human relevance ratings, using OpenSearch's Search Relevance Workbench:
+
+```bash
+php scripts/os_relevance.php prepare --from-searchstats   # or --queries=FILE (one query per line)
+# rate logs/os-relevance-ratings.csv: rating 0 irrelevant .. 3 highly relevant (blank = skip)
+php scripts/os_relevance.php optimize                     # import ratings, run HYBRID_OPTIMIZER, rank variants
+php scripts/os_relevance.php apply --rank=1               # write search_pipeline.json + install on cluster
+```
+
+- `prepare` takes the most frequent non-regex searches from `searchstats`
+  (only the MySQL provider logs them). Quotes and tags are stripped and
+  duplicates are merged case-insensitively. It then pools the top `--depth`
+  (default 5) documents from three searches — keyword, vector, and the current
+  hybrid configuration — into a CSV with a snippet for rating.
+- `optimize` evaluates about 80 variants (min-max / L2 / z-score
+  normalization × arithmetic / geometric / harmonic combination × keyword
+  weights 0.0–1.0, plus RRF), ranked by NDCG@10. It also reports where the
+  installed pipeline ranks.
+- The Workbench embeds query text inside OpenSearch. `RemoteEmbeddingModel`
+  registers the embedding service (`EMBEDDING_SERVICE_URL`, 1024-dim
+  `multilingual-e5-large-instruct`, `query: ` prefix) as an ML Commons remote
+  model; no model runs in the OpenSearch JVM. Registering adds the service URL
+  to `plugins.ml_commons.trusted_connector_endpoints_regex` (on top of the
+  defaults) and enables private-IP connectors and `only_run_on_ml_node: false`.
+- State (query set, judgments and experiment ids) is kept in
+  `logs/os-relevance-state.json`. Workbench objects can be inspected in
+  OpenSearch Dashboards → Search Relevance.
+
