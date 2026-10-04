@@ -93,6 +93,10 @@ class OpenSearchClient extends ElasticsearchClient
         }
 
         $osClient = $builder->build();
+        // Fail loudly on an unreachable cluster: building the client does no I/O,
+        // so without this probe every later request fails and is swallowed into
+        // empty results instead of surfacing as ProviderUnavailableException.
+        $osClient->info();
 
         // Wrap the OpenSearch client to provide compatibility with Elasticsearch v8 response objects
         $this->client = $this->wrapClient($osClient);
@@ -148,38 +152,54 @@ class OpenSearchClient extends ElasticsearchClient
     /**
      * Create the search pipeline required for hybrid search
      */
-    public function createSearchPipeline(string $pipelineName = 'norm-pipeline'): void
+    /**
+     * Synchronous low-level request: resolves the transport's FutureArray to
+     * the decoded response body. HTTP errors throw.
+     */
+    public function rawRequest(string $method, string $path, ?array $body = null): array
     {
-        $this->print("Creating search pipeline: $pipelineName");
-        
-        try {
-            $this->rawOsClient->transport->performRequest(
-                'PUT',
-                "/_search/pipeline/$pipelineName",
-                [],
-                [
-                    'description' => 'Post-processor for hybrid search',
-                    'phase_results_processors' => [
-                        [
-                            'normalization-processor' => [
-                                'normalization' => [
-                                    'technique' => 'min_max'
-                                ],
-                                'combination' => [
-                                    'technique' => 'arithmetic_mean',
-                                    'parameters' => [
-                                        'weights' => [0.3, 0.7]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            );
-            $this->print("✓ Search pipeline $pipelineName created.");
-        } catch (\Exception $e) {
-            $this->print("⚠ Warning creating search pipeline: " . $e->getMessage());
+        $transport = $this->rawOsClient->transport;
+        return (array)$transport->resultOrFuture($transport->performRequest($method, $path, [], $body));
+    }
+
+    /**
+     * Hybrid-search pipeline definition (name + body), from
+     * config/search_pipeline.json. Tuned via scripts/os_relevance.php
+     * (Search Relevance Workbench); a missing or invalid file is fatal.
+     */
+    public static function searchPipelineConfig(): array
+    {
+        $file = __DIR__ . '/../config/search_pipeline.json';
+        $config = json_decode((string)@file_get_contents($file), true);
+        if (!is_array($config) || empty($config['name']) || !is_array($config['body'] ?? null)) {
+            throw new \RuntimeException("Invalid or missing OpenSearch search pipeline config: $file");
         }
+        return $config;
+    }
+
+    /**
+     * Create or update the hybrid-search pipeline on the cluster from
+     * config/search_pipeline.json. Throws on failure: hybrid queries cannot
+     * run without it.
+     */
+    public function createSearchPipeline(): void
+    {
+        $config = self::searchPipelineConfig();
+        $this->print("Creating search pipeline: {$config['name']}");
+        $this->rawRequest('PUT', "/_search/pipeline/{$config['name']}", $config['body']);
+        $this->print("✓ Search pipeline {$config['name']} created.");
+    }
+
+    /** The pipeline definition currently installed on the cluster, or null. */
+    public function getInstalledSearchPipeline(): ?array
+    {
+        $name = self::searchPipelineConfig()['name'];
+        try {
+            $res = $this->rawRequest('GET', "/_search/pipeline/$name");
+        } catch (\Throwable $e) {
+            return null;
+        }
+        return $res[$name] ?? null;
     }
 
     /**
@@ -257,6 +277,9 @@ class OpenSearchClient extends ElasticsearchClient
             
             public function search($params) {
                 $params = $this->outer->rewriteQuery($params);
+                if (isset($params['body']['query']['hybrid'], $params['body']['highlight'])) {
+                    return $this->wrapResponse($this->outer->searchHybridThenHighlight($this->inner, $params));
+                }
                 $res = $this->inner->search($params);
                 return $this->wrapResponse($res);
             }
@@ -434,6 +457,62 @@ class OpenSearchClient extends ElasticsearchClient
                 $this->print("Warning: Could not remove alias '{$aliasName}': " . $e->getMessage());
             }
         }
+    }
+
+    /**
+     * Highlighting a neural-search `hybrid` query is pathologically slow (the
+     * fetch phase took ~6.5 s for 5 hits while the query phase took ~4 ms), even
+     * with a lexical highlight_query. So run the hybrid query without
+     * highlighting, then highlight the returned ids with a plain request using
+     * the hybrid query's lexical sub-queries. Ranking and scores come from the
+     * first request; only the `highlight` blocks come from the second.
+     */
+    public function searchHybridThenHighlight(\OpenSearch\Client $os, array $params): array
+    {
+        $highlight = $params['body']['highlight'];
+        unset($params['body']['highlight']);
+        $res = $os->search($params);
+
+        $hits = $res['hits']['hits'] ?? [];
+        if (empty($hits)) {
+            return $res;
+        }
+
+        $highlightQuery = $highlight['highlight_query'] ?? null;
+        if ($highlightQuery === null) {
+            $lexical = array_values(array_filter(
+                $params['body']['query']['hybrid']['queries'],
+                fn($q) => !isset($q['knn']) && !isset($q['neural'])
+            ));
+            if (empty($lexical)) {
+                return $res;    // pure vector query: nothing lexical to highlight
+            }
+            $highlightQuery = count($lexical) === 1 ? $lexical[0] : ['bool' => ['should' => $lexical]];
+        }
+        $highlight['highlight_query'] = $highlightQuery;
+
+        $ids = array_column($hits, '_id');
+        $hlRes = $os->search([
+            'index' => $params['index'],
+            'body' => [
+                'size' => count($ids),
+                '_source' => false,
+                'query' => ['ids' => ['values' => $ids]],
+                'highlight' => $highlight,
+            ],
+        ]);
+        $byId = [];
+        foreach ($hlRes['hits']['hits'] ?? [] as $hit) {
+            if (isset($hit['highlight'])) {
+                $byId[$hit['_id']] = $hit['highlight'];
+            }
+        }
+        foreach ($res['hits']['hits'] as $i => $hit) {
+            if (isset($byId[$hit['_id']])) {
+                $res['hits']['hits'][$i]['highlight'] = $byId[$hit['_id']];
+            }
+        }
+        return $res;
     }
 
     /**
