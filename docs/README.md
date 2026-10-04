@@ -27,6 +27,8 @@ frontend and a JSON API.
 - `providers/Postgres/` — Postgres provider, corpus/sentence/document indexers.
 - `providers/Neo4j/` — entity/relationship graph provider (see its README).
 
+The embedding service itself lives in `/var/www/html/embedding_service/` and is documented in its `README.md`: socket-activated on `:5000`, models loaded on first request (~11 s cold start) and unloaded after an idle timeout (`idle.env`, default 1h), controlled by `service_control.sh`.
+
 ## Design plans
 
 `docs/plans/` contains dated design documents for completed work items
@@ -41,6 +43,33 @@ Provider selection and connection settings live in `.env` (`PROVIDER`,
 `DB_*` for MySQL, `PG_*` for Postgres, `EMBEDDING_SERVICE_URL`,
 `NOIIOLELO_API_BASE_URL`). See `lib/provider.php` for how a provider is
 chosen and constructed.
+
+### Elasticsearch / OpenSearch JVM heap
+
+Both engines run on this host with a **2 GB heap** (`-Xms2g -Xmx2g`). The
+package-owned base `jvm.options` files still say 4g; the override lives in
+`jvm.options.d/heap.options`:
+
+| Engine | Override file |
+|---|---|
+| Elasticsearch | `/etc/elasticsearch/jvm.options.d/heap.options` |
+| OpenSearch | `/etc/opensearch/jvm.options.d/heap.options` |
+
+The file name must end in `.options`; other names (e.g. `memory`) are
+silently ignored. Restart the service after editing, then confirm the heap
+size with `_nodes/stats/jvm` (`heap_max_in_bytes`).
+
+Basis (2026-10-04 benchmark, 6 search modes × 20 terms, page + count per
+query): reducing 4g → 2g left search latency unchanged within noise, with no
+full or old-generation GCs, longest pause ≈ 60 ms, and no circuit-breaker
+trips. It frees about 1.3 GB of host RAM; the 4g heaps were never fully
+used. Most of the index data is served from the OS page cache (via mmap),
+not from the heap, so the RAM a smaller heap frees speeds up searches.
+
+Bulk indexing (`createindex.php --recreate`, cron `save.php`) was not part of
+the benchmark. If a run hits `CircuitBreakingException`, or `gc.log`
+(`/var/log/{elasticsearch,opensearch}/gc.log`) shows `Pause Full`, raise only
+that engine to 3g. Keep `-Xms` equal to `-Xmx`.
 
 ### OpenSearch API keys
 
