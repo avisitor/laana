@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 /**
  * Rebuild graph from locally stored corpus text (MySQL contents table),
- * so rule changes can be re-applied without re-fetching remote documents.
+ * so extraction changes can be re-applied without re-fetching remote
+ * documents. Entities come from the curated name lists named in
+ * data/entity_sources (see NameListEntityExtractor), not from the legacy
+ * regex extraction.
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../db/funcs.php';
-require_once __DIR__ . '/../providers/Neo4j/AdvancedEntityExtractor.php';
+require_once __DIR__ . '/../providers/Neo4j/NameListEntityExtractor.php';
 require_once __DIR__ . '/../lib/ProviderFactory.php';
 
 use Noiiolelo\ProviderFactory;
-use Noiiolelo\Providers\Neo4j\AdvancedEntityExtractor;
+use Noiiolelo\Providers\Neo4j\NameListEntityExtractor;
+
+// The curated name-list match index (~130k records) is held in memory.
+ini_set('memory_limit', '768M');
 
 const DEFAULT_BATCH_SIZE = 100;
 const DEFAULT_DOCUMENT_LINK_ENTITY_LIMIT = 25;
@@ -57,6 +63,41 @@ function saveLastRun(array $payload): void
         return;
     }
     @file_put_contents(LAST_RUN_FILE, $json . PHP_EOL, LOCK_EX);
+}
+
+/**
+ * Wipe the whole graph in transaction-sized chunks that each finish well
+ * inside the provider's 5s HTTP timeout: relationships first (so node
+ * deletes become cheap), then the nodes themselves.
+ */
+function clearGraphInChunks(object $neo4j): void
+{
+    $phases = [
+        'relationships' => 'MATCH ()-[r]->() WITH r LIMIT 10000 DELETE r RETURN count(*) AS deleted',
+        'nodes' => 'MATCH (n) WITH n LIMIT 10000 DETACH DELETE n RETURN count(*) AS deleted',
+    ];
+
+    foreach ($phases as $name => $query) {
+        $consecutiveFailures = 0;
+        do {
+            $deleted = $neo4j->graphQuery($query);
+            $deleted = (int)($deleted[0] ?? -1);
+            if ($deleted < 0) {
+                $consecutiveFailures++;
+                if ($consecutiveFailures >= 3) {
+                    throw new RuntimeException("Graph clear failed repeatedly while deleting {$name}");
+                }
+                $deleted = 10000; // retry the batch
+                continue;
+            }
+            $consecutiveFailures = 0;
+        } while ($deleted >= 10000);
+    }
+
+    $leftover = $neo4j->graphQuery('MATCH (n) RETURN count(*) AS count');
+    if ((int)($leftover[0] ?? -1) !== 0) {
+        throw new RuntimeException('Graph clear left nodes behind: ' . json_encode($leftover));
+    }
 }
 
 function parseOptions(): array
@@ -140,8 +181,12 @@ try {
 
     if ($cfg['clearFirst']) {
         echo ts() . " Clearing existing graph projection...\n";
-        $neo4j->graphQuery('MATCH (n:GraphEntity) DETACH DELETE n');
-        $neo4j->graphQuery('MATCH (d:Document) DETACH DELETE d');
+        // The graph can hold millions of nodes/edges and legacy hub nodes can
+        // carry tens of thousands of edges each; a single DETACH DELETE or a
+        // chunk that is too large exceeds the provider's 5s HTTP timeout and
+        // would silently no-op. Delete relationships and then nodes in
+        // bounded chunks, and fail loudly if the backend stops answering.
+        clearGraphInChunks($neo4j);
     }
 
     $db = new DB();
@@ -174,8 +219,8 @@ try {
                     continue;
                 }
 
-                $entities = AdvancedEntityExtractor::extractEntities($text);
-                $relationships = AdvancedEntityExtractor::extractRelationships($text, $entities);
+                $entities = NameListEntityExtractor::extractEntities($text);
+                $relationships = NameListEntityExtractor::extractRelationships($text, $entities);
 
                 if (!empty($entities)) {
                     $neo4j->addEntities($entities);
