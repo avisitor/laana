@@ -151,7 +151,7 @@ class OpenSearchQueryBuilder extends QueryBuilder
 
         // If it's a hybrid query, we need to specify the search pipeline
         if (strpos($mode, 'hybrid') !== false) {
-            $params['search_pipeline'] = $options['search_pipeline'] ?? 'norm-pipeline';
+            $params['search_pipeline'] = $options['search_pipeline'] ?? OpenSearchClient::searchPipelineConfig()['name'];
             
             // Add pagination_depth if needed (required for pagination in newer OpenSearch versions)
             if (isset($params['body']['query']['hybrid'])) {
