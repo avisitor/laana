@@ -141,9 +141,12 @@ CREATE TABLE laana.sentences (
     hawaiian_tsv tsvector GENERATED ALWAYS AS (
                      to_tsvector('simple'::regconfig, hawaiiantext)
                  ) STORED,
+    -- Diacritic-insensitive search vector. ʻokina/‘ are removed (not mapped
+    -- to an apostrophe, which would split Hawaiʻi into hawai + i) to match
+    -- normalizeString() applied to the query term in PostgresLaana::getSentences.
     hawaiian_unaccent_tsv tsvector GENERATED ALWAYS AS (
                      to_tsvector('simple'::regconfig,
-                                 laana.immutable_unaccent(hawaiiantext))
+                                 laana.immutable_unaccent(translate(hawaiiantext, 'ʻ‘', '')))
                  ) STORED
 );
 
