@@ -34,6 +34,7 @@ class ElasticsearchClient {
     protected QueryBuilder $queryBuilder;
     protected \Noiiolelo\GrammarScanner $grammarScanner;
     protected array $queryVector = [];
+    private bool $embeddingServiceValidated = false;
     protected string $queryTerm = '';
     private $standardIncludes =  ['sourcename', 'groupname', 'authors', 'date', 'text', 'title', 'link'];
     private ?\Exception $lastError = null;
@@ -237,10 +238,9 @@ class ElasticsearchClient {
         $this->queryBuilder = new QueryBuilder($this->embeddingClient);
         $this->grammarScanner = new \Noiiolelo\GrammarScanner();
 
-        // Validate embedding service on startup (skip if SKIP_EMBEDDING_VALIDATION is set)
-        if (!getenv('SKIP_EMBEDDING_VALIDATION') && !($_ENV['SKIP_EMBEDDING_VALIDATION'] ?? false)) {
-            $this->validateEmbeddingService();
-        }
+        // The embedding service is socket-activated and loads its models on first
+        // contact, so it is validated lazily (getEmbeddingClient(), indexing paths)
+        // rather than here: plain keyword searches must not wake it.
 
         // Skip filter checks if SKIP_FILTER_CHECKS is set (for read-only access)
         if (!getenv('SKIP_FILTER_CHECKS') && !($_ENV['SKIP_FILTER_CHECKS'] ?? false)) {
@@ -416,9 +416,17 @@ class ElasticsearchClient {
         return $this->stagingMode;
     }
 
-    private function stagingSuffix(): string
+    /**
+     * Physical index a staging run builds into for one collection index: the
+     * one of {base, base_staging} that is NOT currently serving the alias.
+     * Completed switches leave production on the *_staging names, so runs
+     * alternate between the two; always using *_staging would rebuild over
+     * the live index.
+     */
+    private function stagingTarget(string $base, string $alias): string
     {
-        return $this->stagingMode ? '_staging' : '';
+        $staged = $base . '_staging';
+        return $this->resolveAliasTarget($alias) === $staged ? $base : $staged;
     }
 
     /** Cache of alias name => current physical target (see resolveAliasTarget()). */
@@ -452,7 +460,7 @@ class ElasticsearchClient {
     public function getDocumentsConcreteName(): string
     {
         if ($this->stagingMode) {
-            return $this->getIndexName() . '_documents_new' . $this->stagingSuffix();
+            return $this->stagingTarget($this->getIndexName() . '_documents_new', $this->getDocumentsAlias());
         }
         return $this->resolveAliasTarget($this->getDocumentsAlias())
             ?? $this->getIndexName() . '_documents_new';
@@ -461,7 +469,7 @@ class ElasticsearchClient {
     public function getSentencesConcreteName(): string
     {
         if ($this->stagingMode) {
-            return $this->getIndexName() . '_sentences_new' . $this->stagingSuffix();
+            return $this->stagingTarget($this->getIndexName() . '_sentences_new', $this->getSentencesAlias());
         }
         return $this->resolveAliasTarget($this->getSentencesAlias())
             ?? $this->getIndexName() . '_sentences_new';
@@ -470,7 +478,7 @@ class ElasticsearchClient {
     public function getContentConcreteName(): string
     {
         if ($this->stagingMode) {
-            return $this->getIndexName() . '-content' . $this->stagingSuffix();
+            return $this->stagingTarget($this->getIndexName() . '-content', $this->getContentAlias());
         }
         return $this->resolveAliasTarget($this->getContentAlias())
             ?? $this->getIndexName() . '-content';
@@ -479,7 +487,7 @@ class ElasticsearchClient {
     public function getSourceMetadataConcreteName(): string
     {
         if ($this->stagingMode) {
-            return $this->getIndexName() . '-source-metadata' . $this->stagingSuffix();
+            return $this->stagingTarget($this->getIndexName() . '-source-metadata', $this->getSourceMetadataAlias());
         }
         return $this->resolveAliasTarget($this->getSourceMetadataAlias())
             ?? $this->getIndexName() . '-source-metadata';
@@ -488,7 +496,7 @@ class ElasticsearchClient {
     public function getMetadataConcreteName(): string
     {
         if ($this->stagingMode) {
-            return $this->getIndexName() . '-metadata' . $this->stagingSuffix();
+            return $this->stagingTarget($this->getIndexName() . '-metadata', $this->getMetadataAlias());
         }
         return $this->resolveAliasTarget($this->getMetadataAlias())
             ?? $this->getIndexName() . '-metadata';
@@ -595,6 +603,7 @@ class ElasticsearchClient {
      * Check if embedding service is available for operations
      */
     private function ensureEmbeddingServiceAvailable(): void {
+        $this->validateEmbeddingService();
         try {
             // Quick test to see if service responds
             $testResult = $this->embeddingClient->embedText("test", "query: ");
@@ -607,9 +616,14 @@ class ElasticsearchClient {
     }
 
     /**
-     * Validate embedding service on startup
+     * Validate embedding service models/dimensions once per client, on first
+     * indexing use (skip if SKIP_EMBEDDING_VALIDATION is set)
      */
     private function validateEmbeddingService(): void {
+        if ($this->embeddingServiceValidated
+            || getenv('SKIP_EMBEDDING_VALIDATION') || ($_ENV['SKIP_EMBEDDING_VALIDATION'] ?? false)) {
+            return;
+        }
         try {
             // Test both models
             $modelsToTest = [
@@ -630,6 +644,7 @@ class ElasticsearchClient {
                 
                 $this->printVerbose("Embedding service validated for model {$model}: dimensions={$actualDims}");
             }
+            $this->embeddingServiceValidated = true;
             
         } catch (\Exception $e) {
             throw new \RuntimeException("Embedding service validation failed: " . $e->getMessage(), 0, $e);
@@ -664,6 +679,7 @@ class ElasticsearchClient {
     }
 
     public function getEmbeddingClient(): EmbeddingClient {
+        $this->validateEmbeddingService();
         return $this->embeddingClient;
     }
 
@@ -786,11 +802,11 @@ class ElasticsearchClient {
     private function stagingPairs(): array
     {
         return [
-            ['alias' => $this->getDocumentsAlias(),      'new' => $this->getDocumentsConcreteName(),      'old' => $this->getIndexName() . '_documents_new'],
-            ['alias' => $this->getSentencesAlias(),      'new' => $this->getSentencesConcreteName(),      'old' => $this->getIndexName() . '_sentences_new'],
-            ['alias' => $this->getContentAlias(),        'new' => $this->getContentConcreteName(),        'old' => $this->getIndexName() . '-content'],
-            ['alias' => $this->getSourceMetadataAlias(), 'new' => $this->getSourceMetadataConcreteName(), 'old' => $this->getIndexName() . '-source-metadata'],
-            ['alias' => $this->getMetadataAlias(),       'new' => $this->getMetadataConcreteName(),       'old' => $this->getIndexName() . '-metadata'],
+            ['alias' => $this->getDocumentsAlias(),      'new' => $this->getDocumentsConcreteName(),      'old' => $this->resolveAliasTarget($this->getDocumentsAlias()) ?? $this->getIndexName() . '_documents_new'],
+            ['alias' => $this->getSentencesAlias(),      'new' => $this->getSentencesConcreteName(),      'old' => $this->resolveAliasTarget($this->getSentencesAlias()) ?? $this->getIndexName() . '_sentences_new'],
+            ['alias' => $this->getContentAlias(),        'new' => $this->getContentConcreteName(),        'old' => $this->resolveAliasTarget($this->getContentAlias()) ?? $this->getIndexName() . '-content'],
+            ['alias' => $this->getSourceMetadataAlias(), 'new' => $this->getSourceMetadataConcreteName(), 'old' => $this->resolveAliasTarget($this->getSourceMetadataAlias()) ?? $this->getIndexName() . '-source-metadata'],
+            ['alias' => $this->getMetadataAlias(),       'new' => $this->getMetadataConcreteName(),       'old' => $this->resolveAliasTarget($this->getMetadataAlias()) ?? $this->getIndexName() . '-metadata'],
         ];
     }
 
@@ -881,7 +897,7 @@ class ElasticsearchClient {
         }
 
         foreach ($switched as $pair) {
-            if ($this->indexExists($pair['old'])) {
+            if ($pair['old'] !== $pair['new'] && $this->indexExists($pair['old'])) {
                 $this->deleteIndex($pair['old']);
             }
         }
@@ -2409,7 +2425,7 @@ class ElasticsearchClient {
             }
             return $groupCounts;
         } catch (Exception $e) {
-            // Log the error or handle it appropriately
+            \Avisitor\Monolog\Logger::logError("getTotalSourceGroupCounts: search failed: " . $e->getMessage());
             return [];
         }
     }
@@ -2449,7 +2465,7 @@ class ElasticsearchClient {
             }
             return $groupCounts;
         } catch (Exception $e) {
-            // Log the error or handle it appropriately
+            \Avisitor\Monolog\Logger::logError("getSourceGroupCounts: search failed: " . $e->getMessage());
             return [];
         }
     }
