@@ -39,7 +39,7 @@ function getTestProvider(string $providerName = null)
         $_REQUEST['provider'] = $providerName;
     }
     try {
-        return getProvider($providerName);
+        $provider = getProvider($providerName);
     } catch (\Noiiolelo\ProviderUnavailableException $e) {
         $name = $providerName ?? $e->getProviderName();
         $reason = $e->getPrevious()?->getMessage() ?? $e->getMessage();
@@ -47,6 +47,16 @@ function getTestProvider(string $providerName = null)
             "Provider $name was not available: $reason"
         );
     }
+    // Laana-backed providers (MySQL, Postgres) report a failed connect() as a
+    // null PDO rather than throwing; probe it as isProviderAvailable() does.
+    $logger = $provider->getProcessingLogger();
+    if ($logger instanceof \Laana && $logger->conn === null) {
+        $name = $providerName ?? $provider->getName();
+        \PHPUnit\Framework\Assert::markTestSkipped(
+            "Provider $name was not available: database connection not established"
+        );
+    }
+    return $provider;
 }
 
 /**
