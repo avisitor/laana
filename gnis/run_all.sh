@@ -20,5 +20,5 @@ done
 python3 crawl_hpn.py --lang haw
 [ "$WITH_EN" = 1 ] && python3 crawl_hpn.py --lang en
 python3 build_final.py
-php ../data/make_consistent.php
-echo "Done. Output: ../data/name_lists/hawaiian_place_names.json (+ consistent/ mirror)"
+php ../data/validate_name_lists.php
+echo "Done. Output: ../data/name_lists/hawaiian_place_names.json"
