@@ -116,6 +116,8 @@
       "text_vector": {
         "type": "knn_vector",
         "dimension": 384,
+        "mode": "on_disk",
+        "compression_level": "32x",
         "method": {
           "name": "hnsw",
           "space_type": "cosinesimil",
@@ -125,6 +127,8 @@
       "text_vector_1024": {
         "type": "knn_vector",
         "dimension": 1024,
+        "mode": "on_disk",
+        "compression_level": "32x",
         "method": {
           "name": "hnsw",
           "space_type": "cosinesimil",
