@@ -30,3 +30,4 @@ gnis/browser.log
 gnis/output
 data/wordcounts.json
 docs/tuning-opensearch
+data/name_lists/hawaiian_place_names.json
