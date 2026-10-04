@@ -5,12 +5,15 @@
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../providers/Neo4j/AdvancedEntityExtractor.php';
+require_once __DIR__ . '/../providers/Neo4j/NameListEntityExtractor.php';
 require_once __DIR__ . '/../lib/ProviderFactory.php';
 
 use HawaiianSearch\ElasticsearchClient;
 use Noiiolelo\ProviderFactory;
-use Noiiolelo\Providers\Neo4j\AdvancedEntityExtractor;
+use Noiiolelo\Providers\Neo4j\NameListEntityExtractor;
+
+// The curated name-list match index (~130k records) is held in memory.
+ini_set('memory_limit', '768M');
 
 const DEFAULT_BATCH_SIZE = 200;
 const PROCESSED_IDS_FILE = __DIR__ . '/.backfill_entities_processed_ids.txt';
@@ -321,9 +324,9 @@ while (true) {
                 continue;
             }
 
-            // Extract entities and relationships using the advanced extractor
-            $entities = AdvancedEntityExtractor::extractEntities($text);
-            $relationships = AdvancedEntityExtractor::extractRelationships($text, $entities);
+            // Extract entities and relationships from the curated name lists
+            $entities = NameListEntityExtractor::extractEntities($text);
+            $relationships = NameListEntityExtractor::extractRelationships($text, $entities);
 
             // Store the extracted data in Neo4j.
             try {
