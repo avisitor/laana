@@ -1,0 +1,205 @@
+[
+    {
+        "name": "ʻAmelika",
+        "aliases": [
+            "amerika"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "America",
+        "aliases": [
+            "america"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Europa",
+        "aliases": [
+            "europa"
+        ],
+        "category": "Foreign Continent"
+    },
+    {
+        "name": "Kaleponi",
+        "aliases": [
+            "kaleponi"
+        ],
+        "category": "Foreign Place"
+    },
+    {
+        "name": "Wakinekona",
+        "aliases": [
+            "wakinekona"
+        ],
+        "category": "Foreign Place"
+    },
+    {
+        "name": "Palani",
+        "aliases": [
+            "palani"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Beretania",
+        "aliases": [
+            "beretania"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Kepania",
+        "aliases": [
+            "kepania"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Nolea",
+        "aliases": [
+            "nolea"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Kinipona",
+        "aliases": [
+            "kinipona"
+        ],
+        "category": "Foreign Place"
+    },
+    {
+        "name": "Pekeku",
+        "aliases": [
+            "pekeku"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Pekia",
+        "aliases": [
+            "pekia"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Konatinopola",
+        "aliases": [
+            "konatinopola"
+        ],
+        "category": "Foreign Place"
+    },
+    {
+        "name": "Kina",
+        "aliases": [
+            "kina"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Iāpani",
+        "aliases": [
+            "iapani"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Sepania",
+        "aliases": [
+            "sepania"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Potugala",
+        "aliases": [
+            "potugala"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Palakila",
+        "aliases": [
+            "palakila"
+        ],
+        "category": "Foreign Place"
+    },
+    {
+        "name": "Hawaiʻi",
+        "aliases": [
+            "hawaii"
+        ],
+        "category": "Island"
+    },
+    {
+        "name": "Puna",
+        "aliases": [
+            "puna"
+        ],
+        "category": "District"
+    },
+    {
+        "name": "Mauna Kea",
+        "aliases": [
+            "maunakea"
+        ],
+        "category": "Summit"
+    },
+    {
+        "name": "Italia",
+        "aliases": [
+            "italia"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Parisa",
+        "aliases": [
+            "parisa"
+        ],
+        "category": "Foreign Place"
+    },
+    {
+        "name": "Arabia",
+        "aliases": [
+            "arabia"
+        ],
+        "category": "Foreign Place"
+    },
+    {
+        "name": "Roma",
+        "aliases": [
+            "roma"
+        ],
+        "category": "Foreign Place"
+    },
+    {
+        "name": "Nevada",
+        "aliases": [
+            "nevada"
+        ],
+        "category": "Foreign Place"
+    },
+    {
+        "name": "England",
+        "aliases": [
+            "england"
+        ],
+        "category": "Foreign Country"
+    },
+    {
+        "name": "Asia",
+        "aliases": [
+            "asia"
+        ],
+        "category": "Foreign Continent"
+    },
+    {
+        "name": "ʻApelika",
+        "aliases": [
+            "africa"
+        ],
+        "category": "Foreign Continent"
+    }
+]
