@@ -1887,28 +1887,7 @@ class CorpusIndexer
             $sentenceIndexObjects[] = [
                 "_index" => $sentencesIndexName,
                 "_id" => $sourceid . "_" . $sentenceOrdinal,
-                "_source" => [
-                    "doc_id" => $sourceid,
-                    "text" => $sentence['text'],
-                    "vector" => $sentence['vector'],
-                    "position" => $sentence['position'],
-                    "chunk_id" => $sentenceOrdinal,
-                    // Add quality metadata
-                    "quality_score" => $sentence['hawaiian_word_ratio'] ?? 0,
-                    "hawaiian_word_ratio" => $sentence['hawaiian_word_ratio'] ?? null,
-                    "word_count" => $sentence['word_count'] ?? null,
-                    "entity_count" => $sentence['entity_count'] ?? null,
-                    "boilerplate_score" => $sentence['boilerplate_score'] ?? null,
-                    "length" => $sentence['length'] ?? null,
-                    "frequency" => $sentence['frequency'] ?? null,
-                    // Include document metadata for search
-                    "sourcename" => $docData['_source']['sourcename'],
-                    "sourceid" => $sourceid,
-                    "authors" => $docData['_source']['authors'],
-                    "date" => $docData['_source']['date'],
-                    "groupname" => $docData['_source']['groupname'],
-                    "title" => !empty($docData['_source']['title']) ? $docData['_source']['title'] : $docData['_source']['sourcename']
-                ]
+                "_source" => $this->buildSplitSentenceSource($sentence, $sourceid, $sentenceOrdinal, $docData),
             ];
         }
 
@@ -1918,6 +1897,42 @@ class CorpusIndexer
         return [
             'document' => $documentObj,
             'sentences' => $sentenceIndexObjects
+        ];
+    }
+
+    /**
+     * Build the sentences-index _source for one sentence in the split-indices
+     * path. All sentence-object producers (embed path, stored-vector path,
+     * vector backfill) flow through here, so this is the single place where
+     * fields that must exist on every indexed sentence doc are guaranteed.
+     */
+    private function buildSplitSentenceSource(array $sentence, string $sourceid, int|string $sentenceOrdinal, array $docData): array
+    {
+        return [
+            "doc_id" => $sourceid,
+            "text" => $sentence['text'],
+            "vector" => $sentence['vector'],
+            "position" => $sentence['position'],
+            "chunk_id" => $sentenceOrdinal,
+            // Add quality metadata
+            "quality_score" => $sentence['hawaiian_word_ratio'] ?? 0,
+            "hawaiian_word_ratio" => $sentence['hawaiian_word_ratio'] ?? null,
+            "word_count" => $sentence['word_count'] ?? null,
+            "entity_count" => $sentence['entity_count'] ?? null,
+            "boilerplate_score" => $sentence['boilerplate_score'] ?? null,
+            "length" => $sentence['length'] ?? null,
+            "frequency" => $sentence['frequency'] ?? null,
+            // Terms-aggregated by ElasticsearchClient::getGrammarPatterns(); the
+            // sentences mapping declares this as keyword. Computed here (not
+            // upstream) so every sentence-object producer is covered.
+            "grammar_patterns" => $this->client->calculateGrammarPatterns($sentence['text']),
+            // Include document metadata for search
+            "sourcename" => $docData['_source']['sourcename'],
+            "sourceid" => $sourceid,
+            "authors" => $docData['_source']['authors'],
+            "date" => $docData['_source']['date'],
+            "groupname" => $docData['_source']['groupname'],
+            "title" => !empty($docData['_source']['title']) ? $docData['_source']['title'] : $docData['_source']['sourcename']
         ];
     }
 

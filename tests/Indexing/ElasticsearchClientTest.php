@@ -66,7 +66,7 @@ class ElasticsearchClientTest extends BaseTestCase
 
         $this->assertNotEmpty(
             $patterns,
-            'getGrammarPatterns() returned an empty list — the aggregation field does not match the index mapping for grammar_patterns'
+            'getGrammarPatterns() returned an empty list — no sentence docs in the active sentences index carry grammar_patterns. The index-time population (CorpusIndexer::buildSplitSentenceSource) or the backfill (scripts/populate_grammar_patterns.php --provider=es) has not populated this index.'
         );
 
         foreach (array_slice($patterns, 0, 5) as $row) {
