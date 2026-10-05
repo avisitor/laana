@@ -47,6 +47,11 @@ if( !$pattern && $provider ) {
 $nodiacriticals = ( isset( $_REQUEST['nodiacriticals'] ) && $_REQUEST['nodiacriticals'] == 1 ) ? 1 : 0;
 $nodiacriticalsparam = ($nodiacriticals) ? "&nodiacriticals=1" : "";
 $order = isset($_GET['order']) ? $_GET['order'] : "rand";
+$sortOptions = $provider ? $provider->getAvailableSortOptions() : [];
+if( $sortOptions !== [] && !array_key_exists( $order, $sortOptions ) ) {
+    // Keyword sort values that this provider cannot perform fall back to random
+    $order = array_key_exists( 'rand', $sortOptions ) ? 'rand' : (string)array_key_first( $sortOptions );
+}
 if( $provider ) {
     $provider->debuglog( "pattern: $pattern; word: $word; order: $order; nodiacriticals: $nodiacriticals" );
 }
@@ -145,7 +150,7 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
         <button class="character-insert-button" type="button" onclick="insertcharacter('‘')">‘</button>
         
         <div id="search-options" style="display:none; font-size:0.8em; max-width:100%; padding:0.5em;">
-            <div style="display:grid; grid-template-columns: repeat(5, auto); gap:0.5em 1.5em; width:fit-content; max-width:100%; margin:0 auto;">
+            <div style="display:grid; grid-template-columns: repeat(<?=$provider->providesNoDiacritics()?5:4?>, auto); gap:0.5em 1.5em; width:fit-content; max-width:100%; margin:0 auto;">
                 <div>
                     <label for="searchtype" style="font-size:0.85em; display:block;">Search type:</label>
                     <select id="searchtype" class="dd-menu" onchange="patternSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
@@ -188,23 +193,27 @@ $base = preg_replace( '/\?.*/', '', $_SERVER["REQUEST_URI"] );
                 </div>
                 <div>
                     <label for="select-order" style="font-size:0.85em; display:block;">Sort by:</label>
+                    <?php if( $sortOptions !== [] ) { ?>
                     <select id="select-order" class="dd-menu" value="<?=$order?>" onchange="orderSelected(this)" style="font-size:0.85em; width:100%; max-width:100%;">
-                        <option value="rand">Random</option>
-                        <option value="alpha">Alpha</option>
-                        <option value="alpha desc">Alpha desc</option>
-                        <option value="date">Date</option>
-                        <option value="date desc">Date desc</option>
-                        <option value="source">Source</option>
-                        <option value="source desc">Source desc</option>
-                        <option value="length">Length</option>
-                        <option value="length desc">Length desc</option>
-                        <option value="none">None</option>
+                        <?php
+                        foreach( $sortOptions as $sortValue => $sortLabel ) {
+                            $selected = ($order == $sortValue) ? 'selected' : '';
+                            echo "<option value=\"$sortValue\" $selected>$sortLabel</option>";
+                        }
+                        ?>
                     </select>
+                    <?php } else { ?>
+                    <select id="select-order" class="dd-menu" disabled style="font-size:0.85em; width:100%; max-width:100%;">
+                        <option><?=$provider->getName()?>: no sort options</option>
+                    </select>
+                    <?php } ?>
                 </div>
+                <?php if( $provider->providesNoDiacritics() ) { ?>
                 <div>
                     <label for="nodiacriticals" style="font-size:0.85em; display:block;">No diacriticals</label>
                     <input id="checkbox-nodiacriticals" type="checkbox" name="checkbox-nodiacriticals" <?=($nodiacriticals)?'checked':''?> onclick="setNoDiacriticals()"/>
                 </div>
+                <?php } ?>
             </div>
 		</div>
         </center>
