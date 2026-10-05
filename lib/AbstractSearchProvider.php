@@ -78,6 +78,11 @@ abstract class AbstractSearchProvider implements SearchProviderInterface
         return false;
     }
 
+    public function getAvailableSortOptions(): array
+    {
+        return [];
+    }
+
     public function formatLogMessage($msg, $intro = '')
     {
         if (is_object($msg) || is_array($msg)) {
