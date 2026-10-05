@@ -218,6 +218,21 @@ def load_skip_log(path: Optional[str]) -> dict:
     return entries
 
 
+def format_failure_detail(text: str, max_lines: int = 25) -> str:
+    """Indent a JUnit failure/error body (message + stack trace) for console output.
+
+    PHPUnit repeats the test id as the first line; drop it, and drop vendor/
+    frames so the trace shows only project code.
+    """
+    lines = [l for l in text.strip().splitlines() if l.strip()]
+    if lines and '::' in lines[0] and ' ' not in lines[0].strip():
+        lines = lines[1:]
+    lines = [l for l in lines if '/vendor/' not in l]
+    if len(lines) > max_lines:
+        lines = lines[:max_lines] + [f'... ({len(lines) - max_lines} more lines in JSON report)']
+    return '\n'.join(f'      {l}' for l in lines) or '      (no detail in JUnit XML)'
+
+
 def base_test_name(name: Optional[str]) -> Optional[str]:
     if not name:
         return None
@@ -364,10 +379,12 @@ def build_summary(xml_report_path: str, summary_only: bool, skip_log_path: Optio
 
         if actual_failures or actual_errors:
             print('\n❌ Failing / error tests:')
-            for case in actual_failures:
-                print(f"  FAIL  {case['class']}::{case['name']}")
-            for case in actual_errors:
-                print(f"  ERROR {case['class']}::{case['name']}")
+            for label, case, key in (
+                [('FAIL ', c, 'failure') for c in actual_failures]
+                + [('ERROR', c, 'error') for c in actual_errors]
+            ):
+                print(f"\n  {label} {case['class']}::{case['name']}")
+                print(format_failure_detail(case.get(f'{key}_text') or case.get(f'{key}_message') or ''))
 
     return summary
 
