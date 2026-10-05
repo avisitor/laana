@@ -181,6 +181,30 @@ class MySQLProvider extends AbstractSearchProvider implements SearchProviderInte
         ];
     }
 
+    public function providesNoDiacritics(): bool
+    {
+        // The MySQL data layer matches diacritic-free input against the
+        // simplified (unaccented) column
+        return true;
+    }
+
+    public function getAvailableSortOptions(): array
+    {
+        // Laana::getsentences() sorts by SQL FROM these values only
+        return [
+            'rand' => 'Random',
+            'alpha' => 'Alpha',
+            'alpha desc' => 'Alpha desc',
+            'date' => 'Date',
+            'date desc' => 'Date desc',
+            'source' => 'Source',
+            'source desc' => 'Source desc',
+            'length' => 'Length',
+            'length desc' => 'Length desc',
+            'none' => 'None',
+        ];
+    }
+
     public function getGrammarPatterns( $options = [] ): array {
         return $this->laana->getGrammarPatterns( $options );
     }
