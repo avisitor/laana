@@ -35,6 +35,31 @@ class PostgresProvider extends MySQLProvider implements SearchProviderInterface
         ];
     }
 
+    public function providesNoDiacritics(): bool
+    {
+        // PostgresLaana::getsentences() searches the unaccent tsvector when
+        // nodiacriticals is set
+        return true;
+    }
+
+    public function getAvailableSortOptions(): array
+    {
+        // PostgresLaana::getsentences() maps exactly these values
+        // (getGrammarMatchesOrderSql() supports the same set)
+        return [
+            'rand' => 'Random',
+            'alpha' => 'Alpha',
+            'alpha desc' => 'Alpha desc',
+            'date' => 'Date',
+            'date desc' => 'Date desc',
+            'source' => 'Source',
+            'source desc' => 'Source desc',
+            'length' => 'Length',
+            'length desc' => 'Length desc',
+            'none' => 'None',
+        ];
+    }
+
 
     public function search(string $query, string $mode, int $limit = 10, int $offset = 0): array {
         $pattern = strtolower($mode);
