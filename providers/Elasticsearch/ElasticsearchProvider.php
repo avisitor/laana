@@ -365,6 +365,24 @@ class ElasticsearchProvider extends AbstractSearchProvider {
         // The elastic search client provides support for diacritic insensitivity
         return true;
     }
+
+    public function getAvailableSortOptions(): array
+    {
+        // ElasticsearchProvider::getSentences() maps exactly these values
+        return [
+            'rand' => 'Random',
+            'alpha' => 'Alpha',
+            'alpha desc' => 'Alpha desc',
+            'date' => 'Date',
+            'date desc' => 'Date desc',
+            'source' => 'Source',
+            'source desc' => 'Source desc',
+            'length' => 'Length',
+            'length desc' => 'Length desc',
+            'none' => 'None',
+            'score' => 'Score',
+        ];
+    }
     public function processText( $hawaiiantext ) {
         // Replace elastic search highlight markup with our own
         $text = str_replace( ['<mark>', '</mark>'], ['<span class="match">', '</span>'], $hawaiiantext );
