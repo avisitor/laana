@@ -41,6 +41,11 @@ class StoredVectorStubClient extends ElasticsearchClient
     {
         return new StoredVectorStubEmbeddingClient();
     }
+
+    public function calculateGrammarPatterns(string $text): array
+    {
+        return [];
+    }
 }
 
 class StoredVectorStubEmbeddingClient extends EmbeddingClient
