@@ -118,12 +118,22 @@ class PostgresLaana extends Laana {
         }
 
         // 3. BRANCH: COUNT vs. DATA
+        $order = $options['orderby'] ?? null;
+        // Date sorts exclude undated sources, matching the MySQL behavior
+        $isDateSort = ($order === 'date' || $order === 'date desc');
         if ($countOnly) {
             // High-speed count. We don't join sources or metrics here.
             // Use the non-blocked-source index path so the count stays fast
             // even when a common term matches a large share of the corpus.
             $sql = "SELECT count(*) as count FROM sentences s WHERE $where";
             $sql = $this->appendNonBlockedGroupWhereWithSourceAlias($sql, $values, 's');
+            if ($isDateSort) {
+                // The listing excludes undated sources; the count must agree
+                $sql = "SELECT count(*) as count FROM sentences s "
+                    . "INNER JOIN sources src ON src.sourceid = s.sourceid WHERE $where";
+                $sql .= " AND src.date IS NOT NULL";
+                $sql = $this->appendNonBlockedGroupWhereWithSourceAlias($sql, $values, 's');
+            }
         } else {
             // Fast data retrieval with LIMIT inside the subquery. The blocked
             // source filter must be applied INSIDE the subquery (before the
@@ -131,14 +141,53 @@ class PostgresLaana extends Laana {
             // the filter being appended after the ORDER BY clause.
             $innerSql = "SELECT sentenceid, sourceid, hawaiiantext FROM sentences WHERE $where";
             $innerSql = $this->appendNonBlockedGroupWhereWithSourceAlias($innerSql, $values, 'sentences');
-            $innerSql .= " ORDER BY sentenceid DESC LIMIT $pageSize OFFSET $offset";
-            $sql = "SELECT s.authors, s.date, s.sourcename, s.sourceid, s.link, 
-                        matched.hawaiiantext as hawaiianText, matched.sentenceid, 
+            if ($order === 'rand') {
+                // Random per query: the inner shuffle picks the page, the outer
+                // order preserves the shuffled sequence
+                $innerSql .= " ORDER BY random()";
+            }
+            $innerSql .= " LIMIT $pageSize OFFSET $offset";
+            switch ($order) {
+                case 'alpha':
+                    $outerOrder = ' ORDER BY matched.hawaiiantext ASC';
+                    break;
+                case 'alpha desc':
+                    $outerOrder = ' ORDER BY matched.hawaiiantext DESC';
+                    break;
+                case 'date':
+                    $outerOrder = ' ORDER BY s.date ASC, matched.hawaiiantext ASC';
+                    break;
+                case 'date desc':
+                    $outerOrder = ' ORDER BY s.date DESC, matched.hawaiiantext DESC';
+                    break;
+                case 'source':
+                    $outerOrder = ' ORDER BY s.sourcename ASC, matched.hawaiiantext ASC';
+                    break;
+                case 'source desc':
+                    $outerOrder = ' ORDER BY s.sourcename DESC, matched.hawaiiantext DESC';
+                    break;
+                case 'length':
+                    $outerOrder = ' ORDER BY length(matched.hawaiiantext) ASC';
+                    break;
+                case 'length desc':
+                    $outerOrder = ' ORDER BY length(matched.hawaiiantext) DESC';
+                    break;
+                case 'none':
+                    $outerOrder = ' ORDER BY matched.sentenceid ASC';
+                    break;
+                default:
+                    // invalid or unset order: keep the historical default
+                    $outerOrder = ' ORDER BY matched.sentenceid DESC';
+                    break;
+            }
+            $sql = "SELECT s.authors, s.date, s.sourcename, s.sourceid, s.link,
+                        matched.hawaiiantext as hawaiianText, matched.sentenceid,
                         m.hawaiian_word_ratio, m.word_count, m.length, m.entity_count, m.frequency
                     FROM ($innerSql) matched
                     INNER JOIN sources s ON s.sourceid = matched.sourceid
-                    LEFT JOIN sentence_metrics m ON m.sentenceid = matched.sentenceid
-                    ORDER BY matched.sentenceid DESC";
+                    LEFT JOIN sentence_metrics m ON m.sentenceid = matched.sentenceid"
+                    . ($isDateSort ? " WHERE s.date IS NOT NULL" : "")
+                    . $outerOrder;
         }
 
         try {
