@@ -266,6 +266,9 @@ run_tests() {
         fi
         echo ""
 
+        # Capture the exit code explicitly: under `set -e` a bare failing call
+        # would abort the script before the failure report is generated.
+        EXIT_CODE=0
         if [ "${TRACE:-0}" = "1" ]; then
             run_with_heartbeat_to_report \
                 "PHPUnit test execution (trace)" \
@@ -278,11 +281,10 @@ run_tests() {
                 --display-skipped \
                 --display-incomplete \
                 --display-phpunit-deprecations \
-                --log-junit "$XML_REPORT"
+                --log-junit "$XML_REPORT" || EXIT_CODE=$?
         else
-            run_phpunit_with_filtered_events
+            run_phpunit_with_filtered_events || EXIT_CODE=$?
         fi
-        EXIT_CODE=$?
         
         echo ""
         echo "📊 Verbose run completed"
@@ -324,7 +326,8 @@ run_tests() {
             --xml "$XML_REPORT" \
             --json "$JSON_REPORT" \
             --skip-log "$SKIP_LOG" \
-            || echo "⚠️  Python3 not available for JSON conversion"
+            2>&1 | tee -a "$TEXT_REPORT" \
+            || echo "⚠️  JUnit XML -> JSON conversion failed"
         verbose_log "✓ JUnit XML -> JSON conversion finished"
 
         if [ -f "$JSON_REPORT" ]; then
