@@ -51,6 +51,14 @@ interface SearchProviderInterface
 
     public function providesNoDiacritics(): bool;
 
+    /**
+     * Sort options this provider supports for sentence searches, as an
+     * ordered map of orderby value => display label (e.g. 'rand' => 'Random').
+     * An empty map means the provider does not support user-selected sorting.
+     * @return array<string, string>
+     */
+    public function getAvailableSortOptions(): array;
+
     public function formatLogMessage( $msg, $intro = "" );
     
     public function debuglog( $msg, $intro = "" );
