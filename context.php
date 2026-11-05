@@ -36,7 +36,7 @@
             // visible error box instead of a blank context view.
             noiiolelo_render_error('fragment', $e);
         }
-        $sentenceID = $_GET['id'] ?: '';
+        $sentenceID = $_GET['id'] ?? '';
         $parts = explode( "_", $sentenceID );
         if( sizeof($parts) > 1 ) {
             $documentID = $parts[0];
