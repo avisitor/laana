@@ -1,5 +1,9 @@
 # Postgres-as-Source for createindex.php Implementation Plan
 
+> **Status:** implemented
+> **Verified:** 2026-11-09
+> **Superseded by:** ../../scripts/pg_import.php
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Let `scripts/createindex.php` ingest documents, sentences, document embeddings, and sentence embeddings from Postgres (the `laana` schema) instead of from the MySQL HTTP API + live embedding service, while still indexing into Elasticsearch (default) or OpenSearch via `--provider`.

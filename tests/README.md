@@ -23,13 +23,16 @@ tests/
 ├── API/                       # API endpoint tests
 ├── Integration/               # End-to-end workflow tests
 ├── Database/                  # Database-layer tests
+├── Source/                    # Postgres source/import/schema tests
+├── Cli/                       # CLI dispatch and save-script tests
 ├── Minimal/                   # Minimal smoke tests
 └── Indexing/                  # Indexing tests (ElasticsearchClient, iterators, highlighting, ...)
 ```
 
 Suites are configured in the repo-root `phpunit.xml`: `Provider`, `Search`,
-`API`, `Integration`, `Indexing`. Provider/Indexing tests run against the
-live services from `.env` and skip when those are not reachable.
+`API`, `Integration`, `Indexing`, `Source`, `Cli`, `Database`. Provider,
+Indexing and some Source tests run against the live services from `.env` and
+skip when those are not reachable.
 
 ## Running Tests
 
@@ -76,7 +79,9 @@ The test runner produces:
 2. **JUnit XML**: `tests/reports/junit-<timestamp>.xml`
 3. **Console transcript**: `tests/reports/test-report-<timestamp>.txt`
 
-Reports older than 7 days are cleaned up automatically after each run.
+Reports older than 7 days are removed by `./tests/run-tests.sh --cleanup`
+(or `--cleanup=N` for a different threshold). A normal run leaves existing
+reports alone.
 
 ### Viewing HTML Report
 
@@ -133,7 +138,7 @@ Or access via your web server if configured.
 
 ## Requirements
 
-- PHP 7.4 or higher
+- PHP 8.1 or higher (PHPUnit 10 requires 8.1)
 - PHPUnit 10.0 or higher
 - Composer
 - Python 3 (for JSON processing in test runner)
@@ -158,6 +163,9 @@ Test behavior can be configured in `phpunit.xml` (repo root):
     <testsuite name="API">...</testsuite>
     <testsuite name="Integration">...</testsuite>
     <testsuite name="Indexing">...</testsuite>
+    <testsuite name="Source">...</testsuite>
+    <testsuite name="Cli">...</testsuite>
+    <testsuite name="Database">...</testsuite>
 </testsuites>
 ```
 
@@ -212,7 +220,7 @@ Current coverage focuses on:
 - ✅ Search modes and patterns
 - ✅ API endpoints
 - ✅ Request/response flow
-- ❌ Database operations (excluded - tested via providers)
+- ✅ Database schema/triggers and Postgres source plumbing
 - ❌ Text parsing utilities (excluded)
 - ❌ HTML output formatting (excluded)
 

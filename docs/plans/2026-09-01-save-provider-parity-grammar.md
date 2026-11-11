@@ -1,5 +1,8 @@
 # Save-Provider Parity + Automatic Postgres Grammar Patterns — Implementation Plan
 
+> **Status:** implemented
+> **Verified:** 2026-11-09
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Make `scripts/save.php --provider=postgres` and `--provider=opensearch` real ingestion paths (as `scripts/updatenoiiolelo.sh` already assumes), with grammar-pattern assignments and counts updating automatically on the Postgres path.

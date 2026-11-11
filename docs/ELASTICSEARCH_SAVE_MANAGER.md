@@ -127,7 +127,7 @@ switching.
 
 ## Requirements
 
-- PHP 7.4+
+- PHP 8.1+ (the codebase uses `readonly` properties and `array_is_list()`; PHPUnit 10 also requires 8.1)
 - Elasticsearch 8.x/9.x (or OpenSearch) running, credentials in `.env`
 - Embedding service running at `EMBEDDING_SERVICE_URL` (default
   `http://localhost:5000`; health check `curl http://localhost:5000/health`)

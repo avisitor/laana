@@ -73,9 +73,12 @@ The Neo4j provider implements the `GraphSearchProviderInterface` which extends t
 - NER and relationship extraction can be done using the Neo4j provider
 - Hybrid search combines keyword and graph search capabilities
 
-## Automated Entity/Relationship Database Maintenance
+## Entity/Relationship Database Maintenance
 
-Entities and relationships can be automatically extracted and maintained during document ingestion:
+Entity extraction is **not** wired into the normal search/ingestion path:
+`scripts/save.php`, `scripts/createindex.php` and `scripts/pg_import.php` do
+not call `EntityExtractionService`. The graph is populated by explicit
+maintenance scripts:
 
 ### Processing Existing Documents
 ```bash
@@ -85,7 +88,7 @@ php scripts/backfill_entities.php
 
 ### Processing New Documents
 ```bash
-# Process a new document as it's ingested
+# Process one document after it has been ingested
 php scripts/process_new_documents.php <document_id>
 ```
 
@@ -93,7 +96,8 @@ php scripts/process_new_documents.php <document_id>
 
 The system supports:
 1. **Backfilling existing documents** to populate the graph database
-2. **Automatic processing** of new documents during ingestion
+2. **Processing a new document on demand** via `process_new_documents.php`
+   (run it after ingestion, or from an external hook)
 3. **Status monitoring** of the entity database
 4. **Hybrid search queries** combining keyword and graph-based results
 

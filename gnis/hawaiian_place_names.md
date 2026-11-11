@@ -54,8 +54,9 @@ fields omitted):
   canonical order (`"Hawaiʻi, Oʻahu, Kauaʻi"`) for names that exist on several
   islands.
 
-**Coverage:** island 96.2% (14,291/14,859), feature_class 96.4%, moku 5,650,
-ahupuaa 14,162. Island distribution: Hawaiʻi 4,703 · Oʻahu 2,992 · Kauaʻi 1,987 ·
+**Coverage:** island 96.2% (14,291/14,859), category 96.4% (14,321/14,859),
+context 14,167 (Moku named in 5,650; Ahupuaʻa named in 14,162). Island
+distribution: Hawaiʻi 4,703 · Oʻahu 2,992 · Kauaʻi 1,987 ·
 Maui 1,799 · Molokaʻi 934 · Lānaʻi 261 · Niʻihau 77 · others (Kaula, Lehua,
 Nihoa, Mokumanamana, Kure, …) a handful · none 568.
 
@@ -183,16 +184,18 @@ DomesticNames file has *fewer* rows than 2017 because BGN deaccessions).
 
 1. Every txt line → key `norm(line)`; **first occurrence wins** on duplicate
    keys (the txt contains okina-variant pairs like `Oneula`/`Oneʻula`);
-   later duplicates only merge their island/moku/ahupuaa values in.
-2. `feature_class` precedence: GNIS English class → HPN `fc` (most common
+   later duplicates only merge their island and context (Ahupuaʻa/Moku)
+   values in.
+2. `category` precedence: GNIS English class → HPN `fc` (most common
    variant) → `"ahupuaʻa"` (when the name matches an HPN ahupuaʻa value) →
    trailing-word suffix map (`Gulch`→`Valley`, `Pt.`→`Cape`, `Pali`→`Cliff`,
    `fishpond`→`Reservoir`, …) → omit.
 3. `island` precedence: HPN mokupuni → island of HPN entries citing the name
    as an ahupuaʻa → GNIS coordinates → omit. `Lanaʻi` is normalized to
    `Lānaʻi`; islands sort in canonical main-8-then-NW order when joined.
-4. `moku`/`ahupuaa` come from the same HPN row; when a name spans locales the
-   lists are comma-joined and lose 1:1 correspondence (schema limitation).
+4. `context` (`Ahupuaʻa: X; Moku: Y.`) comes from the same HPN row; when a
+   name spans locales the comma-joined lists lose 1:1 correspondence
+   (schema limitation).
 
 ## Re-running the pipeline
 
@@ -220,13 +223,13 @@ python3 - <<'EOF'
 import json
 d = json.load(open('../name_lists/hawaiian_place_names.json', encoding='utf-8'))
 n = len(d)
-isl = sum(1 for v in d.values() if v.get('island'))
-fc  = sum(1 for v in d.values() if v.get('feature_class'))
-print(f'{n} entries; island {isl} ({isl/n:.1%}); feature_class {fc} ({fc/n:.1%})')
+isl = sum(1 for v in d if v.get('island'))
+cat = sum(1 for v in d if v.get('category'))
+print(f'{n} entries; island {isl} ({isl/n:.1%}); category {cat} ({cat/n:.1%})')
 EOF
 ```
 
-Expected: `14859 entries; island 14291 (96.2%); feature_class 14321 (96.4%)`.
+Expected: `14859 entries; island 14291 (96.2%); category 14321 (96.4%)`.
 
 Note: `build_final.py` writes `../name_lists/hawaiian_place_names.json`
 relative to the script location — run it from this directory, not from a copy

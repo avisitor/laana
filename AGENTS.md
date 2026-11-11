@@ -48,7 +48,7 @@ Hawaiian-language corpus search: web sources are scraped, indexed into the four 
 | `tests/` | PHPUnit 10 suite + `run-tests.sh` runner + custom OpenSearch runner — see `tests/README.md` |
 | repo root | Web entry points (`index.php`, `api.php`, `provider-dashboard.php`, `context.php`, raw views), legacy browser-driven ingest pages (`extract*.php`, `*pages.php` — MySQL only), static info HTML |
 
-Smaller dirs: `static/` (assets), `data/` (name lists, word-cleanup overrides), `review/` (standalone document-review app), `bin/` (`auth`, `os-api-key.sh`), `docs/`, `logs/`, `php/php/` (two one-off utilities).
+Smaller dirs: `static/` (assets), `data/` (name lists, word-cleanup overrides), `review/` (standalone document-review app), `bin/` (`auth`, `os-api-key.sh`), `docs/`, `logs/`.
 
 ### How the pieces fit
 
@@ -78,11 +78,12 @@ Composer (`composer.json`):
 - `avisitor/*` (dbbase, dbuser, authz-client, idp-client, monolog-context, env-loader) — private packages from `github.com/avisitor` VCS repos: DB abstraction, authz/IDP integration, contextual logging, `.env` loading. `composer install` needs access to those repos.
 - dev: `phpunit/phpunit` ^10.
 - PSR-4: `Noiiolelo\` → `lib/`, `Noiiolelo\Providers\` → `providers/`, `HawaiianSearch\` → `providers/{Elasticsearch,OpenSearch}/src/`, `Noiiolelo\Tests\` → `tests/`.
-- `config.audit.ignore` waives `PKSA-4dtf-ym9h-t41j` deliberately — leave it.
+- The `config.audit.ignore` key in `composer.json` waives `PKSA-4dtf-ym9h-t41j`
+  deliberately — leave it.
 
 Node: root `package.json` is `express` + `puppeteer`/`puppeteer-extra` (browser-driven ingestion). `db/ulukau/` has its own npm deps, installed by the composer post-install hook.
 
-Python: `scripts/ingest_embeddings.py` (sentence-transformers; see `docs/PARALLEL_EMBEDDINGS.md`), `providers/Elasticsearch/python/`, and `providers/Elasticsearch/docs/embedding_service_requirements.txt` for the embedding service.
+Python: `scripts/ingest_embeddings.py` (sentence-transformers; see `docs/PARALLEL_EMBEDDINGS.md`) and `providers/Elasticsearch/python/`. The embedding service's pinned dependencies live in `/var/www/html/embedding_service/requirements.txt` (the old `providers/Elasticsearch/docs/embedding_service_requirements.txt` is git-ignored and local-only).
 
 ## Commands
 

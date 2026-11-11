@@ -48,7 +48,7 @@ Laana DB — the manual upstream of `scripts/save.php` (see
 | `extractUlukau.php`, `extractCB.php`, `extractAoLama.php`, `extractKauakukalahale.php` | Thin wrappers that pick the site parser and include `extractBase.php` |
 | `extractBase.php` | Shared form: `?title=&url=` → renders extracted sentences for review, submits to `addsentences.php` |
 | `addsentences.php` | POST endpoint: adds source (if new) + sentences to MySQL, then runs `GrammarScanner::updateSourcePatterns()` |
-| `ulukau.php`, `ulukaupages.php` | Server-side Ulukau scraping via the puppeteer script `db/ulukau/ulukau.js` |
+| `ulukau.php`, `ulukaupages.php` | Server-side Ulukau scraping via the Node/Puppeteer service in `db/ulukau/`: `service.js` (Express entry point), `ulukau-doc.js` (document text/HTML by OID) and `ulukau-metadata.js` (book metadata) |
 | `cbpages.php`, `aolamapages.php`, `kauakukalahalepages.php`, `pagelist.php` | Page-list helpers for building document lists per site |
 
 ## Review app (`review/`)

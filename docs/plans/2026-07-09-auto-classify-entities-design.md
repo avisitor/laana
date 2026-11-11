@@ -1,5 +1,8 @@
 # Auto-Classify Entities Implementation Plan
 
+> **Status:** implemented
+> **Verified:** 2026-11-09
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Programmatically classify Neo4j entities as stopwords or includes using name lists and word dictionaries, with support for multiple override files.

@@ -1,5 +1,8 @@
 # Alias Management for Index Recreation Implementation Plan
 
+> **Status:** implemented
+> **Verified:** 2026-11-09
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Add configurable alias management so index recreation restores production-facing aliases (`hawaiian_documents`, `hawaiian_sentences`) pointing to the new `_new` indices.

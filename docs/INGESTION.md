@@ -186,7 +186,7 @@ Behavior notes:
   state file is removed when `--recreate` or `--resume` completes the switch.
   Use `--no-aliases` to build staging without ever switching (the state file
   is kept, so `--resume` can complete the switch later). See
-  [providers/Elasticsearch/docs/DELETE_AND_REINDEX.md](providers/Elasticsearch/docs/DELETE_AND_REINDEX.md)
+  [providers/Elasticsearch/docs/DELETE_AND_REINDEX.md](../providers/Elasticsearch/docs/DELETE_AND_REINDEX.md)
   for the full reference, including the groupname-scoped delete caveat.
 
 ## Postgres import and backfill (MySQL → Postgres)
@@ -437,8 +437,9 @@ See `providers/Neo4j/README.md`.
 
 The browser-driven ingestion pages (`extractUlukau.php`, `extractBase.php`,
 `addsentences.php`, `ulukau.php`, …) scrape into MySQL interactively — see
-[WEB_PAGES.md](WEB_PAGES.md). `scripts/search.php` is the JSON API endpoint,
-not an ingestion tool — see [SEARCHING.md](SEARCHING.md).
+[WEB_PAGES.md](WEB_PAGES.md). `scripts/search.php` is the command-line
+search tool; the JSON API endpoint is `api.php`. Neither is an ingestion
+tool — see [SEARCHING.md](SEARCHING.md).
 
 The remaining `test*.php` / `test_*.php` files are developer smoke tests,
 not operational tooling.

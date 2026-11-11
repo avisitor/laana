@@ -1,5 +1,8 @@
 # OpenSearch Bootstrap via createindex.php
 
+> **Status:** implemented
+> **Verified:** 2026-11-09
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Allow `createindex.php` to bootstrap OpenSearch from MySQL, just as it currently bootstraps Elasticsearch.

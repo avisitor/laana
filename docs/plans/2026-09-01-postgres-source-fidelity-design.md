@@ -1,7 +1,10 @@
 # Postgres source fidelity fixes for `--source=postgres`
 
+> **Status:** implemented
+> **Verified:** 2026-11-09
+
 **Date:** 2026-09-01
-**Status:** Approved (abort-on-failure semantics; optional fixes included)
+**Original status:** Approved (abort-on-failure semantics; optional fixes included)
 **Scope:** `scripts/createindex.php --source=postgres` default-run fidelity vs the laana Postgres source.
 
 ## Problem summary

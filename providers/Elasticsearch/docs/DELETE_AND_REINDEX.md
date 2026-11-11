@@ -59,6 +59,7 @@ php scripts/createindex.php [options]
 | `--aliases-only` | Only (re)create production aliases without touching indices |
 | `--no-aliases` | Skip alias creation/update after indexing |
 | `--provider=NAME` | Search provider: `Elasticsearch` (default) or `OpenSearch` |
+| `--source=NAME` | Source of documents/sentences/vectors: `api` (default — MySQL HTTP API plus the live embedding service) or `postgres` (stored vectors in the `laana` Postgres schema) |
 | `--import-raw` | Ingest ONLY the raw-content index (`hawaiian-content`) without touching any other index (see below) |
 | `--help` | Show usage |
 
@@ -206,9 +207,9 @@ be fully reconstructed from the documents index if it's ever lost or
 emptied. Use:
 
 ```bash
-php php/php/rebuild_source_metadata.php --provider=Elasticsearch --dryrun
-php php/php/rebuild_source_metadata.php --provider=Elasticsearch
-php php/php/rebuild_source_metadata.php --provider=OpenSearch
+php scripts/rebuild_source_metadata.php --provider=Elasticsearch --dryrun
+php scripts/rebuild_source_metadata.php --provider=Elasticsearch
+php scripts/rebuild_source_metadata.php --provider=OpenSearch
 ```
 
 This scrolls the documents index and rebuilds one source-metadata record

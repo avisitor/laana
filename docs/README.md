@@ -21,7 +21,7 @@ frontend and a JSON API.
 
 - `providers/Elasticsearch/` — PHP client, QueryBuilder, CorpusIndexer, SaveManager.
   - `providers/Elasticsearch/docs/DELETE_AND_REINDEX.md` — detailed `createindex.php` reference (reindex, aliases, content-only ingest).
-  - `providers/Elasticsearch/docs/embedding_service_requirements.txt` — Python packages for the embedding service.
+  - `/var/www/html/embedding_service/requirements.txt` — Python packages for the embedding service.
 - `providers/OpenSearch/` — OpenSearch client (extends the Elasticsearch client; strips `.keyword` suffixes at request time).
 - `providers/MySQL/` — MySQL/Laana provider and save manager.
 - `providers/Postgres/` — Postgres provider, corpus/sentence/document indexers.
@@ -31,10 +31,19 @@ The embedding service itself lives in `/var/www/html/embedding_service/` and is 
 
 ## Design plans
 
-`docs/plans/` contains dated design documents for completed work items
-(entity auto-classification, data-integrity fixes, alias management,
-OpenSearch bootstrap). They are historical records of design decisions, not
-operational docs.
+`docs/plans/` contains dated design documents. **All of the tracked plans are
+implemented**; they are historical design records, not operational docs.
+Commands inside them may predate later moves (`php/php/createindex.php` →
+`scripts/createindex.php`, `pg_indexer.php` → `pg_import.php`).
+
+| Plan | Status |
+|---|---|
+| `2026-07-09-auto-classify-entities-design.md` | implemented |
+| `2026-08-18-alias-management.md` | implemented |
+| `2026-08-18-opensearch-bootstrap.md` | implemented |
+| `2026-08-30-postgres-source-for-createindex.md` | implemented (now `pg_import.php`) |
+| `2026-09-01-postgres-source-fidelity-design.md` | implemented |
+| `2026-09-01-save-provider-parity-grammar.md` | implemented |
 
 ## Environment
 
