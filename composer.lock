@@ -46,12 +46,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/avisitor/dbbase.git",
-                "reference": "ed9f4e32c9ae7fc25da76036c5deaaef3ac667ef"
+                "reference": "f56f5f1a6b5b09c19f89d405e2416081b6f331ca"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/avisitor/dbbase/zipball/ed9f4e32c9ae7fc25da76036c5deaaef3ac667ef",
-                "reference": "ed9f4e32c9ae7fc25da76036c5deaaef3ac667ef",
+                "url": "https://api.github.com/repos/avisitor/dbbase/zipball/f56f5f1a6b5b09c19f89d405e2416081b6f331ca",
+                "reference": "f56f5f1a6b5b09c19f89d405e2416081b6f331ca",
                 "shasum": ""
             },
             "require": {
@@ -74,10 +74,10 @@
             },
             "description": "Database base class utilities",
             "support": {
-                "source": "https://github.com/avisitor/dbbase/tree/master",
+                "source": "https://github.com/avisitor/dbbase/tree/v1.0.7",
                 "issues": "https://github.com/avisitor/dbbase/issues"
             },
-            "time": "2026-09-02T18:30:10+00:00"
+            "time": "2026-11-17T01:39:28+00:00"
         },
         {
             "name": "avisitor/dbuser",
@@ -4166,5 +4166,5 @@
     "prefer-lowest": false,
     "platform": {},
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.11.0"
 }
